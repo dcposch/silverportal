@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "JuanBlanco.solidity",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "pomdtr.excalidraw-editor"
+  ]
+}
