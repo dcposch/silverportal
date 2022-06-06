@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
-import "./IBitcoinMirror.sol";
+import "btcmirror/interfaces/IBtcTxVerifier.sol";
 
 //
 //                                        #
@@ -26,6 +26,7 @@ import "./IBitcoinMirror.sol";
 
 uint256 constant MAX_SATS = 21000000 * 100 * 1000000; // 21m BTC in sats
 uint256 constant MAX_PRICE_WEI_PER_SAT = 1e18; // Max allowed price, 1sat = 1ETH
+uint256 constant NUM_CONFIRMATIONS_REQUIRED = 1; // Bitcoin payment finality
 
 /**
  * @dev Each order represents a bid or ask.
@@ -38,7 +39,7 @@ struct Order {
     /** @dev Buy or sell price. */
     uint128 priceWeiPerSat;
     /** @dev Unused for bid. Bitcoin P2SH address for asks. */
-    bytes32 scriptHash;
+    bytes20 scriptHash;
     /** @dev Unused for ask. Staked wei for bids. */
     uint256 stakedWei;
 }
@@ -48,7 +49,7 @@ struct Order {
  */
 struct Escrow {
     /** @dev Bitcoin P2SH address to which bitcoin must be sent. */
-    bytes32 recipientScriptHash;
+    bytes20 recipientScriptHash;
     /** @dev Bitcoin due, in satoshis. */
     uint128 amountSatsDue;
     /** @dev Due date, in Unix seconds. */
@@ -70,7 +71,7 @@ contract Portal {
     uint256 public immutable stakePercent;
 
     /** @dev Bitcoin light client. Reports block hashes, allowing tx proofs. */
-    IBitcoinMirror public immutable mirror;
+    IBtcTxVerifier public immutable btcVerifier;
 
     /** @dev Tracks all available liquidity (bids and asks). */
     mapping(uint256 => Order) orderbook;
@@ -81,9 +82,9 @@ contract Portal {
     /** @dev Next order ID = number of orders so far + 1. */
     uint256 nextOrderID;
 
-    constructor(uint256 _stakePercent, IBitcoinMirror _mirror) {
+    constructor(uint256 _stakePercent, IBtcTxVerifier _btcVerifier) {
         stakePercent = _stakePercent;
-        mirror = _mirror;
+        btcVerifier = _btcVerifier;
         nextOrderID = 1;
     }
 
@@ -120,7 +121,7 @@ contract Portal {
      * @notice Posts an ask. You send ether, which is now for sale at the stated
      *         price. To buy, a buyer sends bitcoin to the state P2SH address.
      */
-    function postAsk(uint256 priceWeiPerSat, bytes32 scriptHash)
+    function postAsk(uint256 priceWeiPerSat, bytes20 scriptHash)
         public
         payable
         returns (uint256 orderID)
@@ -153,7 +154,7 @@ contract Portal {
     function initiateSell(
         uint256 orderID,
         uint128 amountSats,
-        bytes32 recipientScriptHash
+        bytes20 recipientScriptHash
     ) public payable returns (uint256 escrowID) {
         // Orders can only be filled in their entirety, for now.
         // This means escrows are 1:1 with orders.
@@ -183,15 +184,18 @@ contract Portal {
     function completeSell(
         uint256 escrowID,
         uint256 bitcoinBlockNum,
-        bytes calldata bitcoinTransactionProof
+        BtcTxProof calldata bitcoinTransactionProof,
+        uint256 txOutIx
     ) public {
         Escrow storage e = escrows[escrowID];
         require(msg.sender == e.successRecipient, "Wrong caller");
 
         require(
-            mirror.verifyTransaction(
+            btcVerifier.verifyPayment(
+                NUM_CONFIRMATIONS_REQUIRED,
                 bitcoinBlockNum,
                 bitcoinTransactionProof,
+                txOutIx,
                 e.recipientScriptHash,
                 uint256(e.amountSatsDue)
             ),
