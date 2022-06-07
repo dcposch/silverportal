@@ -2,7 +2,7 @@ import * as React from "react";
 import Intro from "./Intro";
 import { Routes, Route } from "react-router-dom";
 import Header from "./Header";
-import SwapEthToBtc from "./SwapEthToBtc";
+import SwapEthToBtc from "./Swap";
 
 export default function Main() {
   return (
@@ -11,7 +11,7 @@ export default function Main() {
       <Header />
       <Routes>
         <Route path="/" element={<Intro />} />
-        <Route path="/eth-to-btc" element={<SwapEthToBtc />} />
+        <Route path="/swap" element={<SwapEthToBtc />} />
         <Route path="/btc-to-eth" element={<div>todo 1</div>} />
       </Routes>
     </main>
