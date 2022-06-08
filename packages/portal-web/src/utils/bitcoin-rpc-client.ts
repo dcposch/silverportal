@@ -22,6 +22,10 @@ export interface TxJson {
   txid: string;
   hash: string;
   version: number;
+  vin: {
+    txid: string;
+    txinwitness: string[];
+  }[];
   vout: {
     value: number;
     n: number;
