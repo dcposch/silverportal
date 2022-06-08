@@ -8,6 +8,7 @@
     "@rainbow-me/rainbowkit": "^0.2.1",
     "@typechain/ethers-v5": "^10.0.0",
     "@types/react": "^18.0.12",
+    "@types/react-dom": "^18.0.5",
     "bitcoin-address-validation": "^2.2.1",
     "bitcoin-proof": "^2.0.0",
     "esbuild": "^0.14.42",

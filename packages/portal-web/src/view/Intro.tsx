@@ -4,10 +4,10 @@ export default function Intro() {
   return (
     <div>
       <p>
-        Bitswap is a prototype implementation of Vitalik's trustless exchange
-        idea. It's an elegant construction, letting you to swap between two
-        different blockchains where only one side supports smart contracts. In
-        this case, we'll swap between Bitcoin and Ethereum.
+        Silver Portal is a prototype implementation of Vitalik's trustless
+        exchange idea. It's an elegant construction, letting you to swap between
+        two different blockchains where only one side supports smart contracts.
+        In this case, we'll swap between Bitcoin and Ethereum.
       </p>
       <p>
         Anyone can run an exchange. Let's say Alice runs one. She deploys a

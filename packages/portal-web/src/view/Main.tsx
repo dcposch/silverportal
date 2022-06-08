@@ -8,7 +8,6 @@ import ProveTx from "./ProveTx";
 export default function Main() {
   return (
     <main>
-      <h1>Silver Portal</h1>
       <Header />
       <Routes>
         <Route path="/" element={<Intro />} />

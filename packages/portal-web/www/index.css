@@ -12,20 +12,90 @@ td,th{padding:0}
 
 /* Bitswap styles */
 
+:root {
+    --color-dark: #111;
+    --color-gray: #444;
+    --color-offwhite: #ddd;
+    --color-accent: rgb(217, 217, 253);
+    --color-bg: #eee;
+
+    --fw-semibold: 600;
+}
+
 body {
-    font: 16px "Helvetica Neue", sans-serif;
+    font: 17px system-ui, sans-serif;
     line-height: 1.5;
-}
-
-h1 {
-    font-size: 1.5em;
-}
-
-p {
-    padding: 0.5em 0;
+    background: var(--color-bg);
+    overflow-y: scroll;
 }
 
 main {
-    max-width: 500px;
+    margin: 0 auto;
+    max-width: 540px;
     padding: 2em;
+}
+
+header img {
+    width: 100%;
+}
+
+header nav {
+    display: flex;
+    justify-content: center;
+    gap: 1em;
+    margin-bottom: 1em;
+    font-weight: var(--fw-semibold);
+}
+
+.nav-tab,
+.nav-tab-sel {
+    text-decoration: none;
+    color: var(--color-gray);
+    padding: 0.1em;
+}
+
+.nav-tab:hover {
+    color: var(--color-dark);
+}
+
+.nav-tab-sel {
+    border-bottom: 2px solid var(--color-dark);
+    color: var(--color-dark);
+}
+
+h3 {
+    font-weight: var(--fw-semibold);
+}
+
+p {
+    margin: 0.5em 0;
+}
+
+ol {
+    margin-left: 1.5em;
+}
+
+li {
+    margin: 1em 0;
+}
+
+input {
+    font: 15px system-ui, sans-serif;
+    background: transparent;
+    border: 1px solid var(--color-dark);
+    width: 20em;
+    padding: 0.2em;
+    user-select: all;
+}
+
+button {
+    font: 15px system-ui, sans-serif;
+    margin: 0.2em;
+    padding: 0.2em;
+    cursor: pointer;
+}
+
+pre {
+    overflow: hidden;
+    user-select: all;
 }

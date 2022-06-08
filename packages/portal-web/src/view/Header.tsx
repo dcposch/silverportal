@@ -1,12 +1,26 @@
 import * as React from "react";
-import { Link } from "react-router-dom";
+import { useMemo } from "react";
+import { Link, NavLink } from "react-router-dom";
 
 export default function Header() {
+  const navTabClass = useMemo(
+    () => (p: { isActive: boolean }) => p.isActive ? "nav-tab-sel" : "nav-tab",
+    []
+  );
   return (
     <header>
-      <Link to="/">Intro</Link>
-      <Link to="/prove">Prove</Link>
-      <Link to="/swap">Swap</Link>
+      <img src="./sketch/header.excalidraw.png"></img>
+      <nav>
+        <NavLink className={navTabClass} to="/">
+          📖 Home
+        </NavLink>
+        <NavLink className={navTabClass} to="/prove">
+          🔏 Prove
+        </NavLink>
+        <NavLink className={navTabClass} to="/swap">
+          🪙 Swap
+        </NavLink>
+      </nav>
     </header>
   );
 }

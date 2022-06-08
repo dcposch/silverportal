@@ -40,10 +40,10 @@ export default class ProveTx extends React.PureComponent {
 
     const txID = this._txID.current.value;
     const destAddr = this._txDestAddr.current.value;
-    print(`Proving Bitcoin tx ${txID.substring(0, 5)} pays ${destAddr}...`);
+    print(`Proving payment to ${destAddr}`);
 
     const txProof = await createBtcTransactionProof(this._btcRpc, txID);
-    print(`Proof: ${JSON.stringify(txProof, null, 2)}`);
+    print(`Proof: ${JSON.stringify(txProof.inclusionProof, null, 2)}`);
 
     const paymentIx = txProof.transaction.vout.findIndex(
       (txo) => txo.scriptPubKey.address === destAddr
@@ -95,20 +95,19 @@ export default class ProveTx extends React.PureComponent {
 
   render() {
     return (
-      <div>
-        <div>
-          <h3>1. Check destination address compatibility.</h3>
+      <ol>
+        <li>
+          <h3>Check destination address compatibility.</h3>
           <label>Enter Bitcoin address:</label>
           <input
             ref={this._destAddr}
             defaultValue="3Ah6nRWvwfLGHvrLNa2VThrAiTzSHnXyxx"
           ></input>
           <button onClick={this.validateAddr}>Validate</button>
-          <div>⚠️ Important: do this BEFORE sending a payment.</div>
           <pre>{this.state.outputAddr}</pre>
-        </div>
-        <div>
-          <h3>2. Prove a Bitcoin transaction.</h3>
+        </li>
+        <li>
+          <h3>Prove a Bitcoin transaction.</h3>
           <label>Enter transaction ID:</label>
           <input
             ref={this._txID}
@@ -121,8 +120,11 @@ export default class ProveTx extends React.PureComponent {
           ></input>
           <button onClick={this.proveTx}>Prove</button>
           <pre>{this.state.outputTx}</pre>
-        </div>
-      </div>
+        </li>
+        <li>
+          <h3>Verify a proof on Ethereum.</h3>
+        </li>
+      </ol>
     );
   }
 }
