@@ -1,19 +1,14 @@
 import { getAddressInfo } from "bitcoin-address-validation";
-import * as React from "react";
-import {
-  createGetblockClient,
-  getBlock,
-  getTransaction,
-} from "../utils/bitcoin-rpc-client";
-import { createBtcTransactionProof } from "../utils/prove-bitcoin-tx";
-
 import { ethers } from "ethers";
+import * as React from "react";
 import { factories } from "../../types/ethers-contracts";
-import { BtcTxProofStruct } from "../../types/ethers-contracts/BtcTxVerifier";
+import { createGetblockClient } from "../utils/bitcoin-rpc-client";
+import { createBtcTransactionProof } from "../utils/prove-bitcoin-tx";
 
 export default class ProveTx extends React.PureComponent {
   _destAddr = React.createRef<HTMLInputElement>();
   _txID = React.createRef<HTMLInputElement>();
+  _txDestAddr = React.createRef<HTMLInputElement>();
   _btcRpc = createGetblockClient(process.env.GBAPI);
 
   state = {
@@ -44,17 +39,20 @@ export default class ProveTx extends React.PureComponent {
     };
 
     const txID = this._txID.current.value;
-    print(`Proving Bitcoin tx ${txID.substring(0, 5)}...`);
+    const destAddr = this._txDestAddr.current.value;
+    print(`Proving Bitcoin tx ${txID.substring(0, 5)} pays ${destAddr}...`);
 
     const txProof = await createBtcTransactionProof(this._btcRpc, txID);
-    print(`Proof: ${JSON.stringify(txProof.inclusionProof, null, 2)}`);
+    print(`Proof: ${JSON.stringify(txProof, null, 2)}`);
 
-    const fromAddr = "TODO";
     const paymentIx = txProof.transaction.vout.findIndex(
-      (txo) => txo.scriptPubKey.address !== fromAddr
+      (txo) => txo.scriptPubKey.address === destAddr
     );
+    if (paymentIx < 0) {
+      print(`⚠️ No transaction outputs found paying ${destAddr}`);
+      return;
+    }
     const payment = txProof.transaction.vout[paymentIx];
-    const destAddr = payment.scriptPubKey.address;
 
     // This looks sketchy, but should be OK. The max integer that can be losslessly
     // represented as a float64 is ~2^53. The largest possible Bitcoin payment,
@@ -77,13 +75,13 @@ export default class ProveTx extends React.PureComponent {
     print(`Verifying proof via Ethereum contract...`);
     const provider = ethers.getDefaultProvider("ropsten");
     const ver = factories.BtcTxVerifier__factory.connect(
-      "0x9dbec35ee0248be70b51a01f64d062f0af813f6f",
+      "0x3157138d244ef09c12c3031e953910f9f2ae3286",
       provider
     );
     try {
       const result = await ver.functions.verifyPayment(
         1,
-        739000,
+        txProof.blockNum,
         txProof.inclusionProof,
         paymentIx,
         "0x" + destHash,
@@ -115,6 +113,11 @@ export default class ProveTx extends React.PureComponent {
           <input
             ref={this._txID}
             defaultValue="13cd6e3ae96a85bb567a681fbb339719d030cf7d8936cdfc6803069b42774052"
+          ></input>
+          <label>Destination:</label>
+          <input
+            ref={this._txDestAddr}
+            defaultValue="3Ah6nRWvwfLGHvrLNa2VThrAiTzSHnXyxx"
           ></input>
           <button onClick={this.proveTx}>Prove</button>
           <pre>{this.state.outputTx}</pre>
