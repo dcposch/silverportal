@@ -97,7 +97,7 @@ export default class ProveTx extends React.PureComponent {
     return (
       <ol>
         <li>
-          <h3>Check destination address compatibility.</h3>
+          <h2>Check destination address compatibility.</h2>
           <label>Enter Bitcoin address:</label>
           <input
             ref={this._destAddr}
@@ -107,7 +107,7 @@ export default class ProveTx extends React.PureComponent {
           <pre>{this.state.outputAddr}</pre>
         </li>
         <li>
-          <h3>Prove a Bitcoin transaction.</h3>
+          <h2>Prove a Bitcoin transaction.</h2>
           <label>Enter transaction ID:</label>
           <input
             ref={this._txID}
@@ -122,7 +122,7 @@ export default class ProveTx extends React.PureComponent {
           <pre>{this.state.outputTx}</pre>
         </li>
         <li>
-          <h3>Verify a proof on Ethereum.</h3>
+          <h2>Verify a proof on Ethereum.</h2>
         </li>
       </ol>
     );

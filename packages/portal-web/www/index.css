@@ -35,20 +35,27 @@ main {
     padding: 2em;
 }
 
+header {
+    text-align: center;
+}
+
 header img {
-    width: 100%;
+    width: 20em;
 }
 
 header nav {
     display: flex;
     justify-content: center;
     gap: 1em;
-    margin-bottom: 1em;
+    margin: 1em 0;
     font-weight: var(--fw-semibold);
+    border-bottom: 2px solid var(--color-offwhite);
 }
 
 .nav-tab,
 .nav-tab-sel {
+    position: relative;
+    top: 2px;
     text-decoration: none;
     color: var(--color-gray);
     padding: 0.1em;
@@ -63,12 +70,34 @@ header nav {
     color: var(--color-dark);
 }
 
-h3 {
+.intro-readme-only {
+    display: none;
+}
+
+blockquote {
+    background: var(--color-offwhite);
+    padding: 0.25em 1em;
+}
+
+strong {
     font-weight: var(--fw-semibold);
 }
 
+h1 {
+    font-size: 1.3em;
+    font-weight: var(--fw-semibold);
+    margin: 1em 0 0.5em 0;
+}
+
+h2 {
+    font-size: 1.15em;
+    font-weight: var(--fw-semibold);
+    font-weight: var(--fw-semibold);
+    margin: 2em 0 1em 0;
+}
+
 p {
-    margin: 0.5em 0;
+    margin: 1em 0;
 }
 
 ol {
@@ -83,7 +112,7 @@ input {
     font: 15px system-ui, sans-serif;
     background: transparent;
     border: 1px solid var(--color-dark);
-    width: 20em;
+    width: 100%;
     padding: 0.2em;
     user-select: all;
 }
@@ -93,9 +122,18 @@ button {
     margin: 0.2em;
     padding: 0.2em;
     cursor: pointer;
+    border: 1px solid var(--color-dark);
 }
 
 pre {
     overflow: hidden;
     user-select: all;
+}
+
+footer {
+    display: flex;
+    justify-content: space-between;
+    margin: 2em 0;
+    border-top: solid 2px var(--color-offwhite);
+    padding-top: 0.5em;
 }

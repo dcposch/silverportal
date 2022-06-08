@@ -4,6 +4,7 @@ import { Routes, Route } from "react-router-dom";
 import Header from "./Header";
 import SwapEthToBtc from "./Swap";
 import ProveTx from "./ProveTx";
+import Footer from "./Footer";
 
 export default function Main() {
   return (
@@ -14,6 +15,7 @@ export default function Main() {
         <Route path="/prove" element={<ProveTx />} />
         <Route path="/swap" element={<SwapEthToBtc />} />
       </Routes>
+      <Footer />
     </main>
   );
 }
