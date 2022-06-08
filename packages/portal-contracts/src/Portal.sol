@@ -49,7 +49,7 @@ struct Order {
  */
 struct Escrow {
     /** @dev Bitcoin P2SH address to which bitcoin must be sent. */
-    bytes20 recipientScriptHash;
+    bytes20 destScriptHash;
     /** @dev Bitcoin due, in satoshis. */
     uint128 amountSatsDue;
     /** @dev Due date, in Unix seconds. */
@@ -154,7 +154,7 @@ contract Portal {
     function initiateSell(
         uint256 orderID,
         uint128 amountSats,
-        bytes20 recipientScriptHash
+        bytes20 destScriptHash
     ) public payable returns (uint256 escrowID) {
         // Orders can only be filled in their entirety, for now.
         // This means escrows are 1:1 with orders.
@@ -169,7 +169,7 @@ contract Portal {
         // expected and provides proof, they get both (stake back + proceeds).
         // If provider fails to deliver, they're slashed and seller gets both.
         Escrow storage e = escrows[escrowID];
-        e.recipientScriptHash = recipientScriptHash;
+        e.destScriptHash = destScriptHash;
         e.amountSatsDue = amountSats;
         e.deadline = uint128(block.timestamp + 24 hours);
         e.escrowWei = o.stakedWei + msg.value;
@@ -196,7 +196,7 @@ contract Portal {
                 bitcoinBlockNum,
                 bitcoinTransactionProof,
                 txOutIx,
-                e.recipientScriptHash,
+                e.destScriptHash,
                 uint256(e.amountSatsDue)
             ),
             "Bad bitcoin transaction"

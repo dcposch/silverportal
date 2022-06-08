@@ -5,7 +5,8 @@ export interface BitcoinJsonRpc {
   getblockhash: [number];
   getblockheader: [string, boolean];
   getblock: [string, number];
-  getrawtransaction: [string, boolean, string];
+  gettransaction: [string];
+  getrawtransaction: [string, boolean, string | null];
   decoderawtransaction: [string, string];
 }
 
@@ -15,6 +16,23 @@ export interface BlockJson {
   merkleroot: string;
   nTx: number;
   tx: string[];
+}
+
+export interface TxJson {
+  txid: string;
+  hash: string;
+  version: number;
+  vout: {
+    value: number;
+    n: number;
+    scriptPubKey: {
+      type: string;
+      hex: string;
+      address: string;
+    };
+  }[];
+  hex: string;
+  blockhash: string;
 }
 
 export type BtcRpcClient = RpcClient<BitcoinJsonRpc>;
@@ -84,17 +102,16 @@ export async function getBlock(
   return res.data.result as BlockJson;
 }
 
-export async function getRawTransaction(
+export async function getTransaction(
   rpc: BtcRpcClient,
-  txId: string,
-  blockHash: string
-): Promise<string> {
+  txId: string
+): Promise<TxJson> {
   const res = await rpc.makeRequest({
     method: "getrawtransaction",
-    params: [txId, false, blockHash],
+    params: [txId, true, null],
     jsonrpc: "2.0",
   });
   if (res.status !== 200) throw new Error("bad getrawtransaction: " + res);
-  const ret = res.data.result as string;
+  const ret = res.data.result as TxJson;
   return ret;
 }

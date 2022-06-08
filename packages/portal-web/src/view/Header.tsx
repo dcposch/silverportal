@@ -5,8 +5,8 @@ export default function Header() {
   return (
     <header>
       <Link to="/">Intro</Link>
-      <Link to="/btc-to-eth">BTC to ETH</Link>
-      <Link to="/eth-to-btc">ETH to BTC</Link>
+      <Link to="/prove">Prove</Link>
+      <Link to="/swap">Swap</Link>
     </header>
   );
 }

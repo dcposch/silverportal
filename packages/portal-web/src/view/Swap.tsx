@@ -1,9 +1,6 @@
-import { ethers } from "ethers";
 import * as React from "react";
 
-import { factories } from "../../types/ethers-contracts";
-
-export default class Swap extends React.PureFunction {
+export default class Swap extends React.PureComponent {
   constructor(props: {}) {
     super(props);
   }
