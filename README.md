@@ -97,4 +97,5 @@ Every defi construct should state risks. Here are some of ours.
 5. **(Mild) counterparty risk.** If you're swapping ether for bitcoin and
    there's an extreme price movement in your favor, the other party might accept
    being slashed rather than complete the trade. They may also fail to complete
-   unintentionally. Either way, you'll simply get your ETH back plus slashing proceeds after the escrow period.
+   unintentionally. Either way, you'll simply get your ETH back plus slashing
+   proceeds after the escrow period.

@@ -10,6 +10,9 @@ iframe{border:0}
 table{border-collapse:collapse;border-spacing:0}
 td,th{padding:0}
 
+/* Mobile reset */
+body { text-size-adjust: none; -webkit-text-size-adjust: none; }
+
 /* Bitswap styles */
 
 :root {
@@ -20,19 +23,22 @@ td,th{padding:0}
     --color-bg: #eee;
 
     --fw-semibold: 600;
+
+    --font-body: 17px system-ui, sans-serif;
+    --font-ctrl: 0.9em system-ui, sans-serif;
 }
 
 body {
-    font: 17px system-ui, sans-serif;
-    line-height: 1.5;
+    font: var(--font-body);
+    line-height: 1.6;
     background: var(--color-bg);
     overflow-y: scroll;
 }
 
 main {
     margin: 0 auto;
-    max-width: 540px;
-    padding: 2em;
+    max-width: 640px;
+    padding: 2em 1em;
 }
 
 header {
@@ -86,14 +92,18 @@ strong {
 h1 {
     font-size: 1.3em;
     font-weight: var(--fw-semibold);
-    margin: 1em 0 0.5em 0;
+    margin: 2em 0 1em 0;
 }
 
 h2 {
     font-size: 1.15em;
     font-weight: var(--fw-semibold);
-    font-weight: var(--fw-semibold);
     margin: 2em 0 1em 0;
+}
+
+h3 {
+    font-weight: var(--fw-semibold);
+    margin: 1em 0 0.5em 0;
 }
 
 p {
@@ -108,24 +118,47 @@ li {
     margin: 1em 0;
 }
 
+label {
+    font-size: 0.9em;
+    color: var(--color-gray);
+}
+
 input {
-    font: 15px system-ui, sans-serif;
-    background: transparent;
-    border: 1px solid var(--color-dark);
+    font: var(--font-ctrl);
+    background: var(--color-offwhite);
     width: 100%;
-    padding: 0.2em;
+    padding: 0.5em;
+    border-radius: 0.2em;
+    border: none;
     user-select: all;
 }
 
 button {
-    font: 15px system-ui, sans-serif;
-    margin: 0.2em;
-    padding: 0.2em;
+    font: var(--font-ctrl);
+    background: var(--color-accent);
+    padding: 0.5em;
+    border-radius: 0.2em;
+    border: none;
     cursor: pointer;
-    border: 1px solid var(--color-dark);
+    opacity: 1;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+button:active {
+    opacity: 1;
+}
+
+.form-row {
+    display: flex;
+    gap: 1em;
 }
 
 pre {
+    margin: 0.5em 0;
+    font-size: 0.9em;
     overflow: hidden;
     user-select: all;
 }

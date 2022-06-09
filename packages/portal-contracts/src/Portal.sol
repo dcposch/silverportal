@@ -32,8 +32,8 @@ uint256 constant NUM_CONFIRMATIONS_REQUIRED = 1; // Bitcoin payment finality
  * @dev Each order represents a bid or ask.
  */
 struct Order {
-    /** @dev Liquidity provider that created this bid or ask. */
-    address provider;
+    /** @dev Liquidity maker that created this bid or ask. */
+    address maker;
     /** @dev Positive if buying ether (bid), negative if selling (ask). */
     int128 amountSats;
     /** @dev Buy or sell price. */
@@ -63,6 +63,38 @@ struct Escrow {
 }
 
 contract Portal {
+    event OrderPlaced(
+        uint256 orderID,
+        int128 amountSats,
+        uint128 priceWeiPerSat,
+        uint256 makerStakedWei,
+        address maker
+    );
+
+    event OrderMatched(
+        uint256 escrowID,
+        uint256 orderID,
+        int128 amountSats,
+        uint128 priceWeiPerSat,
+        uint256 takerStakedWei,
+        address maker,
+        address taker
+    );
+
+    event EscrowSettled(
+        uint256 escrowID,
+        uint256 amountSats,
+        address ethDest,
+        uint256 ethAmount
+    );
+
+    event EscrowSlashed(
+        uint256 escrowID,
+        uint256 escrowDeadline,
+        address ethDest,
+        uint256 ethAmount
+    );
+
     /**
      * @dev Required stake for buy transactions. If you promise to send X BTC to
      *      buy Y ETH, you have post some percentage of Y ETH, which you lose if
@@ -74,13 +106,13 @@ contract Portal {
     IBtcTxVerifier public immutable btcVerifier;
 
     /** @dev Tracks all available liquidity (bids and asks). */
-    mapping(uint256 => Order) orderbook;
+    mapping(uint256 => Order) public orderbook;
 
     /** @dev Tracks all pending transactions, by order ID. */
-    mapping(uint256 => Escrow) escrows;
+    mapping(uint256 => Escrow) public escrows;
 
     /** @dev Next order ID = number of orders so far + 1. */
-    uint256 nextOrderID;
+    uint256 public nextOrderID;
 
     constructor(uint256 _stakePercent, IBtcTxVerifier _btcVerifier) {
         stakePercent = _stakePercent;
@@ -111,10 +143,18 @@ contract Portal {
         // Record order.
         orderID = nextOrderID++;
         Order storage o = orderbook[orderID];
-        o.provider = msg.sender;
+        o.maker = msg.sender;
         o.amountSats = int128(uint128(amountSats));
         o.priceWeiPerSat = uint128(priceWeiPerSat);
         o.stakedWei = requiredStakeWei;
+
+        emit OrderPlaced(
+            orderID,
+            o.amountSats,
+            o.priceWeiPerSat,
+            o.stakedWei,
+            msg.sender
+        );
     }
 
     /**
@@ -136,10 +176,18 @@ contract Portal {
         // Record order.
         orderID = nextOrderID++;
         Order storage o = orderbook[orderID];
-        o.provider = msg.sender;
+        o.maker = msg.sender;
         o.amountSats = -int128(uint128(amountSats));
         o.priceWeiPerSat = uint128(priceWeiPerSat);
         o.scriptHash = scriptHash;
+
+        emit OrderPlaced(
+            orderID,
+            o.amountSats,
+            o.priceWeiPerSat,
+            0,
+            msg.sender
+        );
     }
 
     function withdrawBid(uint256 orderID) public {
@@ -165,19 +213,29 @@ contract Portal {
         require(msg.value == amountSats * o.priceWeiPerSat, "Wrong payment");
 
         // Put the COMBINED eth--the value being sold, plus the liquidity
-        // provider's stake--into escrow. If the provider sends bitcoin as
+        // maker's stake--into escrow. If the maker sends bitcoin as
         // expected and provides proof, they get both (stake back + proceeds).
-        // If provider fails to deliver, they're slashed and seller gets both.
+        // If maker fails to deliver, they're slashed and seller gets both.
         Escrow storage e = escrows[escrowID];
         e.destScriptHash = destScriptHash;
         e.amountSatsDue = amountSats;
         e.deadline = uint128(block.timestamp + 24 hours);
         e.escrowWei = o.stakedWei + msg.value;
-        e.successRecipient = o.provider;
+        e.successRecipient = o.maker;
         e.timeoutRecipient = msg.sender;
 
         // Order matched and filled.
         delete orderbook[orderID];
+
+        emit OrderMatched(
+            escrowID,
+            orderID,
+            o.amountSats,
+            o.priceWeiPerSat,
+            0,
+            o.maker,
+            msg.sender
+        );
     }
 
     /** @notice The bidder proves they've sent bitcoin, completing the sale. */
@@ -207,6 +265,8 @@ contract Portal {
 
         (bool success, ) = msg.sender.call{value: weiToSend}("");
         require(success, "Transfer failed");
+
+        emit EscrowSettled(escrowID, e.amountSatsDue, msg.sender, weiToSend);
     }
 
     function timeout(uint256 escrowID) public {
@@ -220,17 +280,22 @@ contract Portal {
 
         (bool success, ) = msg.sender.call{value: weiToSend}("");
         require(success, "Transfer failed");
+
+        emit EscrowSlashed(escrowID, e.deadline, msg.sender, weiToSend);
     }
 
-    function initiateBtcForEth(uint256 lpID, uint256 amountSats)
-        public
-        payable
-        returns (uint256 escrowID)
-    {
+    /** @notice Buy ether, posting stake and promising to send bitcoin. */
+    function initiateBuy(uint256 orderID, uint128 amountSats) public {
         // TODO
     }
 
-    function completeBtcForEth(uint256 escrowID, bytes calldata proof) public {
+    /** @notice Prove you sent the bitcoin, closing out the buy. */
+    function completeBuy(
+        uint256 escrowID,
+        uint256 bitcoinBlockNum,
+        BtcTxProof calldata bitcoinTransactionProof,
+        uint256 txOutIx
+    ) public {
         // TODO
     }
 }

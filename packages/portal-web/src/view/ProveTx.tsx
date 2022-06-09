@@ -8,7 +8,6 @@ import { createBtcTransactionProof } from "../utils/prove-bitcoin-tx";
 export default class ProveTx extends React.PureComponent {
   _destAddr = React.createRef<HTMLInputElement>();
   _txID = React.createRef<HTMLInputElement>();
-  _txDestAddr = React.createRef<HTMLInputElement>();
   _btcRpc = createGetblockClient(process.env.GBAPI);
 
   state = {
@@ -21,14 +20,30 @@ export default class ProveTx extends React.PureComponent {
   }
 
   validateAddr = () => {
-    let outputAddr = "Validating...\n";
-    this.setState({ outputAddr });
+    let lines = [] as string[];
+    const print = (line: string) => {
+      lines.push(line);
+      this.setState({ outputAddr: lines.join("\n") });
+    };
+
+    print("Validating...");
 
     const addr = this._destAddr.current.value;
-    const info = getAddressInfo(addr);
-
-    outputAddr += JSON.stringify(info, null, 2) + "\n";
-    this.setState({ outputAddr });
+    try {
+      const info = getAddressInfo(addr);
+      print(`Network: ${info.network}`);
+      const okType = info.type === "p2sh";
+      print(`Type   : ${info.type} ${okType ? "✅" : "❌"}`);
+      const okBech = !info.bech32;
+      print(`Bech32 : ${"" + info.bech32} ${okBech ? "✅" : "❌"}`);
+      if (okType && okBech) {
+        print("This address can receive Silver Mirror payments.");
+      } else {
+        print("This address cannot receive Silver Mirror payments.");
+      }
+    } catch (e) {
+      print(e.message);
+    }
   };
 
   proveTx = async () => {
@@ -39,7 +54,7 @@ export default class ProveTx extends React.PureComponent {
     };
 
     const txID = this._txID.current.value;
-    const destAddr = this._txDestAddr.current.value;
+    const destAddr = this._destAddr.current.value;
     print(`Proving payment to ${destAddr}`);
 
     const txProof = await createBtcTransactionProof(this._btcRpc, txID);
@@ -72,12 +87,15 @@ export default class ProveTx extends React.PureComponent {
     }
     const destHash = destScript.substring(4, 44);
 
-    print(`Verifying proof via Ethereum contract...`);
-    const provider = ethers.getDefaultProvider("ropsten");
-    const ver = factories.BtcTxVerifier__factory.connect(
-      "0x3157138d244ef09c12c3031e953910f9f2ae3286",
-      provider
-    );
+    print(`Verifying proof via BtcTxVerifier contract...`);
+    const network = "ropsten" as string;
+    const contract = "0xc2c5be1c1bc04b13ed641cafb25094495c9e2dc0";
+    const etherscanDomain =
+      network === "mainnet" ? "etherscan.io" : `${network}.etherscan.io`;
+    print(`https://${etherscanDomain}/address/${contract}`);
+
+    const provider = ethers.getDefaultProvider(network);
+    const ver = factories.BtcTxVerifier__factory.connect(contract, provider);
     try {
       const result = await ver.functions.verifyPayment(
         1,
@@ -87,7 +105,8 @@ export default class ProveTx extends React.PureComponent {
         "0x" + destHash,
         sats
       );
-      print(`Verification result: ${result}`);
+      if (result[0] === true) print(`Verification successful ✅`);
+      else print("Unreachable 💀");
     } catch (e) {
       print(`⚠️ ${e.message}`);
     }
@@ -95,36 +114,40 @@ export default class ProveTx extends React.PureComponent {
 
   render() {
     return (
-      <ol>
-        <li>
-          <h2>Check destination address compatibility.</h2>
-          <label>Enter Bitcoin address:</label>
-          <input
-            ref={this._destAddr}
-            defaultValue="3Ah6nRWvwfLGHvrLNa2VThrAiTzSHnXyxx"
-          ></input>
-          <button onClick={this.validateAddr}>Validate</button>
-          <pre>{this.state.outputAddr}</pre>
-        </li>
-        <li>
-          <h2>Prove a Bitcoin transaction.</h2>
-          <label>Enter transaction ID:</label>
-          <input
-            ref={this._txID}
-            defaultValue="13cd6e3ae96a85bb567a681fbb339719d030cf7d8936cdfc6803069b42774052"
-          ></input>
-          <label>Destination:</label>
-          <input
-            ref={this._txDestAddr}
-            defaultValue="3Ah6nRWvwfLGHvrLNa2VThrAiTzSHnXyxx"
-          ></input>
-          <button onClick={this.proveTx}>Prove</button>
-          <pre>{this.state.outputTx}</pre>
-        </li>
-        <li>
-          <h2>Verify a proof on Ethereum.</h2>
-        </li>
-      </ol>
+      <div>
+        <blockquote>
+          <p>
+            ⚠️ This demonstrates the hard part: eth verification of bitcoin
+            payments.
+          </p>
+        </blockquote>
+        <ol>
+          <li>
+            <h3>Check destination address compatibility.</h3>
+            <label>Enter Bitcoin address:</label>
+            <div className="form-row">
+              <input
+                ref={this._destAddr}
+                defaultValue="3Ah6nRWvwfLGHvrLNa2VThrAiTzSHnXyxx"
+              ></input>
+              <button onClick={this.validateAddr}>Validate</button>
+            </div>
+            <pre>{this.state.outputAddr}</pre>
+          </li>
+          <li>
+            <h3>Prove a Bitcoin payment to that address.</h3>
+            <label>Enter transaction ID:</label>
+            <div className="form-row">
+              <input
+                ref={this._txID}
+                defaultValue="13cd6e3ae96a85bb567a681fbb339719d030cf7d8936cdfc6803069b42774052"
+              ></input>
+              <button onClick={this.proveTx}>Prove</button>
+            </div>
+            <pre>{this.state.outputTx}</pre>
+          </li>
+        </ol>
+      </div>
     );
   }
 }
