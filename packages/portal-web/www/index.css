@@ -156,6 +156,11 @@ button:active {
     gap: 1em;
 }
 
+.exchange-bid-ask-cols {
+    display: flex;
+    gap: 1em;
+}
+
 pre {
     margin: 0.5em 0;
     font-size: 0.9em;

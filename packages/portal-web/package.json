@@ -5,7 +5,7 @@
     "codegen": "typechain --target=ethers-v5 ../portal-contracts/out/BtcTxVerifier.sol/*.json ../portal-contracts/out/Portal.sol/*.json"
   },
   "dependencies": {
-    "@rainbow-me/rainbowkit": "^0.2.1",
+    "@rainbow-me/rainbowkit": "^0.2.4",
     "@typechain/ethers-v5": "^10.0.0",
     "@types/marked": "^4.0.3",
     "@types/react": "^18.0.12",
@@ -14,12 +14,14 @@
     "bitcoin-proof": "github:dcposch/bitcoin-proof",
     "esbuild": "^0.14.42",
     "ethers": "^5.6.8",
+    "events": "^3.3.0",
     "jsonrpc-ts": "^0.2.1",
     "marked": "^4.0.16",
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
     "react-router-dom": "^6.3.0",
     "typechain": "^8.0.0",
-    "wagmi": "^0.4.3"
+    "util": "^0.12.4",
+    "wagmi": "^0.4.11"
   }
 }
