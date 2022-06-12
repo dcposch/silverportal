@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useProvider, useSigner } from "wagmi";
+import { useAccount, useProvider, useSigner } from "wagmi";
 import { factories, Portal } from "../../types/ethers-contracts";
 
 type OrderT = [
@@ -14,23 +14,26 @@ type OrderT = [
 
 const contract = "0x326122a2d043e9c1af83841e53a15175ca75709b";
 
+type ModalType = "bid" | "ask" | "buy" | "sell" | "slash" | "prove";
+
 export default function ExchangeOrderbook() {
   const provider = useProvider();
   const { data: signer } = useSigner();
-  const portal = useMemo(
-    () => factories.Portal__factory.connect(contract, signer || provider),
-    []
-  );
+
+  const portal = useMemo(() => {
+    console.log("Contract " + (signer ? "ready to transact" : "read-only"));
+    return factories.Portal__factory.connect(contract, signer || provider);
+  }, [signer, provider]);
 
   const [params, setParams] = useState<PortalParams | null>(null);
   useEffect(() => {
     loadParams(portal).then(setParams).catch(console.error);
-  });
+  }, []);
 
   const [orders, setOrders] = useState<OrderT[]>([]);
   useEffect(() => {
     loadOrderbook(portal).then(setOrders).catch(console.error);
-  });
+  }, []);
 
   return (
     <div>
@@ -74,7 +77,7 @@ async function loadOrderbook(portal: Portal) {
   const n = (await portal.nextOrderID()).toNumber();
 
   const promises = [] as Promise<OrderT>[];
-  for (let i = 0; i < n; i++) {
+  for (let i = 1; i < n; i++) {
     promises.push(portal.orderbook(i));
   }
   const orders = await Promise.all(promises);
@@ -98,13 +101,21 @@ function PlaceBidForm({
       return; // Ignore invalid or non-numerical inputs
     }
 
+    if (stakePercent == null || !(stakePercent > 0)) {
+      throw new Error("Missing stake percentage");
+    }
+
     const totalWei = amountSats * priceWeiPerSat;
     const stakeWei = (totalWei * stakePercent) / 100;
+    console.log(
+      "Place bid " +
+        JSON.stringify({ amountSats, priceWeiPerSat, stakeWei, stakePercent })
+    );
 
     portal.postBid(amountSats, priceWeiPerSat, {
       value: stakeWei,
     });
-  }, []);
+  }, [portal, stakePercent]);
 
   return (
     <div>
@@ -113,9 +124,9 @@ function PlaceBidForm({
         {stakePercent != null && <small>requires {stakePercent}% stake</small>}
       </h2>
       <label>Amount of BTC you're selling.</label>
-      <input ref={refBidAmount}></input>
+      <input ref={refBidAmount} defaultValue={0.01}></input>
       <label>Price you will pay, in ETH per BTC.</label>
-      <input ref={refBidPrice}></input>
+      <input ref={refBidPrice} defaultValue={18}></input>
       <button onClick={placeBid}>Place bid</button>
     </div>
   );

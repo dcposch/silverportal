@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "start": "esbuild src/app.tsx --loader:.md=text --define:process.env.GBAPI=\\\"$GETBLOCK_API_KEY\\\" --bundle --servedir=www/ --outdir=www/js",
-    "build": "esbuild src/app.tsx --define:process.env.GBAPI=\\\"$GETBLOCK_API_KEY\\\" --bundle --minify --outdir=www/js",
+    "start": "esbuild src/app.tsx --loader:.md=text --define:process.env.GBAPI=\\\"$GETBLOCK_API_KEY\\\" --bundle --servedir=www/ --outdir=www/dist",
+    "build": "esbuild src/app.tsx --loader:.md=text --define:process.env.GBAPI=\\\"$GETBLOCK_API_KEY\\\" --bundle --minify --outdir=www/dist",
     "codegen": "typechain --target=ethers-v5 ../portal-contracts/out/BtcTxVerifier.sol/*.json ../portal-contracts/out/Portal.sol/*.json"
   },
   "dependencies": {
@@ -22,6 +22,6 @@
     "react-router-dom": "^6.3.0",
     "typechain": "^8.0.0",
     "util": "^0.12.4",
-    "wagmi": "^0.4.11"
+    "wagmi": "^0.4.12"
   }
 }

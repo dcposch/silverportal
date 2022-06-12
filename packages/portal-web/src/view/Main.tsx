@@ -1,16 +1,23 @@
-import * as React from "react";
-import Intro from "./Intro";
-import { Routes, Route } from "react-router-dom";
-import Header from "./Header";
-import Exchange from "./Exchange";
-import ProveTx from "./ProveTx";
-import Footer from "./Footer";
 import "@rainbow-me/rainbowkit/styles.css";
+import "./index.css";
 
-import { getDefaultWallets, RainbowKitProvider } from "@rainbow-me/rainbowkit";
+import * as React from "react";
+import { Route, Routes } from "react-router-dom";
+import Exchange from "./Exchange";
+import Footer from "./Footer";
+import Header from "./Header";
+import Intro from "./Intro";
+import ProveTx from "./ProveTx";
+
+import {
+  connectorsForWallets,
+  getDefaultWallets,
+  RainbowKitProvider,
+} from "@rainbow-me/rainbowkit";
 import { chain, configureChains, createClient, WagmiConfig } from "wagmi";
 import { infuraProvider } from "wagmi/providers/infura";
 import { publicProvider } from "wagmi/providers/public";
+import rainbowTheme from "./rainbowKitTheme";
 
 const { chains, provider } = configureChains(
   [chain.ropsten, chain.optimism],
@@ -27,11 +34,12 @@ const wagmiClient = createClient({
   connectors,
   provider,
 });
+console.log("Wagmi client", wagmiClient);
 
 export default function Main() {
   return (
     <WagmiConfig client={wagmiClient}>
-      <RainbowKitProvider chains={chains}>
+      <RainbowKitProvider chains={chains} theme={rainbowTheme}>
         <main>
           <Header />
           <Routes>

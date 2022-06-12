@@ -14,3 +14,13 @@ sell the escrow at a slight discount to get ETH immediately.
 ```
 forge test -vv
 ```
+
+## Deployment
+
+Ensure that `ETHERSCAN_API_KEY` is set.
+
+```
+forge script PortalDeploy -f $ETH_RPC_URL_ROPSTEN --private-key $MY_DEPLOYER_PRIVKEY
+```
+
+> TODO: adding `--verify` currently does not work. Verify manually on Etherscan.

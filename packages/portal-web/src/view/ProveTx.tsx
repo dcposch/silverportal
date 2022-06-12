@@ -37,9 +37,9 @@ export default class ProveTx extends React.PureComponent {
       const okBech = !info.bech32;
       print(`Bech32 : ${"" + info.bech32} ${okBech ? "✅" : "❌"}`);
       if (okType && okBech) {
-        print("This address can receive Silver Mirror payments.");
+        print("✅ This address can receive Silver Portal payments.");
       } else {
-        print("This address cannot receive Silver Mirror payments.");
+        print("❌ This address cannot receive Silver Portal payments.");
       }
     } catch (e) {
       print(e.message);

@@ -1,5 +1,6 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import * as React from "react";
+import { useMemo } from "react";
 import ExchangeOrderbook from "./ExchangeOrderbook";
 
 export default function Exchange() {
@@ -11,8 +12,21 @@ export default function Exchange() {
           bitcoin.
         </p>
       </blockquote>
-      <ConnectButton />
-      <h2>Orderbook</h2>
+      <h2>
+        <div
+          style={useMemo(
+            () => ({
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+            }),
+            []
+          )}
+        >
+          <span>Orderbook</span>
+          <ConnectButton />
+        </div>
+      </h2>
       <ExchangeOrderbook />
     </div>
   );
