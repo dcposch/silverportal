@@ -5,7 +5,7 @@ import { factories } from "../../types/ethers-contracts";
 import { createGetblockClient } from "../utils/bitcoin-rpc-client";
 import { createBtcTransactionProof } from "../utils/prove-bitcoin-tx";
 
-export default class ProveTx extends React.PureComponent {
+export default class PageProveTx extends React.PureComponent {
   _destAddr = React.createRef<HTMLInputElement>();
   _txID = React.createRef<HTMLInputElement>();
   _btcRpc = createGetblockClient(process.env.GBAPI);

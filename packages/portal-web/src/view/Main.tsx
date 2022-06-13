@@ -3,11 +3,11 @@ import "./index.css";
 
 import * as React from "react";
 import { Route, Routes } from "react-router-dom";
-import Exchange from "./Exchange";
+import PageExchange from "./PageExchange";
 import Footer from "./Footer";
 import Header from "./Header";
-import Intro from "./Intro";
-import ProveTx from "./ProveTx";
+import PageIntro from "./PageIntro";
+import PageProveTx from "./PageProveTx";
 
 import {
   connectorsForWallets,
@@ -43,9 +43,9 @@ export default function Main() {
         <main>
           <Header />
           <Routes>
-            <Route path="/" element={<Intro />} />
-            <Route path="/prove" element={<ProveTx />} />
-            <Route path="/exchange" element={<Exchange />} />
+            <Route path="/" element={<PageIntro />} />
+            <Route path="/prove" element={<PageProveTx />} />
+            <Route path="/exchange" element={<PageExchange />} />
           </Routes>
           <Footer />
         </main>
