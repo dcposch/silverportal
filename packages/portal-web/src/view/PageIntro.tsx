@@ -1,3 +1,5 @@
+import "./PageIntro.css";
+
 import * as React from "react";
 import { marked } from "marked";
 

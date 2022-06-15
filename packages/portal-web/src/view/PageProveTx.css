@@ -1,0 +1,12 @@
+
+.provetx-form-row {
+    display: flex;
+    gap: 1em;
+}
+
+.provetx-output {
+    margin: 0.5em 0;
+    font-size: 0.9em;
+    overflow: hidden;
+    user-select: all;
+}

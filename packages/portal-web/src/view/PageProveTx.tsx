@@ -1,3 +1,5 @@
+import "./PageProveTx.css";
+
 import { getAddressInfo } from "bitcoin-address-validation";
 import { ethers } from "ethers";
 import * as React from "react";
@@ -125,26 +127,26 @@ export default class PageProveTx extends React.PureComponent {
           <li>
             <h3>Check destination address compatibility.</h3>
             <label>Enter Bitcoin address:</label>
-            <div className="form-row">
+            <div className="provetx-form-row">
               <input
                 ref={this._destAddr}
                 defaultValue="3Ah6nRWvwfLGHvrLNa2VThrAiTzSHnXyxx"
               ></input>
               <button onClick={this.validateAddr}>Validate</button>
             </div>
-            <pre>{this.state.outputAddr}</pre>
+            <pre className="provetx-output">{this.state.outputAddr}</pre>
           </li>
           <li>
             <h3>Prove a Bitcoin payment to that address.</h3>
             <label>Enter transaction ID:</label>
-            <div className="form-row">
+            <div className="provetx-form-row">
               <input
                 ref={this._txID}
                 defaultValue="13cd6e3ae96a85bb567a681fbb339719d030cf7d8936cdfc6803069b42774052"
               ></input>
               <button onClick={this.proveTx}>Prove</button>
             </div>
-            <pre>{this.state.outputTx}</pre>
+            <pre className="provetx-output">{this.state.outputTx}</pre>
           </li>
         </ol>
       </div>

@@ -6,9 +6,11 @@ const rainbowTheme = lightTheme({
   fontStack: "system",
   accentColorForeground: bgLight,
 });
-const { colors } = rainbowTheme;
+const { colors, fonts, shadows } = rainbowTheme;
 colors.modalBackground = bgLight;
 colors.connectButtonBackground = bgLight;
 colors.profileAction = bgLight;
+fonts.body = "system-ui";
+shadows.connectButton = "";
 
 export default rainbowTheme;

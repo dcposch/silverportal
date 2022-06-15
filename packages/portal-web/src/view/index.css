@@ -22,10 +22,10 @@ body { text-size-adjust: none; -webkit-text-size-adjust: none; }
     --color-accent: rgb(217, 217, 253);
     --color-bg: #eee;
 
-    --fw-semibold: 600;
+    --fw-semibold: 700;
 
     --font-body: 17px system-ui, sans-serif;
-    --font-ctrl: 0.9em system-ui, sans-serif;
+    --font-ctrl: 1em system-ui, sans-serif;
 }
 
 body {
@@ -76,10 +76,6 @@ header nav {
     color: var(--color-dark);
 }
 
-.intro-readme-only {
-    display: none;
-}
-
 blockquote {
     background: var(--color-offwhite);
     padding: 0.25em 1em;
@@ -97,7 +93,7 @@ h1 {
 
 h2 {
     font-size: 1.15em;
-    font-weight: var(--fw-semibold);
+    font-weight: 700;
     margin: 2em 0 1em 0;
 }
 
@@ -128,16 +124,18 @@ input {
     background: var(--color-offwhite);
     width: 100%;
     padding: 0.5em;
-    border-radius: 0.2em;
+    border-radius: 0.1em;
     border: none;
     user-select: all;
 }
 
 button {
     font: var(--font-ctrl);
+    font-weight: var(--fw-semibold);
     background: var(--color-accent);
     padding: 0.5em;
-    border-radius: 0.2em;
+    border-radius: 0.1em;
+    margin: 0.2em;
     border: none;
     cursor: pointer;
     opacity: 1;
@@ -149,23 +147,6 @@ button:hover {
 
 button:active {
     opacity: 1;
-}
-
-.form-row {
-    display: flex;
-    gap: 1em;
-}
-
-.exchange-bid-ask-cols {
-    display: flex;
-    gap: 1em;
-}
-
-pre {
-    margin: 0.5em 0;
-    font-size: 0.9em;
-    overflow: hidden;
-    user-select: all;
 }
 
 footer {
