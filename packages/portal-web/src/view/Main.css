@@ -19,8 +19,11 @@ body { text-size-adjust: none; -webkit-text-size-adjust: none; }
     --color-dark: #111;
     --color-gray: #444;
     --color-offwhite: #ddd;
-    --color-accent: rgb(217, 217, 253);
     --color-bg: #eee;
+    --color-accent-lite: #8eb8ef;
+    --color-accent: #4f96f3;
+    --color-accent-dark: #0e76fd;
+    --color-link: #09499c;
 
     --fw-semibold: 700;
 
@@ -39,41 +42,6 @@ main {
     margin: 0 auto;
     max-width: 640px;
     padding: 2em 1em;
-}
-
-header {
-    text-align: center;
-}
-
-header img {
-    width: 20em;
-}
-
-header nav {
-    display: flex;
-    justify-content: center;
-    gap: 1em;
-    margin: 1em 0;
-    font-weight: var(--fw-semibold);
-    border-bottom: 2px solid var(--color-offwhite);
-}
-
-.nav-tab,
-.nav-tab-sel {
-    position: relative;
-    top: 2px;
-    text-decoration: none;
-    color: var(--color-gray);
-    padding: 0.1em;
-}
-
-.nav-tab:hover {
-    color: var(--color-dark);
-}
-
-.nav-tab-sel {
-    border-bottom: 2px solid var(--color-dark);
-    color: var(--color-dark);
 }
 
 blockquote {
@@ -106,6 +74,15 @@ p {
     margin: 1em 0;
 }
 
+a {
+    text-decoration: none;
+    color: var(--color-link);
+}
+
+a:visited {
+    color: var(--color-link);
+}
+
 ol {
     margin-left: 1.5em;
 }
@@ -132,10 +109,9 @@ input {
 button {
     font: var(--font-ctrl);
     font-weight: var(--fw-semibold);
-    background: var(--color-accent);
+    background: var(--color-accent-lite);
     padding: 0.5em;
     border-radius: 0.1em;
-    margin: 0.2em;
     border: none;
     cursor: pointer;
     opacity: 1;

@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "start": "esbuild src/app.tsx --loader:.md=text --define:process.env.GBAPI=\\\"$GETBLOCK_API_KEY\\\" --bundle --servedir=www/ --outdir=www/dist",
+    "test": "ts-node node_modules/tape/bin/tape src/**/*.test.ts",
+    "start": "esbuild src/app.tsx --loader:.md=text --define:process.env.GBAPI=\\\"$GETBLOCK_API_KEY\\\" --bundle --servedir=www/ --outdir=www/dist --sourcemap",
     "build": "esbuild src/app.tsx --loader:.md=text --define:process.env.GBAPI=\\\"$GETBLOCK_API_KEY\\\" --bundle --minify --outdir=www/dist",
     "codegen": "typechain --target=ethers-v5 ../portal-contracts/out/BtcTxVerifier.sol/*.json ../portal-contracts/out/Portal.sol/*.json"
   },
@@ -10,6 +11,7 @@
     "@types/marked": "^4.0.3",
     "@types/react": "^18.0.12",
     "@types/react-dom": "^18.0.5",
+    "@types/tape": "^4.13.2",
     "bitcoin-address-validation": "^2.2.1",
     "bitcoin-proof": "github:dcposch/bitcoin-proof",
     "esbuild": "^0.14.42",
@@ -20,6 +22,8 @@
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
     "react-router-dom": "^6.3.0",
+    "tape": "^5.5.3",
+    "ts-node": "^10.8.1",
     "typechain": "^8.0.0",
     "util": "^0.12.4",
     "wagmi": "^0.4.12"

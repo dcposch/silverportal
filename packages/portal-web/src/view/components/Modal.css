@@ -1,7 +1,7 @@
 
 .modal-wrap {
     z-index: 1;
-    position: absolute;
+    position: fixed;
     top: 0;
     bottom: 0;
     left: 0; 
@@ -14,7 +14,7 @@
 
 .modal-window {
     width: 480px;
-    height: 320px;
+    min-height: 320px;
     background-color: var(--color-bg);
     padding: 2em;
 }

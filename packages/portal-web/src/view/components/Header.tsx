@@ -1,6 +1,8 @@
+import "./Header.css";
+
 import * as React from "react";
 import { useMemo } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 export default function Header() {
   const navTabClass = useMemo(

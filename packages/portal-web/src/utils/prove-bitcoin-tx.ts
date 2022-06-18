@@ -1,11 +1,12 @@
 import { getMerkleRoot, getProof } from "bitcoin-proof";
 import { RpcClient } from "jsonrpc-ts";
 import { BtcTxProofStruct } from "../../types/ethers-contracts/BtcTxVerifier";
+import { strip0x } from "./bitcoin-addr";
 import {
   BitcoinJsonRpc,
-  getTransaction,
   getBlock,
   getBlockHeader,
+  getTransaction,
   TxJson,
 } from "./bitcoin-rpc-client";
 
@@ -13,6 +14,48 @@ export interface BtcTxProofAndDetails {
   blockNum: number;
   transaction: TxJson;
   inclusionProof: BtcTxProofStruct;
+}
+
+export type BtcPaymentProofAndDetails = BtcTxProofAndDetails & {
+  txOutIx: number;
+  amountSats: number;
+  payment: {
+    value: number;
+    n: number;
+    scriptPubKey: {
+      type: string;
+      hex: string;
+      address: string;
+    };
+  };
+};
+
+/**
+ * Proves that a specific payment (tx output) occured.
+ */
+export async function createBtcPaymentProof(
+  btcRpc: RpcClient<BitcoinJsonRpc>,
+  txId: string,
+  destScriptHash: string
+) {
+  const txProof = await createBtcTransactionProof(btcRpc, txId);
+
+  const expectedHex = `a914${strip0x(destScriptHash)}87`;
+  const txOutIx = txProof.transaction.vout.findIndex(
+    (txo) => txo.scriptPubKey.hex === expectedHex
+  );
+  if (txOutIx < 0) {
+    console.log(txProof.transaction, expectedHex);
+    throw new Error(`No transaction outputs found paying ${destScriptHash}`);
+  }
+  const payment = txProof.transaction.vout[txOutIx];
+
+  // This looks sketchy, but should be OK. The max integer that can be losslessly
+  // represented as a float64 is ~2^53. The largest possible Bitcoin payment,
+  // (21 million * 100 million) satoshis, is less than that.
+  const amountSats = Math.round(payment.value * 1e8);
+
+  return Object.assign({}, txProof, { txOutIx, amountSats, payment });
 }
 
 /**
@@ -85,7 +128,9 @@ function excerptHashSerializedRawTx(rawTx: TxJson): string {
 
   const witnessBytes = witnesses.reduce((n, wit) => n + wit.length / 2, 0);
   // 1 byte for # witnesses, n bytes for each witnesses' length, + witness bytes
-  const witnessSectionBytes = 1 + witnesses.length + witnessBytes;
+  const witnessSectionBytes =
+    rawTx.vin.length + witnesses.length + witnessBytes;
+  console.log({ rawTx, witnesses, witnessBytes });
 
   const version = hex.substring(0, 8);
   const txIO = hex.substring(12, hex.length - 8 - 2 * witnessSectionBytes);

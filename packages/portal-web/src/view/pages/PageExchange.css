@@ -1,0 +1,37 @@
+
+.exchange-bid-ask-cols {
+    display: flex;
+    gap: 1em;
+}
+
+.exchange-row {
+    margin: 0.5em 0;
+}
+
+.exchange-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+.exchange-order-row {
+    display: flex;
+    gap: 0.5em;
+    font-variant-numeric: tabular-nums;
+}
+
+.exchange-order-row:first-child {
+    font-weight: var(--fw-semibold);
+    letter-spacing: -0.07ex;
+}
+
+.exchange-order-row:not(:first-child) a,
+.exchange-order-row:not(:first-child) a:hover,
+.exchange-order-row:not(:first-child) a:visited {
+    color: var(--color-gray);
+}
+
+.exchange-escrow-row {
+    display: grid;
+    grid-template-columns: 4.5em 6em 6em 4em;
+    gap: 1em;
+}

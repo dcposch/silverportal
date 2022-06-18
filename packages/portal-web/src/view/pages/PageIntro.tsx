@@ -1,9 +1,9 @@
 import "./PageIntro.css";
 
-import * as React from "react";
 import { marked } from "marked";
+import * as React from "react";
 
-const readmeMd = require("../../../../README.md");
+const readmeMd = require("../../../../../README.md");
 
 export default function PageIntro() {
   const html = marked.parse(readmeMd);

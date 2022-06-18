@@ -3,6 +3,7 @@
 /* eslint-disable */
 import { Signer, utils, Contract, ContractFactory, Overrides } from "ethers";
 import type { Provider, TransactionRequest } from "@ethersproject/providers";
+import type { PromiseOrValue } from "../common";
 import type { BtcTxVerifier, BtcTxVerifierInterface } from "../BtcTxVerifier";
 
 const _abi = [
@@ -111,14 +112,14 @@ export class BtcTxVerifier__factory extends ContractFactory {
   }
 
   override deploy(
-    _mirror: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _mirror: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<BtcTxVerifier> {
     return super.deploy(_mirror, overrides || {}) as Promise<BtcTxVerifier>;
   }
   override getDeployTransaction(
-    _mirror: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    _mirror: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): TransactionRequest {
     return super.getDeployTransaction(_mirror, overrides || {});
   }

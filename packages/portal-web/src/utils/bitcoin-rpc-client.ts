@@ -52,11 +52,14 @@ export function createGetblockClient(
     if (!apiKey) throw new Error("Missing GETBLOCK_API_KEY & no apiKey passed");
   }
 
+  // TODO: mainnet/testnet multiplexing
   return new RpcClient<BitcoinJsonRpc>({
-    url: "https://btc.getblock.io/mainnet/",
+    url: "https://btc.getblock.io/testnet/",
     headers: { "x-api-key": apiKey },
   });
 }
+
+export const getblockClient = createGetblockClient(process.env.GBAPI);
 
 export async function getBlockHash(
   rpc: BtcRpcClient,

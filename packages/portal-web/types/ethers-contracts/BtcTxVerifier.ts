@@ -18,14 +18,15 @@ import type {
   TypedEvent,
   TypedListener,
   OnEvent,
+  PromiseOrValue,
 } from "./common";
 
 export type BtcTxProofStruct = {
-  blockHeader: BytesLike;
-  txId: BytesLike;
-  txIndex: BigNumberish;
-  txMerkleProof: BytesLike;
-  rawTx: BytesLike;
+  blockHeader: PromiseOrValue<BytesLike>;
+  txId: PromiseOrValue<BytesLike>;
+  txIndex: PromiseOrValue<BigNumberish>;
+  txMerkleProof: PromiseOrValue<BytesLike>;
+  rawTx: PromiseOrValue<BytesLike>;
 };
 
 export type BtcTxProofStructOutput = [
@@ -52,12 +53,12 @@ export interface BtcTxVerifierInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "verifyPayment",
     values: [
-      BigNumberish,
-      BigNumberish,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>,
       BtcTxProofStruct,
-      BigNumberish,
-      BytesLike,
-      BigNumberish
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BytesLike>,
+      PromiseOrValue<BigNumberish>
     ]
   ): string;
 
@@ -97,34 +98,34 @@ export interface BtcTxVerifier extends BaseContract {
 
   functions: {
     verifyPayment(
-      minConfirmations: BigNumberish,
-      blockNum: BigNumberish,
+      minConfirmations: PromiseOrValue<BigNumberish>,
+      blockNum: PromiseOrValue<BigNumberish>,
       inclusionProof: BtcTxProofStruct,
-      txOutIx: BigNumberish,
-      destScriptHash: BytesLike,
-      amountSats: BigNumberish,
+      txOutIx: PromiseOrValue<BigNumberish>,
+      destScriptHash: PromiseOrValue<BytesLike>,
+      amountSats: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<[boolean]>;
   };
 
   verifyPayment(
-    minConfirmations: BigNumberish,
-    blockNum: BigNumberish,
+    minConfirmations: PromiseOrValue<BigNumberish>,
+    blockNum: PromiseOrValue<BigNumberish>,
     inclusionProof: BtcTxProofStruct,
-    txOutIx: BigNumberish,
-    destScriptHash: BytesLike,
-    amountSats: BigNumberish,
+    txOutIx: PromiseOrValue<BigNumberish>,
+    destScriptHash: PromiseOrValue<BytesLike>,
+    amountSats: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
   ): Promise<boolean>;
 
   callStatic: {
     verifyPayment(
-      minConfirmations: BigNumberish,
-      blockNum: BigNumberish,
+      minConfirmations: PromiseOrValue<BigNumberish>,
+      blockNum: PromiseOrValue<BigNumberish>,
       inclusionProof: BtcTxProofStruct,
-      txOutIx: BigNumberish,
-      destScriptHash: BytesLike,
-      amountSats: BigNumberish,
+      txOutIx: PromiseOrValue<BigNumberish>,
+      destScriptHash: PromiseOrValue<BytesLike>,
+      amountSats: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<boolean>;
   };
@@ -133,24 +134,24 @@ export interface BtcTxVerifier extends BaseContract {
 
   estimateGas: {
     verifyPayment(
-      minConfirmations: BigNumberish,
-      blockNum: BigNumberish,
+      minConfirmations: PromiseOrValue<BigNumberish>,
+      blockNum: PromiseOrValue<BigNumberish>,
       inclusionProof: BtcTxProofStruct,
-      txOutIx: BigNumberish,
-      destScriptHash: BytesLike,
-      amountSats: BigNumberish,
+      txOutIx: PromiseOrValue<BigNumberish>,
+      destScriptHash: PromiseOrValue<BytesLike>,
+      amountSats: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
   };
 
   populateTransaction: {
     verifyPayment(
-      minConfirmations: BigNumberish,
-      blockNum: BigNumberish,
+      minConfirmations: PromiseOrValue<BigNumberish>,
+      blockNum: PromiseOrValue<BigNumberish>,
       inclusionProof: BtcTxProofStruct,
-      txOutIx: BigNumberish,
-      destScriptHash: BytesLike,
-      amountSats: BigNumberish,
+      txOutIx: PromiseOrValue<BigNumberish>,
+      destScriptHash: PromiseOrValue<BytesLike>,
+      amountSats: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
   };

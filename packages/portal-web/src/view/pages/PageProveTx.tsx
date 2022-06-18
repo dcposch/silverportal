@@ -3,9 +3,14 @@ import "./PageProveTx.css";
 import { getAddressInfo } from "bitcoin-address-validation";
 import { ethers } from "ethers";
 import * as React from "react";
-import { factories } from "../../types/ethers-contracts";
-import { createGetblockClient } from "../utils/bitcoin-rpc-client";
-import { createBtcTransactionProof } from "../utils/prove-bitcoin-tx";
+import { factories } from "../../../types/ethers-contracts";
+import { createGetblockClient } from "../../utils/bitcoin-rpc-client";
+import { createBtcPaymentProof } from "../../utils/prove-bitcoin-tx";
+import ViewContractLink from "../components/ViewContractLink";
+import { parseBitcoinAddr } from "../../utils/bitcoin-addr";
+import { Buffer } from "buffer";
+
+const contract = "0xc2b0cf7402941a1925e187ea05b215dcfea011d6";
 
 export default class PageProveTx extends React.PureComponent {
   _destAddr = React.createRef<HTMLInputElement>();
@@ -58,26 +63,20 @@ export default class PageProveTx extends React.PureComponent {
     const txID = this._txID.current.value;
     const destAddr = this._destAddr.current.value;
     print(`Proving payment to ${destAddr}`);
-
-    const txProof = await createBtcTransactionProof(this._btcRpc, txID);
-    print(`Proof: ${JSON.stringify(txProof.inclusionProof, null, 2)}`);
-
-    const paymentIx = txProof.transaction.vout.findIndex(
-      (txo) => txo.scriptPubKey.address === destAddr
-    );
-    if (paymentIx < 0) {
-      print(`⚠️ No transaction outputs found paying ${destAddr}`);
+    const parsed = parseBitcoinAddr(destAddr);
+    if (!parsed.supported) {
+      print(`⚠️ Unsupported address type`);
       return;
     }
-    const payment = txProof.transaction.vout[paymentIx];
 
-    // This looks sketchy, but should be OK. The max integer that can be losslessly
-    // represented as a float64 is ~2^53. The largest possible Bitcoin payment,
-    // (21 million * 100 million) satoshis, is less than that. TODO: verify
-    // that this multiplication cannot cause an off-by-one-sat rounding error.
-    const sats = Math.round(payment.value * 1e8);
-    print(`Payment: ${payment.value.toFixed(8)} BTC to ${destAddr}`);
+    const scriptHash = Buffer.from(parsed.scriptHash).toString("hex");
+    const txProof = await createBtcPaymentProof(this._btcRpc, txID, scriptHash);
+    print(`Proof: ${JSON.stringify(txProof.inclusionProof, null, 2)}`);
 
+    const paidBtc = (txProof.amountSats / 1e8).toFixed(8);
+    print(`Payment: ${paidBtc} BTC to ${destAddr}`);
+
+    const { payment } = txProof;
     if (payment.scriptPubKey.type !== "scripthash") {
       print(`⚠️ Require P2SH payment. Found ${payment.scriptPubKey.type}`);
       return;
@@ -91,7 +90,6 @@ export default class PageProveTx extends React.PureComponent {
 
     print(`Verifying proof via BtcTxVerifier contract...`);
     const network = "ropsten" as string;
-    const contract = "0xc2c5be1c1bc04b13ed641cafb25094495c9e2dc0";
     const etherscanDomain =
       network === "mainnet" ? "etherscan.io" : `${network}.etherscan.io`;
     print(`https://${etherscanDomain}/address/${contract}`);
@@ -103,9 +101,9 @@ export default class PageProveTx extends React.PureComponent {
         1,
         txProof.blockNum,
         txProof.inclusionProof,
-        paymentIx,
+        txProof.txOutIx,
         "0x" + destHash,
-        sats
+        txProof.amountSats
       );
       if (result[0] === true) print(`Verification successful ✅`);
       else print("Unreachable 💀");
@@ -130,7 +128,7 @@ export default class PageProveTx extends React.PureComponent {
             <div className="provetx-form-row">
               <input
                 ref={this._destAddr}
-                defaultValue="3Ah6nRWvwfLGHvrLNa2VThrAiTzSHnXyxx"
+                defaultValue="2NFHjeqNQf5W24zq9YAP4CgzP42S8VcqXQF"
               ></input>
               <button onClick={this.validateAddr}>Validate</button>
             </div>
@@ -138,11 +136,14 @@ export default class PageProveTx extends React.PureComponent {
           </li>
           <li>
             <h3>Prove a Bitcoin payment to that address.</h3>
+            <div>
+              <ViewContractLink contract={contract} network="ropsten" />
+            </div>
             <label>Enter transaction ID:</label>
             <div className="provetx-form-row">
               <input
                 ref={this._txID}
-                defaultValue="13cd6e3ae96a85bb567a681fbb339719d030cf7d8936cdfc6803069b42774052"
+                defaultValue="cdc6c49f85c9980b3a2ee5f864c449ed0cf5804851cffe0d0eeb25ee166ee014"
               ></input>
               <button onClick={this.proveTx}>Prove</button>
             </div>

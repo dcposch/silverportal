@@ -25,14 +25,15 @@ import type {
   TypedEvent,
   TypedListener,
   OnEvent,
+  PromiseOrValue,
 } from "./common";
 
 export type BtcTxProofStruct = {
-  blockHeader: BytesLike;
-  txId: BytesLike;
-  txIndex: BigNumberish;
-  txMerkleProof: BytesLike;
-  rawTx: BytesLike;
+  blockHeader: PromiseOrValue<BytesLike>;
+  txId: PromiseOrValue<BytesLike>;
+  txIndex: PromiseOrValue<BigNumberish>;
+  txMerkleProof: PromiseOrValue<BytesLike>;
+  rawTx: PromiseOrValue<BytesLike>;
 };
 
 export type BtcTxProofStructOutput = [
@@ -52,8 +53,7 @@ export type BtcTxProofStructOutput = [
 export interface PortalInterface extends utils.Interface {
   functions: {
     "btcVerifier()": FunctionFragment;
-    "completeBuy(uint256,uint256,(bytes,bytes32,uint256,bytes,bytes),uint256)": FunctionFragment;
-    "completeSell(uint256,uint256,(bytes,bytes32,uint256,bytes,bytes),uint256)": FunctionFragment;
+    "cancelOrder(uint256)": FunctionFragment;
     "escrows(uint256)": FunctionFragment;
     "initiateBuy(uint256,uint128)": FunctionFragment;
     "initiateSell(uint256,uint128,bytes20)": FunctionFragment;
@@ -61,17 +61,15 @@ export interface PortalInterface extends utils.Interface {
     "orderbook(uint256)": FunctionFragment;
     "postAsk(uint256,bytes20)": FunctionFragment;
     "postBid(uint256,uint256)": FunctionFragment;
+    "proveSettlement(uint256,uint256,(bytes,bytes32,uint256,bytes,bytes),uint256)": FunctionFragment;
+    "slash(uint256)": FunctionFragment;
     "stakePercent()": FunctionFragment;
-    "timeout(uint256)": FunctionFragment;
-    "withdrawAsk(uint256)": FunctionFragment;
-    "withdrawBid(uint256)": FunctionFragment;
   };
 
   getFunction(
     nameOrSignatureOrTopic:
       | "btcVerifier"
-      | "completeBuy"
-      | "completeSell"
+      | "cancelOrder"
       | "escrows"
       | "initiateBuy"
       | "initiateSell"
@@ -79,10 +77,9 @@ export interface PortalInterface extends utils.Interface {
       | "orderbook"
       | "postAsk"
       | "postBid"
+      | "proveSettlement"
+      | "slash"
       | "stakePercent"
-      | "timeout"
-      | "withdrawAsk"
-      | "withdrawBid"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -90,24 +87,24 @@ export interface PortalInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "completeBuy",
-    values: [BigNumberish, BigNumberish, BtcTxProofStruct, BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "completeSell",
-    values: [BigNumberish, BigNumberish, BtcTxProofStruct, BigNumberish]
+    functionFragment: "cancelOrder",
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "escrows",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "initiateBuy",
-    values: [BigNumberish, BigNumberish]
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "initiateSell",
-    values: [BigNumberish, BigNumberish, BytesLike]
+    values: [
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BytesLike>
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "nextOrderID",
@@ -115,31 +112,32 @@ export interface PortalInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "orderbook",
-    values: [BigNumberish]
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "postAsk",
-    values: [BigNumberish, BytesLike]
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BytesLike>]
   ): string;
   encodeFunctionData(
     functionFragment: "postBid",
-    values: [BigNumberish, BigNumberish]
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "proveSettlement",
+    values: [
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>,
+      BtcTxProofStruct,
+      PromiseOrValue<BigNumberish>
+    ]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "slash",
+    values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "stakePercent",
     values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "timeout",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "withdrawAsk",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "withdrawBid",
-    values: [BigNumberish]
   ): string;
 
   decodeFunctionResult(
@@ -147,11 +145,7 @@ export interface PortalInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "completeBuy",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "completeSell",
+    functionFragment: "cancelOrder",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "escrows", data: BytesLike): Result;
@@ -171,28 +165,26 @@ export interface PortalInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "postAsk", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "postBid", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "proveSettlement",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "slash", data: BytesLike): Result;
+  decodeFunctionResult(
     functionFragment: "stakePercent",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "timeout", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "withdrawAsk",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "withdrawBid",
     data: BytesLike
   ): Result;
 
   events: {
     "EscrowSettled(uint256,uint256,address,uint256)": EventFragment;
     "EscrowSlashed(uint256,uint256,address,uint256)": EventFragment;
+    "OrderCancelled(uint256)": EventFragment;
     "OrderMatched(uint256,uint256,int128,uint128,uint256,address,address)": EventFragment;
     "OrderPlaced(uint256,int128,uint128,uint256,address)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "EscrowSettled"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "EscrowSlashed"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "OrderCancelled"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OrderMatched"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OrderPlaced"): EventFragment;
 }
@@ -222,6 +214,16 @@ export type EscrowSlashedEvent = TypedEvent<
 >;
 
 export type EscrowSlashedEventFilter = TypedEventFilter<EscrowSlashedEvent>;
+
+export interface OrderCancelledEventObject {
+  orderID: BigNumber;
+}
+export type OrderCancelledEvent = TypedEvent<
+  [BigNumber],
+  OrderCancelledEventObject
+>;
+
+export type OrderCancelledEventFilter = TypedEventFilter<OrderCancelledEvent>;
 
 export interface OrderMatchedEventObject {
   escrowID: BigNumber;
@@ -282,24 +284,13 @@ export interface Portal extends BaseContract {
   functions: {
     btcVerifier(overrides?: CallOverrides): Promise<[string]>;
 
-    completeBuy(
-      escrowID: BigNumberish,
-      bitcoinBlockNum: BigNumberish,
-      bitcoinTransactionProof: BtcTxProofStruct,
-      txOutIx: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    completeSell(
-      escrowID: BigNumberish,
-      bitcoinBlockNum: BigNumberish,
-      bitcoinTransactionProof: BtcTxProofStruct,
-      txOutIx: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+    cancelOrder(
+      orderID: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     escrows(
-      arg0: BigNumberish,
+      arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<
       [string, BigNumber, BigNumber, BigNumber, string, string] & {
@@ -313,22 +304,22 @@ export interface Portal extends BaseContract {
     >;
 
     initiateBuy(
-      orderID: BigNumberish,
-      amountSats: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      orderID: PromiseOrValue<BigNumberish>,
+      amountSats: PromiseOrValue<BigNumberish>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     initiateSell(
-      orderID: BigNumberish,
-      amountSats: BigNumberish,
-      destScriptHash: BytesLike,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      orderID: PromiseOrValue<BigNumberish>,
+      amountSats: PromiseOrValue<BigNumberish>,
+      destScriptHash: PromiseOrValue<BytesLike>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     nextOrderID(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     orderbook(
-      arg0: BigNumberish,
+      arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<
       [string, BigNumber, BigNumber, string, BigNumber] & {
@@ -341,55 +332,42 @@ export interface Portal extends BaseContract {
     >;
 
     postAsk(
-      priceWeiPerSat: BigNumberish,
-      scriptHash: BytesLike,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      priceWeiPerSat: PromiseOrValue<BigNumberish>,
+      scriptHash: PromiseOrValue<BytesLike>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     postBid(
-      amountSats: BigNumberish,
-      priceWeiPerSat: BigNumberish,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      amountSats: PromiseOrValue<BigNumberish>,
+      priceWeiPerSat: PromiseOrValue<BigNumberish>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    proveSettlement(
+      escrowID: PromiseOrValue<BigNumberish>,
+      bitcoinBlockNum: PromiseOrValue<BigNumberish>,
+      bitcoinTransactionProof: BtcTxProofStruct,
+      txOutIx: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    slash(
+      escrowID: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     stakePercent(overrides?: CallOverrides): Promise<[BigNumber]>;
-
-    timeout(
-      escrowID: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    withdrawAsk(
-      orderID: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    withdrawBid(
-      orderID: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
   };
 
   btcVerifier(overrides?: CallOverrides): Promise<string>;
 
-  completeBuy(
-    escrowID: BigNumberish,
-    bitcoinBlockNum: BigNumberish,
-    bitcoinTransactionProof: BtcTxProofStruct,
-    txOutIx: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  completeSell(
-    escrowID: BigNumberish,
-    bitcoinBlockNum: BigNumberish,
-    bitcoinTransactionProof: BtcTxProofStruct,
-    txOutIx: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+  cancelOrder(
+    orderID: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   escrows(
-    arg0: BigNumberish,
+    arg0: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
   ): Promise<
     [string, BigNumber, BigNumber, BigNumber, string, string] & {
@@ -403,22 +381,22 @@ export interface Portal extends BaseContract {
   >;
 
   initiateBuy(
-    orderID: BigNumberish,
-    amountSats: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    orderID: PromiseOrValue<BigNumberish>,
+    amountSats: PromiseOrValue<BigNumberish>,
+    overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   initiateSell(
-    orderID: BigNumberish,
-    amountSats: BigNumberish,
-    destScriptHash: BytesLike,
-    overrides?: PayableOverrides & { from?: string | Promise<string> }
+    orderID: PromiseOrValue<BigNumberish>,
+    amountSats: PromiseOrValue<BigNumberish>,
+    destScriptHash: PromiseOrValue<BytesLike>,
+    overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   nextOrderID(overrides?: CallOverrides): Promise<BigNumber>;
 
   orderbook(
-    arg0: BigNumberish,
+    arg0: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
   ): Promise<
     [string, BigNumber, BigNumber, string, BigNumber] & {
@@ -431,55 +409,42 @@ export interface Portal extends BaseContract {
   >;
 
   postAsk(
-    priceWeiPerSat: BigNumberish,
-    scriptHash: BytesLike,
-    overrides?: PayableOverrides & { from?: string | Promise<string> }
+    priceWeiPerSat: PromiseOrValue<BigNumberish>,
+    scriptHash: PromiseOrValue<BytesLike>,
+    overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   postBid(
-    amountSats: BigNumberish,
-    priceWeiPerSat: BigNumberish,
-    overrides?: PayableOverrides & { from?: string | Promise<string> }
+    amountSats: PromiseOrValue<BigNumberish>,
+    priceWeiPerSat: PromiseOrValue<BigNumberish>,
+    overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  proveSettlement(
+    escrowID: PromiseOrValue<BigNumberish>,
+    bitcoinBlockNum: PromiseOrValue<BigNumberish>,
+    bitcoinTransactionProof: BtcTxProofStruct,
+    txOutIx: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  slash(
+    escrowID: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   stakePercent(overrides?: CallOverrides): Promise<BigNumber>;
 
-  timeout(
-    escrowID: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  withdrawAsk(
-    orderID: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  withdrawBid(
-    orderID: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
   callStatic: {
     btcVerifier(overrides?: CallOverrides): Promise<string>;
 
-    completeBuy(
-      escrowID: BigNumberish,
-      bitcoinBlockNum: BigNumberish,
-      bitcoinTransactionProof: BtcTxProofStruct,
-      txOutIx: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    completeSell(
-      escrowID: BigNumberish,
-      bitcoinBlockNum: BigNumberish,
-      bitcoinTransactionProof: BtcTxProofStruct,
-      txOutIx: BigNumberish,
+    cancelOrder(
+      orderID: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     escrows(
-      arg0: BigNumberish,
+      arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<
       [string, BigNumber, BigNumber, BigNumber, string, string] & {
@@ -493,22 +458,22 @@ export interface Portal extends BaseContract {
     >;
 
     initiateBuy(
-      orderID: BigNumberish,
-      amountSats: BigNumberish,
+      orderID: PromiseOrValue<BigNumberish>,
+      amountSats: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
-    ): Promise<void>;
+    ): Promise<BigNumber>;
 
     initiateSell(
-      orderID: BigNumberish,
-      amountSats: BigNumberish,
-      destScriptHash: BytesLike,
+      orderID: PromiseOrValue<BigNumberish>,
+      amountSats: PromiseOrValue<BigNumberish>,
+      destScriptHash: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     nextOrderID(overrides?: CallOverrides): Promise<BigNumber>;
 
     orderbook(
-      arg0: BigNumberish,
+      arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<
       [string, BigNumber, BigNumber, string, BigNumber] & {
@@ -521,30 +486,31 @@ export interface Portal extends BaseContract {
     >;
 
     postAsk(
-      priceWeiPerSat: BigNumberish,
-      scriptHash: BytesLike,
+      priceWeiPerSat: PromiseOrValue<BigNumberish>,
+      scriptHash: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     postBid(
-      amountSats: BigNumberish,
-      priceWeiPerSat: BigNumberish,
+      amountSats: PromiseOrValue<BigNumberish>,
+      priceWeiPerSat: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    proveSettlement(
+      escrowID: PromiseOrValue<BigNumberish>,
+      bitcoinBlockNum: PromiseOrValue<BigNumberish>,
+      bitcoinTransactionProof: BtcTxProofStruct,
+      txOutIx: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    slash(
+      escrowID: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     stakePercent(overrides?: CallOverrides): Promise<BigNumber>;
-
-    timeout(escrowID: BigNumberish, overrides?: CallOverrides): Promise<void>;
-
-    withdrawAsk(
-      orderID: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    withdrawBid(
-      orderID: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
   };
 
   filters: {
@@ -573,6 +539,9 @@ export interface Portal extends BaseContract {
       ethDest?: null,
       ethAmount?: null
     ): EscrowSlashedEventFilter;
+
+    "OrderCancelled(uint256)"(orderID?: null): OrderCancelledEventFilter;
+    OrderCancelled(orderID?: null): OrderCancelledEventFilter;
 
     "OrderMatched(uint256,uint256,int128,uint128,uint256,address,address)"(
       escrowID?: null,
@@ -612,145 +581,122 @@ export interface Portal extends BaseContract {
   estimateGas: {
     btcVerifier(overrides?: CallOverrides): Promise<BigNumber>;
 
-    completeBuy(
-      escrowID: BigNumberish,
-      bitcoinBlockNum: BigNumberish,
-      bitcoinTransactionProof: BtcTxProofStruct,
-      txOutIx: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+    cancelOrder(
+      orderID: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
-    completeSell(
-      escrowID: BigNumberish,
-      bitcoinBlockNum: BigNumberish,
-      bitcoinTransactionProof: BtcTxProofStruct,
-      txOutIx: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+    escrows(
+      arg0: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
-
-    escrows(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
 
     initiateBuy(
-      orderID: BigNumberish,
-      amountSats: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      orderID: PromiseOrValue<BigNumberish>,
+      amountSats: PromiseOrValue<BigNumberish>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     initiateSell(
-      orderID: BigNumberish,
-      amountSats: BigNumberish,
-      destScriptHash: BytesLike,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      orderID: PromiseOrValue<BigNumberish>,
+      amountSats: PromiseOrValue<BigNumberish>,
+      destScriptHash: PromiseOrValue<BytesLike>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     nextOrderID(overrides?: CallOverrides): Promise<BigNumber>;
 
     orderbook(
-      arg0: BigNumberish,
+      arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     postAsk(
-      priceWeiPerSat: BigNumberish,
-      scriptHash: BytesLike,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      priceWeiPerSat: PromiseOrValue<BigNumberish>,
+      scriptHash: PromiseOrValue<BytesLike>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     postBid(
-      amountSats: BigNumberish,
-      priceWeiPerSat: BigNumberish,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      amountSats: PromiseOrValue<BigNumberish>,
+      priceWeiPerSat: PromiseOrValue<BigNumberish>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    proveSettlement(
+      escrowID: PromiseOrValue<BigNumberish>,
+      bitcoinBlockNum: PromiseOrValue<BigNumberish>,
+      bitcoinTransactionProof: BtcTxProofStruct,
+      txOutIx: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    slash(
+      escrowID: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     stakePercent(overrides?: CallOverrides): Promise<BigNumber>;
-
-    timeout(
-      escrowID: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    withdrawAsk(
-      orderID: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    withdrawBid(
-      orderID: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
   };
 
   populateTransaction: {
     btcVerifier(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    completeBuy(
-      escrowID: BigNumberish,
-      bitcoinBlockNum: BigNumberish,
-      bitcoinTransactionProof: BtcTxProofStruct,
-      txOutIx: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    completeSell(
-      escrowID: BigNumberish,
-      bitcoinBlockNum: BigNumberish,
-      bitcoinTransactionProof: BtcTxProofStruct,
-      txOutIx: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+    cancelOrder(
+      orderID: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     escrows(
-      arg0: BigNumberish,
+      arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     initiateBuy(
-      orderID: BigNumberish,
-      amountSats: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      orderID: PromiseOrValue<BigNumberish>,
+      amountSats: PromiseOrValue<BigNumberish>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     initiateSell(
-      orderID: BigNumberish,
-      amountSats: BigNumberish,
-      destScriptHash: BytesLike,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      orderID: PromiseOrValue<BigNumberish>,
+      amountSats: PromiseOrValue<BigNumberish>,
+      destScriptHash: PromiseOrValue<BytesLike>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     nextOrderID(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     orderbook(
-      arg0: BigNumberish,
+      arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     postAsk(
-      priceWeiPerSat: BigNumberish,
-      scriptHash: BytesLike,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      priceWeiPerSat: PromiseOrValue<BigNumberish>,
+      scriptHash: PromiseOrValue<BytesLike>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     postBid(
-      amountSats: BigNumberish,
-      priceWeiPerSat: BigNumberish,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+      amountSats: PromiseOrValue<BigNumberish>,
+      priceWeiPerSat: PromiseOrValue<BigNumberish>,
+      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    proveSettlement(
+      escrowID: PromiseOrValue<BigNumberish>,
+      bitcoinBlockNum: PromiseOrValue<BigNumberish>,
+      bitcoinTransactionProof: BtcTxProofStruct,
+      txOutIx: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    slash(
+      escrowID: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     stakePercent(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    timeout(
-      escrowID: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    withdrawAsk(
-      orderID: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    withdrawBid(
-      orderID: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
   };
 }

@@ -1,19 +1,15 @@
 import "@rainbow-me/rainbowkit/styles.css";
-import "./index.css";
+import "./Main.css";
 
 import * as React from "react";
 import { Route, Routes } from "react-router-dom";
-import PageExchange from "./PageExchange";
-import Footer from "./Footer";
-import Header from "./Header";
-import PageIntro from "./PageIntro";
-import PageProveTx from "./PageProveTx";
+import Footer from "./components/Footer";
+import Header from "./components/Header";
+import PageExchange from "./pages/PageExchange";
+import PageIntro from "./pages/PageIntro";
+import PageProveTx from "./pages/PageProveTx";
 
-import {
-  connectorsForWallets,
-  getDefaultWallets,
-  RainbowKitProvider,
-} from "@rainbow-me/rainbowkit";
+import { getDefaultWallets, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { chain, configureChains, createClient, WagmiConfig } from "wagmi";
 import { infuraProvider } from "wagmi/providers/infura";
 import { publicProvider } from "wagmi/providers/public";
@@ -39,7 +35,11 @@ console.log("Wagmi client", wagmiClient);
 export default function Main() {
   return (
     <WagmiConfig client={wagmiClient}>
-      <RainbowKitProvider chains={chains} theme={rainbowTheme}>
+      <RainbowKitProvider
+        chains={chains}
+        theme={rainbowTheme}
+        showRecentTransactions
+      >
         <main>
           <Header />
           <Routes>

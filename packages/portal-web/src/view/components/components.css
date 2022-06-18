@@ -1,0 +1,9 @@
+
+.component-addr {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.component-amount-n {
+    font-variant-numeric: tabular-nums;
+}

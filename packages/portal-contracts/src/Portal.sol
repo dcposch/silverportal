@@ -36,7 +36,7 @@ struct Order {
     address maker;
     /** @dev Positive if buying ether (bid), negative if selling (ask). */
     int128 amountSats;
-    /** @dev Buy or sell price. */
+    /** @dev INVERSE price, in weis per sat. You're buying or selling weis.*/
     uint128 priceWeiPerSat;
     /** @dev Unused for bid. Bitcoin P2SH address for asks. */
     bytes20 scriptHash;
@@ -70,6 +70,8 @@ contract Portal {
         uint256 makerStakedWei,
         address maker
     );
+
+    event OrderCancelled(uint256 orderID);
 
     event OrderMatched(
         uint256 escrowID,
@@ -190,12 +192,69 @@ contract Portal {
         );
     }
 
-    function withdrawBid(uint256 orderID) public {
-        // TODO
+    function cancelOrder(uint256 orderID) public {
+        Order storage o = orderbook[orderID];
+
+        require(msg.sender == o.maker, "Not your order");
+        require(o.amountSats != 0, "Order already filled");
+
+        uint256 weiToSend;
+        if (o.amountSats > 0) {
+            // Bid, return stake
+            weiToSend = o.stakedWei;
+        } else {
+            // Ask, return liquidity
+            weiToSend = uint256(uint128(-o.amountSats) * o.priceWeiPerSat);
+        }
+
+        // Delete order now. Prevent reentrancy issues.
+        delete orderbook[orderID];
+
+        (bool success, ) = msg.sender.call{value: weiToSend}("");
+        require(success, "Transfer failed");
     }
 
-    function withdrawAsk(uint256 orderID) public {
-        // TODO
+    /** @notice Buy ether, posting stake and promising to send bitcoin. */
+    function initiateBuy(uint256 orderID, uint128 amountSats)
+        public
+        payable
+        returns (uint256 escrowID)
+    {
+        // Orders can only be filled in their entirety, for now.
+        // This means escrows are 1:1 with orders.
+        // TODO: allow partial fills?
+        escrowID = orderID * 1e9;
+
+        Order storage o = orderbook[orderID];
+        require(o.amountSats < 0, "Order already filled");
+        require(-o.amountSats == int128(amountSats), "Amount incorrect");
+
+        // Verify correct stake amount.
+        uint256 totalWei = uint256(amountSats) * uint256(o.priceWeiPerSat);
+        uint256 expectedStakeWei = (totalWei * stakePercent) / 100;
+        require(msg.value != expectedStakeWei, "Wrong payment");
+
+        // Put the COMBINED eth (buyer's stake + the order amount) into escrow.
+        Escrow storage e = escrows[escrowID];
+        e.destScriptHash = o.scriptHash;
+        e.amountSatsDue = amountSats;
+        e.deadline = uint128(block.timestamp + 24 hours);
+        e.escrowWei = totalWei + msg.value;
+        e.successRecipient = msg.sender;
+        e.timeoutRecipient = o.maker;
+
+        // Order matched and filled.
+        delete orderbook[orderID];
+
+        emit OrderMatched(
+            escrowID,
+            orderID,
+            o.amountSats,
+            o.priceWeiPerSat,
+            0,
+            o.maker,
+            msg.sender
+        );
     }
 
     /** @notice Sell ether, receive bitcoin. */
@@ -204,11 +263,9 @@ contract Portal {
         uint128 amountSats,
         bytes20 destScriptHash
     ) public payable returns (uint256 escrowID) {
-        // Orders can only be filled in their entirety, for now.
-        // This means escrows are 1:1 with orders.
-        // TODO: allow partial fills?
         escrowID = orderID * 1e9;
         Order storage o = orderbook[orderID];
+        require(o.amountSats > 0, "Order already filled"); // Must be a bid
         require(o.amountSats == int128(amountSats), "Amount incorrect");
         require(msg.value == amountSats * o.priceWeiPerSat, "Wrong payment");
 
@@ -232,14 +289,14 @@ contract Portal {
             orderID,
             o.amountSats,
             o.priceWeiPerSat,
-            0,
+            msg.value,
             o.maker,
             msg.sender
         );
     }
 
     /** @notice The bidder proves they've sent bitcoin, completing the sale. */
-    function completeSell(
+    function proveSettlement(
         uint256 escrowID,
         uint256 bitcoinBlockNum,
         BtcTxProof calldata bitcoinTransactionProof,
@@ -269,7 +326,7 @@ contract Portal {
         emit EscrowSettled(escrowID, e.amountSatsDue, msg.sender, weiToSend);
     }
 
-    function timeout(uint256 escrowID) public {
+    function slash(uint256 escrowID) public {
         Escrow storage e = escrows[escrowID];
 
         require(msg.sender == e.timeoutRecipient, "Wrong caller");
@@ -282,20 +339,5 @@ contract Portal {
         require(success, "Transfer failed");
 
         emit EscrowSlashed(escrowID, e.deadline, msg.sender, weiToSend);
-    }
-
-    /** @notice Buy ether, posting stake and promising to send bitcoin. */
-    function initiateBuy(uint256 orderID, uint128 amountSats) public {
-        // TODO
-    }
-
-    /** @notice Prove you sent the bitcoin, closing out the buy. */
-    function completeBuy(
-        uint256 escrowID,
-        uint256 bitcoinBlockNum,
-        BtcTxProof calldata bitcoinTransactionProof,
-        uint256 txOutIx
-    ) public {
-        // TODO
     }
 }

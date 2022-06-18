@@ -17,10 +17,10 @@ forge test -vv
 
 ## Deployment
 
-Ensure that `ETHERSCAN_API_KEY` is set.
-
 ```
 forge script PortalDeploy -f $ETH_RPC_URL_ROPSTEN --private-key $MY_DEPLOYER_PRIVKEY
 ```
 
-> TODO: adding `--verify` currently does not work. Verify manually on Etherscan.
+If that works, rerun with `--broadcast` to perform the deployment.
+
+Finally, rerun with `--verify` to verify on Etherscan. Ensure that `ETHERSCAN_API_KEY` is set.

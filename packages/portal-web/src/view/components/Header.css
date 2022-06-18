@@ -1,0 +1,36 @@
+header {
+    text-align: center;
+}
+
+header img {
+    width: 20em;
+}
+
+header nav {
+    display: flex;
+    justify-content: center;
+    gap: 1em;
+    margin: 1em 0;
+    font-weight: var(--fw-semibold);
+    border-bottom: 2.5px solid var(--color-offwhite);
+}
+
+.nav-tab,
+.nav-tab-sel,
+.nav-tab:visited,
+.nav-tab-sel:visited {
+    position: relative;
+    top: 2px;
+    text-decoration: none;
+    color: var(--color-gray);
+    padding: 0.1em;
+}
+
+.nav-tab:hover {
+    color: var(--color-dark);
+}
+
+.nav-tab-sel {
+    border-bottom: 2.5px solid var(--color-dark);
+    color: var(--color-dark);
+}
