@@ -2,6 +2,7 @@
 pragma solidity >=0.8.0;
 
 import "btcmirror/interfaces/IBtcTxVerifier.sol";
+import "openzeppelin-contracts/access/Ownable.sol";
 
 //
 //                                        #
@@ -26,8 +27,6 @@ import "btcmirror/interfaces/IBtcTxVerifier.sol";
 
 uint256 constant MAX_SATS = 21000000 * 100 * 1000000; // 21m BTC in sats
 uint256 constant MAX_PRICE_WEI_PER_SAT = 1e18; // Max allowed price, 1sat = 1ETH
-uint256 constant NUM_CONFIRMATIONS_REQUIRED = 1; // Bitcoin payment finality
-
 /**
  * @dev Each order represents a bid or ask.
  */
@@ -62,7 +61,7 @@ struct Escrow {
     address timeoutRecipient;
 }
 
-contract Portal {
+contract Portal is Ownable {
     event OrderPlaced(
         uint256 orderID,
         int128 amountSats,
@@ -97,15 +96,20 @@ contract Portal {
         uint256 ethAmount
     );
 
+    event ParamUpdated(uint256 oldVal, uint256 newVal, string name);
+
     /**
      * @dev Required stake for buy transactions. If you promise to send X BTC to
      *      buy Y ETH, you have post some percentage of Y ETH, which you lose if
      *      you don't follow thru sending the Bitcoin. Same for bids.
      */
-    uint256 public immutable stakePercent;
+    uint256 public stakePercent;
+
+    /** @dev Number of bitcoin confirmations required to settle a trade. */
+    uint256 public minConfirmations;
 
     /** @dev Bitcoin light client. Reports block hashes, allowing tx proofs. */
-    IBtcTxVerifier public immutable btcVerifier;
+    IBtcTxVerifier public btcVerifier;
 
     /** @dev Tracks all available liquidity (bids and asks). */
     mapping(uint256 => Order) public orderbook;
@@ -120,6 +124,28 @@ contract Portal {
         stakePercent = _stakePercent;
         btcVerifier = _btcVerifier;
         nextOrderID = 1;
+        minConfirmations = 1;
+    }
+
+    /** @notice Owner-settable parameter. */
+    function setStakePercent(uint256 _stakePercent) public onlyOwner {
+        uint256 old = stakePercent;
+        stakePercent = _stakePercent;
+        emit ParamUpdated(old, stakePercent, "stakePercent");
+    }
+
+    /** @notice Owner-settable parameter. */
+    function setMinConfirmations(uint256 _minConfirmations) public onlyOwner {
+        uint256 old = minConfirmations;
+        minConfirmations = _minConfirmations;
+        emit ParamUpdated(old, minConfirmations, "minConfirmations");
+    }
+
+    /** @notice Owner-settable parameter. */
+    function setBtcVerifier(IBtcTxVerifier _btcVerifier) public onlyOwner {
+        uint160 old = uint160(address(btcVerifier));
+        btcVerifier = _btcVerifier;
+        emit ParamUpdated(old, uint160(address(btcVerifier)), "btcVerifier");
     }
 
     /**
@@ -307,7 +333,7 @@ contract Portal {
 
         require(
             btcVerifier.verifyPayment(
-                NUM_CONFIRMATIONS_REQUIRED,
+                minConfirmations,
                 bitcoinBlockNum,
                 bitcoinTransactionProof,
                 txOutIx,

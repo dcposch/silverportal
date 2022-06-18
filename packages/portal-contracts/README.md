@@ -12,7 +12,7 @@
 ## Quick start
 
 ```
-forge test -vv
+forge test
 ```
 
 ## Deployment
