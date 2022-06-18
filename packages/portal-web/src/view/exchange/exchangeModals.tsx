@@ -23,6 +23,17 @@ interface BidAskProps {
   onClose: () => void;
 }
 
+export function PleaseConnectModal(props: BidAskProps) {
+  return (
+    <Modal title="Connect a wallet" onClose={props.onClose}>
+      <p>
+        See the bottom of the page for instructions. You'll need Ropsten ETH to
+        use Silver Portal.
+      </p>
+    </Modal>
+  );
+}
+
 export class BidModal extends React.PureComponent<BidAskProps> {
   refBidAmount = createRef<HTMLInputElement>();
   refBidPrice = createRef<HTMLInputElement>();
@@ -57,7 +68,6 @@ export class BidModal extends React.PureComponent<BidAskProps> {
     });
 
     this.props.addRecentTransaction({ hash: tx.hash, description });
-
     this.props.onClose();
   };
 

@@ -3,6 +3,7 @@ import { Order } from "../../model/Orderbook";
 
 export type ModalInfo =
   | { type: "none" }
+  | { type: "please-connect" }
   | { type: "bid" }
   | { type: "ask" }
   | { type: "buy"; order: Order }

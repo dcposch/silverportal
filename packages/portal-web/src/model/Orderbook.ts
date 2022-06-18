@@ -23,10 +23,10 @@ export class Orderbook {
       (a.priceWeiPerSat.toNumber() - b.priceWeiPerSat.toNumber()) * c;
     this.bids = orders
       .filter((o) => !o.amountSats.isNegative())
-      .sort((a, b) => byPrice(a, b, -1));
+      .sort((a, b) => byPrice(a, b, 1));
     this.asks = orders
       .filter((o) => o.amountSats.isNegative())
-      .sort((a, b) => byPrice(a, b, 1));
+      .sort((a, b) => byPrice(a, b, -1));
   }
 
   /**

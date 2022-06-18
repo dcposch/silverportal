@@ -15,6 +15,7 @@ import {
   AskModal,
   BidModal,
   BuyModal,
+  PleaseConnectModal,
   ProveModal,
   SellModal,
   SlashModal,
@@ -76,7 +77,11 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
 
   /** Dispatch all actions thru a dispatcher. Like Redux, but simple. */
   dispatch = (modal: ModalInfo) => {
+    // TODO: proper action dispatcher.
     console.log(`Dispatch: ${JSON.stringify(modal)}`);
+    if (modal.type !== "none" && !this.props.connectedAddress) {
+      modal = { type: "please-connect" };
+    }
     this.setState({ modal });
     if (modal.type === "none") this.reloadData();
   };
@@ -94,6 +99,7 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
       <div>
         <OrdersTable orders={orders} params={params} dispatch={this.dispatch} />
         <EscrowTable escrow={escrow} params={params} dispatch={this.dispatch} />
+        {modal.type === "please-connect" && <PleaseConnectModal {...props} />}
         {modal.type === "bid" && <BidModal {...props} />}
         {modal.type === "ask" && <AskModal {...props} />}
         {modal.type === "buy" && <BuyModal {...props} order={modal.order} />}
