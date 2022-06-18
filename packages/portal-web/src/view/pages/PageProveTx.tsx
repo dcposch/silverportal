@@ -9,8 +9,9 @@ import { createBtcPaymentProof } from "../../utils/prove-bitcoin-tx";
 import ViewContractLink from "../components/ViewContractLink";
 import { parseBitcoinAddr } from "../../utils/bitcoin-addr";
 import { Buffer } from "buffer";
+import { contractAddrs } from "../../utils/constants";
 
-const contract = "0xc2b0cf7402941a1925e187ea05b215dcfea011d6";
+const contractAddr = contractAddrs.btcTxVerifier;
 
 export default class PageProveTx extends React.PureComponent {
   _destAddr = React.createRef<HTMLInputElement>();
@@ -92,10 +93,13 @@ export default class PageProveTx extends React.PureComponent {
     const network = "ropsten" as string;
     const etherscanDomain =
       network === "mainnet" ? "etherscan.io" : `${network}.etherscan.io`;
-    print(`https://${etherscanDomain}/address/${contract}`);
+    print(`https://${etherscanDomain}/address/${contractAddr}`);
 
     const provider = ethers.getDefaultProvider(network);
-    const ver = factories.BtcTxVerifier__factory.connect(contract, provider);
+    const ver = factories.BtcTxVerifier__factory.connect(
+      contractAddr,
+      provider
+    );
     try {
       const result = await ver.functions.verifyPayment(
         1,
@@ -137,7 +141,7 @@ export default class PageProveTx extends React.PureComponent {
           <li>
             <h3>Prove a Bitcoin payment to that address.</h3>
             <div>
-              <ViewContractLink contract={contract} network="ropsten" />
+              <ViewContractLink contract={contractAddr} network="ropsten" />
             </div>
             <label>Enter transaction ID:</label>
             <div className="provetx-form-row">

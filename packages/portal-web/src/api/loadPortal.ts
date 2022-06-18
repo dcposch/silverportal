@@ -2,7 +2,8 @@ import { ethers } from "ethers";
 import { Portal } from "../../types/ethers-contracts";
 import { Escrow, EscrowsForAddr } from "../model/Escrow";
 import { Order, Orderbook } from "../model/Orderbook";
-import { portalContractAddr, PortalParams } from "../model/PortalParams";
+import { PortalParams } from "../model/PortalParams";
+import { contractAddrs } from "../utils/constants";
 
 export async function loadParams(portal: Portal): Promise<PortalParams> {
   const stakePercent = (await portal.stakePercent()).toNumber();
@@ -11,7 +12,7 @@ export async function loadParams(portal: Portal): Promise<PortalParams> {
     ethNetwork: "ropsten",
     btcNetwork: "testnet",
     btcMinConfirmations: 1,
-    contractAddr: portalContractAddr,
+    contractAddr: contractAddrs.portal,
   };
 }
 

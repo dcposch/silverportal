@@ -5,7 +5,7 @@ import * as React from "react";
 import { useAccount, useProvider, useSigner } from "wagmi";
 import { factories } from "../../../types/ethers-contracts";
 import Exchange from "../exchange/Exchange";
-import { portalContractAddr } from "../../model/PortalParams";
+import { contractAddrs } from "../../utils/constants";
 
 export default function PageExchange() {
   const provider = useProvider();
@@ -16,7 +16,7 @@ export default function PageExchange() {
   const portal = React.useMemo(() => {
     console.log("Contract " + (signer ? "ready to transact" : "read-only"));
     return factories.Portal__factory.connect(
-      portalContractAddr,
+      contractAddrs.portal,
       signer || provider
     );
   }, [signer, provider]);
