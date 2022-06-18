@@ -1,7 +1,7 @@
 import { NewTransaction } from "@rainbow-me/rainbowkit/dist/transactions/transactionStore";
 import { BigNumber } from "ethers";
 import * as React from "react";
-import { createRef, Ref } from "react";
+import { createRef } from "react";
 import { Portal } from "../../../types/ethers-contracts";
 import { Escrow } from "../../model/Escrow";
 import { Order } from "../../model/Orderbook";
@@ -186,9 +186,11 @@ export class BuyModal extends React.PureComponent<BuySellProps> {
       <Modal title="Buy" onClose={this.props.onClose}>
         <NoPartialFills />
         <div className="exchange-row">
-          You are buying <Amount n={amountWei} type="wei" /> at a price of{" "}
-          <code>{price.toFixed(5)}</code> ETH/BTC. You'll pay{" "}
-          <Amount n={amountSats} type="sats" /> to{" "}
+          Buying <Amount n={amountWei} type="wei" /> at a price of{" "}
+          <code>{price.toFixed(5)}</code> ETH/BTC.
+        </div>
+        <div className="exchange-row">
+          You'll pay <Amount n={amountSats} type="sats" /> to{" "}
           <Addr scriptHash={scriptHash} network={params.btcNetwork} />.
         </div>
         <div className="exchange-row">
@@ -241,9 +243,11 @@ export class SellModal extends React.PureComponent<BuySellProps> {
       <Modal title="Sell" onClose={this.props.onClose}>
         <NoPartialFills />
         <div className="exchange-row">
-          You are selling <Amount n={amountWei} type="wei" /> at a price of{" "}
-          <code>{price.toFixed(5)}</code> ETH/BTC. You'll receive{" "}
-          <Amount n={amountSats} type="sats" />.
+          Selling <Amount n={amountWei} type="wei" /> at a price of{" "}
+          <code>{price.toFixed(5)}</code> ETH/BTC.
+        </div>
+        <div className="exchange-row">
+          You'll receive <Amount n={amountSats} type="sats" />.
         </div>
         <div className="exchange-row">
           <label>Destination Bitcoin address. Must start with 2.</label>

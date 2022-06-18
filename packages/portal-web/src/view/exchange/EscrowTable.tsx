@@ -1,8 +1,6 @@
 import * as React from "react";
 import { Escrow, EscrowsForAddr } from "../../model/Escrow";
 import { PortalParams } from "../../model/PortalParams";
-import { formatBitcoinAddr, strip0x } from "../../utils/bitcoin-addr";
-import Addr from "../components/Addr";
 import Amount from "../components/Amount";
 import { DispatchFn } from "./exchangeActions";
 
@@ -62,8 +60,6 @@ class EscrowRow extends React.PureComponent<EscrowRowProps> {
   render() {
     const { dir, escrow, params } = this.props;
     if (params == null) return null;
-
-    let scriptHash = strip0x(escrow.destScriptHash);
 
     const nowS = new Date().getTime() / 1e3;
     const remainingS = escrow.deadline - nowS;

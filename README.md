@@ -5,7 +5,7 @@
 
 </div>
 
-<!-- Rest of this document appears on silvermirror.xyz -->
+<!-- Everything below appears on silvermirror.xyz -->
 
 > ⚠️ This is an experimental prototype for testnet use only.
 
