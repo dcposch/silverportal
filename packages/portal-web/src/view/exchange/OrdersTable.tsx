@@ -41,33 +41,15 @@ export default function OrdersTable({
         </div>
       </div>
       <div className="exchange-two-col">
-        <div className="exchange-row">
-          <div className="exchange-order-row">
-            <div className="exchange-order-type" />
-            <div className="exchange-order-price" />
-            <div className="exchange-order-amount" />
-            <div className="exchange-order-action">
-              <button
-                onClick={useCallback(() => dispatch({ type: "bid" }), [])}
-              >
-                Bid
-              </button>
-            </div>
-          </div>
+        <div className="exchange-place-order">
+          <button onClick={useCallback(() => dispatch({ type: "bid" }), [])}>
+            Post Bid
+          </button>
         </div>
-        <div className="exchange-row">
-          <div className="exchange-order-row">
-            <div className="exchange-order-type" />
-            <div className="exchange-order-price" />
-            <div className="exchange-order-amount" />
-            <div className="exchange-order-action">
-              <button
-                onClick={useCallback(() => dispatch({ type: "ask" }), [])}
-              >
-                Ask
-              </button>
-            </div>
-          </div>
+        <div className="exchange-place-order">
+          <button onClick={useCallback(() => dispatch({ type: "ask" }), [])}>
+            Post Ask
+          </button>
         </div>
       </div>
     </div>
@@ -116,7 +98,9 @@ function OrderRow({
   const labelPrice = isBest && <label>Price</label>;
   const labelAmount = isBest && <label>Amount</label>;
   return (
-    <div className="exchange-order-row">
+    <div
+      className={`exchange-order-row${isBest ? " exchange-best-order" : ""}`}
+    >
       <div className="exchange-order-type">{dispType}</div>
       <div className="exchange-order-price">
         {labelPrice}

@@ -301,21 +301,23 @@ export class CancelModal extends React.PureComponent<BuySellProps> {
   render() {
     const { order } = this.props;
     const { amountSats, priceWeiPerSat } = order;
-    const type = amountSats.isNegative() ? "bid" : "ask";
+    const type = amountSats.isNegative() ? "ask" : "bid";
     let refundWei = toFloat64(order.stakedWei);
     if (type === "ask") {
-      refundWei += toFloat64(priceWeiPerSat.mul(amountSats));
+      refundWei -= toFloat64(priceWeiPerSat.mul(amountSats));
     }
+    console.log("fuck", refundWei, order);
 
     return (
       <Modal title="Cancel" onClose={this.props.onClose}>
         <div className="exchange-row">
-          Your cancelling your {type}. This will refund your{" "}
-          <Amount n={refundWei} type="wei" />.
+          You are cancelling your {type} order. You will receive a refund of{" "}
+          <Amount n={refundWei} type="wei" decimals={6} />.
         </div>
         <div className="exchange-row">
           Cancellation will fail if the order has already been hit.
         </div>
+        <br />
         <div className="exchange-row">
           <button onClick={this.cancel}>Cancel</button>
         </div>

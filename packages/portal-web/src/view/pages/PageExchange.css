@@ -5,6 +5,7 @@
 .exchange-two-col {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    gap: 1em;
 }
 
 .exchange-two-col h3{
@@ -17,20 +18,23 @@
     font-variant-numeric: tabular-nums;
     white-space: pre;
     margin-bottom: 0.5em;
-}
-
-.exchange-order-row:first-child {
-    font-weight: var(--fw-semibold);
-    letter-spacing: -0.07ex;
-}
-
-.exchange-order-row:first-child .exchange-order-type {
-    line-height: 1.1;
-}
-.exchange-order-row:not(:first-child) .exchange-order-action {
     padding: 0 0.5em;
 }
 
+.exchange-best-order {
+    font-weight: var(--fw-semibold);
+    letter-spacing: -0.07ex;
+    background: var(--color-offwhite);
+    padding: 0.5em 0.5em 0.1em 0.5em;
+}
+
+.exchange-best-order .exchange-order-type {
+    line-height: 1.1;
+}
+
+.exchange-order-row:not(:first-child) .exchange-order-action {
+    padding: 0 0.5em;
+}
 
 .exchange-order-row label {
     display: block;
@@ -41,9 +45,16 @@
 .exchange-order-type {
     width: 2.6em;
 }
+
 .exchange-order-price {
     width: 4.4em;
 }
+
+.exchange-order-action {
+    flex-grow: 1;
+    text-align: right;
+}
+
 .exchange-order-amount {
     width: 4.4em;
 }

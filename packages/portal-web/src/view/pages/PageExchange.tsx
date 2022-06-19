@@ -6,6 +6,7 @@ import { useAccount, useProvider, useSigner } from "wagmi";
 import { factories } from "../../../types/ethers-contracts";
 import { contractAddrs } from "../../utils/constants";
 import Exchange from "../exchange/Exchange";
+import ConnectSection from "../exchange/ConnectSection";
 
 export default function PageExchange() {
   const provider = useProvider();
@@ -34,6 +35,7 @@ export default function PageExchange() {
         connectedAddress={account ? account.address : undefined}
         addRecentTransaction={addRecentTransaction}
       />
+      <ConnectSection />
     </div>
   );
 }

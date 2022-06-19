@@ -103,9 +103,6 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
 
     return (
       <div>
-        <div className="exchange-row">
-          <ConnectButton />
-        </div>
         <h2>
           Orderbook{" "}
           <small>

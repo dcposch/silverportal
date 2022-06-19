@@ -39,6 +39,7 @@ body {
     line-height: 1.6;
     background: var(--color-bg);
     overflow-y: scroll;
+    min-width: 640px;
 }
 
 main {
@@ -65,7 +66,7 @@ h1 {
 h2 {
     font-size: 1.15em;
     font-weight: 700;
-    margin: 2em 0 1em 0;
+    margin: 1.5em 0 1em 0;
 }
 
 h3 {
