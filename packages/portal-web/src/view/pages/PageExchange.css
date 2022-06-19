@@ -8,6 +8,18 @@
     gap: 1em;
 }
 
+@media  (max-width: 600px){
+    .exchange-two-col {
+        display: block;
+    }
+
+    .exchange-place-order {
+        display: inline-block;
+        margin-right: 1em;
+        margin-top: 0.5em;
+    }
+}
+
 .exchange-two-col h3{
     margin-top: 0;
 }

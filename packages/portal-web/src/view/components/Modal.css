@@ -13,10 +13,11 @@
 }
 
 .modal-window {
-    width: 480px;
+    max-width: 480px;
     min-height: 320px;
     background-color: var(--color-bg);
     padding: 2em;
+    margin: 0.5em;
 }
 
 .modal-header {
