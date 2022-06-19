@@ -1,8 +1,12 @@
 import * as React from "react";
+import { useCallback } from "react";
+import { useAccount } from "wagmi";
 import { Order, Orderbook } from "../../model/Orderbook";
 import { PortalParams } from "../../model/PortalParams";
-import ViewContractLink from "../components/ViewContractLink";
+import { toFloat64 } from "../../utils/math";
 import { DispatchFn, ModalInfo } from "./exchangeActions";
+
+const TOP_N = 6; // Display only the best bids and asks
 
 export default function OrdersTable({
   orders,
@@ -14,78 +18,122 @@ export default function OrdersTable({
   dispatch: DispatchFn;
 }) {
   if (orders == null || params == null) return null;
+
+  const account = useAccount().data;
+  const connectedAccount = account && account.address;
+
+  const props = { dispatch, connectedAccount };
+
   return (
     <div>
-      <h2>
-        Orderbook{" "}
-        <small>
-          <ViewContractLink
-            network={params.ethNetwork}
-            contract={params.contractAddr}
-          />
-        </small>
-      </h2>
       <div className="exchange-two-col">
-        <div>
-          {orders.bids.map((o) => (
-            <OrderRow key={o.orderID} o={o} dispatch={dispatch} />
+        <div className="exchange-bids">
+          {orders.bids.length === 0 && <h3>NO BIDS</h3>}
+          {orders.bids.map((o, i) => (
+            <OrderRow key={o.orderID} o={o} nthBest={i} {...props} />
           ))}
         </div>
-        <div>
-          {orders.asks.map((o) => (
-            <OrderRow key={o.orderID} o={o} dispatch={dispatch} />
+        <div className="exchange-asks">
+          {orders.asks.length === 0 && <h3>NO ASKS</h3>}
+          {orders.asks.map((o, i) => (
+            <OrderRow key={o.orderID} o={o} nthBest={i} {...props} />
           ))}
         </div>
       </div>
       <div className="exchange-two-col">
         <div className="exchange-row">
-          <button
-            onClick={React.useCallback(() => dispatch({ type: "bid" }), [])}
-          >
-            Post Bid
-          </button>
+          <div className="exchange-order-row">
+            <div className="exchange-order-type" />
+            <div className="exchange-order-price" />
+            <div className="exchange-order-amount" />
+            <div className="exchange-order-action">
+              <button
+                onClick={useCallback(() => dispatch({ type: "bid" }), [])}
+              >
+                Bid
+              </button>
+            </div>
+          </div>
         </div>
         <div className="exchange-row">
-          <button
-            onClick={React.useCallback(() => dispatch({ type: "ask" }), [])}
-          >
-            Post Ask
-          </button>
+          <div className="exchange-order-row">
+            <div className="exchange-order-type" />
+            <div className="exchange-order-price" />
+            <div className="exchange-order-amount" />
+            <div className="exchange-order-action">
+              <button
+                onClick={useCallback(() => dispatch({ type: "ask" }), [])}
+              >
+                Ask
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function OrderRow({ o, dispatch }: { o: Order; dispatch: DispatchFn }) {
-  const amountSats = o.amountSats.toNumber();
-  const priceWeiPerSat = o.priceWeiPerSat.toNumber();
+function OrderRow({
+  o,
+  nthBest,
+  dispatch,
+  connectedAccount,
+}: {
+  o: Order;
+  nthBest: number;
+  dispatch: DispatchFn;
+  connectedAccount: string;
+}) {
+  // Only display the best N bids and asks. Always display our own.
+  const isOurs = o.maker === connectedAccount;
+  if (!isOurs && nthBest >= TOP_N) return null;
 
+  const amountSats = toFloat64(o.amountSats);
+  const priceWeiPerSat = toFloat64(o.priceWeiPerSat);
   const type = amountSats < 0 ? "ASK" : "BID";
-  const amount = Math.abs(amountSats / 1e8).toFixed(8);
-  const price = (1e18 / (priceWeiPerSat * 1e8)).toFixed(5);
+  const amountBtc = Math.abs(amountSats / 1e8).toFixed(5);
+  const priceBtcPerEth = (1e10 / priceWeiPerSat).toFixed(5);
 
   let orderAction: ModalInfo, orderLabel: string;
-  if (type === "ASK") {
+  if (isOurs) {
+    orderAction = { type: "cancel", order: o };
+    orderLabel = "Del";
+  } else if (type === "ASK") {
     orderAction = { type: "buy", order: o };
     orderLabel = "Buy";
   } else {
     orderAction = { type: "sell", order: o };
     orderLabel = "Sell";
   }
-  const orderCb = React.useCallback((e: React.MouseEvent) => {
+  const orderCb = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     dispatch(orderAction);
   }, []);
 
+  const isBest = nthBest === 0;
+  const dispType = isBest ? `BEST\n${type}` : type;
+  const labelPrice = isBest && <label>Price</label>;
+  const labelAmount = isBest && <label>Amount</label>;
   return (
     <div className="exchange-order-row">
-      <strong>{type}</strong>
-      <span>{price}</span>
-      <span>{amount}</span>
-      <a href="#" onClick={orderCb}>
-        {orderLabel}
-      </a>
+      <div className="exchange-order-type">{dispType}</div>
+      <div className="exchange-order-price">
+        {labelPrice}
+        {priceBtcPerEth}
+      </div>
+      <div className="exchange-order-amount">
+        {labelAmount}
+        {amountBtc}
+      </div>
+      <div className="exchange-order-action">
+        {isBest && <button onClick={orderCb}>{orderLabel}</button>}
+        {!isBest && (
+          <a href="#" onClick={orderCb}>
+            {orderLabel}
+          </a>
+        )}
+      </div>
     </div>
   );
 }

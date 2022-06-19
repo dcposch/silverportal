@@ -8,6 +8,7 @@ export type ModalInfo =
   | { type: "ask" }
   | { type: "buy"; order: Order }
   | { type: "sell"; order: Order }
+  | { type: "cancel"; order: Order }
   | { type: "slash"; escrow: Escrow }
   | { type: "prove"; escrow: Escrow };
 

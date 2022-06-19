@@ -25,6 +25,9 @@ body { text-size-adjust: none; -webkit-text-size-adjust: none; }
     --color-accent-dark: #0e76fd;
     --color-link: #09499c;
 
+    --color-green: #bfb;
+    --color-red: #faa;
+
     --fw-semibold: 700;
 
     --font-body: 17px system-ui, sans-serif;
@@ -70,6 +73,10 @@ h3 {
     margin: 1em 0 0.5em 0;
 }
 
+small {
+    font-weight: normal;
+}
+
 p {
     margin: 1em 0;
 }
@@ -111,7 +118,6 @@ button {
     font-weight: var(--fw-semibold);
     background: var(--color-accent-lite);
     padding: 0.5em;
-    border-radius: 0.1em;
     border: none;
     cursor: pointer;
     opacity: 1;

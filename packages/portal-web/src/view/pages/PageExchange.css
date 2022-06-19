@@ -1,9 +1,3 @@
-
-.exchange-bid-ask-cols {
-    display: flex;
-    gap: 1em;
-}
-
 .exchange-row {
     margin: 0.5em 0;
 }
@@ -13,10 +7,16 @@
     grid-template-columns: 1fr 1fr;
 }
 
+.exchange-two-col h3{
+    margin-top: 0;
+}
+
 .exchange-order-row {
     display: flex;
     gap: 0.5em;
     font-variant-numeric: tabular-nums;
+    white-space: pre;
+    margin-bottom: 0.5em;
 }
 
 .exchange-order-row:first-child {
@@ -24,14 +24,37 @@
     letter-spacing: -0.07ex;
 }
 
-.exchange-order-row:not(:first-child) a,
-.exchange-order-row:not(:first-child) a:hover,
-.exchange-order-row:not(:first-child) a:visited {
-    color: var(--color-gray);
+.exchange-order-row:first-child .exchange-order-type {
+    line-height: 1.1;
+}
+.exchange-order-row:not(:first-child) .exchange-order-action {
+    padding: 0 0.5em;
+}
+
+
+.exchange-order-row label {
+    display: block;
+    font-weight: normal;
+    line-height: 1;
+}
+
+.exchange-order-type {
+    width: 2.6em;
+}
+.exchange-order-price {
+    width: 4.4em;
+}
+.exchange-order-amount {
+    width: 4.4em;
 }
 
 .exchange-escrow-row {
     display: grid;
     grid-template-columns: 4.5em 6em 6em 4em;
     gap: 1em;
+}
+
+.exchange-activity-row {
+    display: grid;
+    grid-template-columns: 4.5em 4.5em 1fr;
 }

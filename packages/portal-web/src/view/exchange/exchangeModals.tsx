@@ -27,10 +27,22 @@ export function PleaseConnectModal(props: BidAskProps) {
   return (
     <Modal title="Connect a wallet" onClose={props.onClose}>
       <p>
-        See the bottom of the page for instructions. You'll need Ropsten ETH to
-        use Silver Portal.
+        You'll need Ropsten to use Silver Portal. There are many Ropsten
+        faucets, but the best is Paradigm's Multi Faucet.
       </p>
+      <ConnectBitcoin />
     </Modal>
+  );
+}
+
+function ConnectBitcoin() {
+  return (
+    <div>
+      You'll also to use the Bitcoin testnet. The easiest way is to create a
+      wallet on <a href="https://block.io/dashboard/btctest">Block.io</a>. The
+      address should start with <code>2</code>. You can get testnet BTC from{" "}
+      <a href="https://coinfaucet.eu/en/btc-testnet/">this faucet</a>.
+    </div>
   );
 }
 
@@ -265,6 +277,47 @@ export class SellModal extends React.PureComponent<BuySellProps> {
         </div>
         <div className="exchange-row">
           <button onClick={this.sell}>Sell</button>
+        </div>
+      </Modal>
+    );
+  }
+}
+
+export class CancelModal extends React.PureComponent<BuySellProps> {
+  cancel = async () => {
+    // Send it
+    const { portal, order } = this.props;
+    const { amountSats, orderID } = order;
+    const type = amountSats.isNegative() ? "bid" : "ask";
+    const description = `Cancel ${type}`;
+    console.log(description, orderID);
+
+    const tx = await portal.cancelOrder(orderID);
+
+    this.props.addRecentTransaction({ description, hash: tx.hash });
+    this.props.onClose();
+  };
+
+  render() {
+    const { order } = this.props;
+    const { amountSats, priceWeiPerSat } = order;
+    const type = amountSats.isNegative() ? "bid" : "ask";
+    let refundWei = toFloat64(order.stakedWei);
+    if (type === "ask") {
+      refundWei += toFloat64(priceWeiPerSat.mul(amountSats));
+    }
+
+    return (
+      <Modal title="Cancel" onClose={this.props.onClose}>
+        <div className="exchange-row">
+          Your cancelling your {type}. This will refund your{" "}
+          <Amount n={refundWei} type="wei" />.
+        </div>
+        <div className="exchange-row">
+          Cancellation will fail if the order has already been hit.
+        </div>
+        <div className="exchange-row">
+          <button onClick={this.cancel}>Cancel</button>
         </div>
       </Modal>
     );
