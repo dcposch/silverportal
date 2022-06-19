@@ -17,10 +17,13 @@ export default function OrdersTable({
   params: PortalParams;
   dispatch: DispatchFn;
 }) {
-  if (orders == null || params == null) return null;
-
   const account = useAccount().data;
   const connectedAccount = account && account.address;
+
+  const bidFn = useCallback(() => dispatch({ type: "bid" }), []);
+  const askFn = useCallback(() => dispatch({ type: "ask" }), []);
+
+  if (orders == null || params == null) return null;
 
   const props = { dispatch, connectedAccount };
 
@@ -42,14 +45,10 @@ export default function OrdersTable({
       </div>
       <div className="exchange-two-col">
         <div className="exchange-place-order">
-          <button onClick={useCallback(() => dispatch({ type: "bid" }), [])}>
-            Post Bid
-          </button>
+          <button onClick={bidFn}>Post Bid</button>
         </div>
         <div className="exchange-place-order">
-          <button onClick={useCallback(() => dispatch({ type: "ask" }), [])}>
-            Post Ask
-          </button>
+          <button onClick={askFn}>Post Ask</button>
         </div>
       </div>
     </div>
@@ -78,7 +77,7 @@ function OrderRow({
   const priceBtcPerEth = (1e10 / priceWeiPerSat).toFixed(5);
 
   let orderAction: ModalInfo, orderLabel: string;
-  if (isOurs) {
+  if (isOurs && false) {
     orderAction = { type: "cancel", order: o };
     orderLabel = "Del";
   } else if (type === "ASK") {

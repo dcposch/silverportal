@@ -24,7 +24,7 @@ export default function EscrowTable({
 
   return (
     <div>
-      <h2>Your Bitcoin payments</h2>
+      <h2>Bitcoin payments</h2>
       <div>
         {escrow.btcPaymentsOwedBy.map((e, i) => (
           <EscrowRow key={"by-" + i} dir="owedBy" escrow={e} {...rowProps} />
@@ -76,9 +76,9 @@ class EscrowRow extends React.PureComponent<EscrowRowProps> {
 
     return (
       <div className="exchange-escrow-row">
-        <div>{dir === "owedBy" ? "Sending" : "Receiving"}</div>
+        <div>{dir === "owedBy" ? "➡️ Send" : "⬇️ Receive"}</div>
         <div>
-          <Amount n={escrow.amountSatsDue} type="sats" />{" "}
+          <Amount n={escrow.amountSatsDue} type="sats" decimals={5} />{" "}
         </div>
         <div>{due}</div>
         {dir === "owedBy" && (

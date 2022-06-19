@@ -25,8 +25,8 @@ body { text-size-adjust: none; -webkit-text-size-adjust: none; }
     --color-accent-dark: #0e76fd;
     --color-link: #09499c;
 
-    --color-green: #bfb;
-    --color-red: #faa;
+    --color-green: #dfd;
+    --color-red: #fcc;
 
     --fw-semibold: 700;
 
@@ -130,6 +130,11 @@ button:hover {
 
 button:active {
     opacity: 1;
+}
+
+button:disabled {
+    opacity: 0.7;
+    cursor: default;
 }
 
 footer {

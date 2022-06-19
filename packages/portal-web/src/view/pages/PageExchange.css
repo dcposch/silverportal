@@ -73,11 +73,27 @@
 
 .exchange-escrow-row {
     display: grid;
-    grid-template-columns: 4.5em 6em 6em 4em;
-    gap: 1em;
+    grid-template-columns: 4.8em 6.4em 5em 4em;
+    gap: 0.5em;
+    margin-bottom: 0.5em;
+    background: var(--color-offwhite);
+    padding: 0.2em 0.5em;
 }
 
 .exchange-activity-row {
     display: grid;
     grid-template-columns: 4.5em 4.5em 1fr;
+}
+
+.exchange-tx-status {
+    margin-top: 1em;
+    padding: 0.5em;
+}
+
+.exchange-tx-succeeded {
+    background: var(--color-green);
+}
+
+.exchange-tx-failed {
+    background: var(--color-red);
 }

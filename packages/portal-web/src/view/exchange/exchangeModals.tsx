@@ -1,5 +1,5 @@
 import { NewTransaction } from "@rainbow-me/rainbowkit/dist/transactions/transactionStore";
-import { BigNumber } from "ethers";
+import { BigNumber, ContractTransaction } from "ethers";
 import * as React from "react";
 import { createRef } from "react";
 import { Portal } from "../../../types/ethers-contracts";
@@ -30,35 +30,101 @@ export function PleaseConnectModal(props: BidAskProps) {
         You'll need Ropsten to use Silver Portal. There are many Ropsten
         faucets, but the best is Paradigm's Multi Faucet.
       </p>
-      <ConnectBitcoin />
+      <div>
+        You'll also to use the Bitcoin testnet. The easiest way is to create a
+        wallet on <a href="https://block.io/dashboard/btctest">Block.io</a>. The
+        address should start with <code>2</code>. You can get testnet BTC from{" "}
+        <a href="https://coinfaucet.eu/en/btc-testnet/">this faucet</a>.
+      </div>
     </Modal>
   );
 }
 
-function ConnectBitcoin() {
-  return (
-    <div>
-      You'll also to use the Bitcoin testnet. The easiest way is to create a
-      wallet on <a href="https://block.io/dashboard/btctest">Block.io</a>. The
-      address should start with <code>2</code>. You can get testnet BTC from{" "}
-      <a href="https://coinfaucet.eu/en/btc-testnet/">this faucet</a>.
-    </div>
-  );
+interface TxModalState {
+  txState: "none" | "started" | "pending" | "succeeded" | "failed";
+  errorMessage?: string;
 }
 
-export class BidModal extends React.PureComponent<BidAskProps> {
+class TxModal<P extends BidAskProps> extends React.PureComponent<P> {
+  state = { txState: "none" } as TxModalState;
+
+  trySend = async (
+    fn: () => Promise<{ description: string; tx: ContractTransaction }>
+  ) => {
+    this.setState({ txState: "started", errorMessage: undefined });
+
+    // Create and send the transaction
+    let description: string;
+    let tx: ContractTransaction;
+    try {
+      const ret = await fn();
+      description = ret.description;
+      tx = ret.tx;
+    } catch (e) {
+      console.log("Error", { e });
+      const errorMessage = (e.reason || e.message).substring(0, 200);
+      this.setState({ txState: "failed", errorMessage });
+      return;
+    }
+    this.setState({ txState: "pending" });
+
+    // Log it in RainbowKit
+    this.props.addRecentTransaction({ hash: tx.hash, description });
+
+    // Wait for it to confirm
+    const { provider } = this.props.portal;
+    const receipt = await provider.waitForTransaction(tx.hash);
+    this.setState({ txState: receipt.status ? "succeeded" : "failed" });
+
+    // Close the modal on success
+    if (receipt.status) setTimeout(this.props.onClose, 500);
+  };
+
+  renderTxStatus(): React.ReactElement {
+    const { txState, errorMessage } = this.state;
+
+    const cl = ["exchange-tx-status"];
+    if (txState === "succeeded") cl.push("exchange-tx-succeeded");
+    if (txState === "failed") cl.push("exchange-tx-failed");
+    return (
+      <div className={cl.join(" ")}>
+        {txState === "none" && "\u00A0"}
+        {txState === "started" && "\u00A0"}
+        {txState === "pending" &&
+          "Transaction submitted. Waiting for confirmation..."}
+        {txState === "succeeded" && "Transaction succeeded."}
+        {txState === "failed" && (errorMessage || "Transaction failed.")}
+      </div>
+    );
+  }
+
+  disableTx(): boolean {
+    return !["none", "succeeded", "failed"].includes(this.state.txState);
+  }
+}
+
+export class BidModal extends TxModal<BidAskProps> {
   refBidAmount = createRef<HTMLInputElement>();
   refBidPrice = createRef<HTMLInputElement>();
 
-  postBid = async () => {
+  postBid = () => {
+    if (this.disableTx()) return;
+    this.trySend(this.postBidTx);
+  };
+
+  postBidTx = async () => {
     // Validate amounts
     const amountSats = Math.round(
       Number(this.refBidAmount.current.value) * 1e8
     );
+    if (!(amountSats > 0)) throw new Error("Must enter an amount");
 
     const priceBtcPerEth = Number(this.refBidPrice.current.value);
     if (!(priceBtcPerEth > 0)) throw new Error("Must enter a price");
     const priceWeiPerSat = Math.floor(1 / priceBtcPerEth) * 1e10;
+    if (this.props.bbo[1] > priceWeiPerSat) {
+      throw new Error("Can't bid above the current best ask");
+    }
     const totalWei = BigNumber.from(amountSats).mul(
       BigNumber.from(priceWeiPerSat)
     );
@@ -75,16 +141,16 @@ export class BidModal extends React.PureComponent<BidAskProps> {
     const description = `Bid ${priceStr} x ${amountSats / 1e8} BTC`;
     console.log(description, { amountSats, priceWeiPerSat, stakeWei });
 
-    const tx = await this.props.portal.postBid(amountSats, priceWeiPerSat, {
+    const { portal } = this.props;
+    const tx = await portal.postBid(amountSats, priceWeiPerSat, {
       value: stakeWei,
     });
 
-    this.props.addRecentTransaction({ hash: tx.hash, description });
-    this.props.onClose();
+    return { description, tx };
   };
 
   render() {
-    const bestBidStr = (1e10 / (this.props.bbo[0] || 1e100)).toFixed(5);
+    const bestBidStr = (1e10 / (this.props.bbo[0] || 1e99)).toFixed(5);
     const { stakePercent } = this.props.params;
 
     return (
@@ -98,20 +164,28 @@ export class BidModal extends React.PureComponent<BidAskProps> {
           <input ref={this.refBidAmount} placeholder="0"></input>
         </div>
         <div className="exchange-row">
-          <button onClick={this.postBid}>Post bid</button> pays {stakePercent}%
-          refundable stake
+          <button onClick={this.postBid} disabled={this.disableTx()}>
+            Post bid
+          </button>{" "}
+          pays {stakePercent}% refundable stake
         </div>
+        {this.renderTxStatus()}
       </Modal>
     );
   }
 }
 
-export class AskModal extends React.PureComponent<BidAskProps> {
+export class AskModal extends TxModal<BidAskProps> {
   refAskAmount = createRef<HTMLInputElement>();
   refAskPrice = createRef<HTMLInputElement>();
   refDestAddr = createRef<HTMLInputElement>();
 
-  postAsk = async () => {
+  postAsk = () => {
+    if (this.disableTx()) return;
+    this.trySend(this.postAskTx);
+  };
+
+  postAskTx = async () => {
     // Validate amounts
     const amountSats = Math.round(
       Number(this.refAskAmount.current.value) * 1e8
@@ -121,6 +195,9 @@ export class AskModal extends React.PureComponent<BidAskProps> {
     const priceBtcPerEth = Number(this.refAskPrice.current.value);
     if (!(priceBtcPerEth > 0)) throw new Error("Must enter a price");
     const priceWeiPerSat = Math.floor(1 / priceBtcPerEth) * 1e10;
+    if (this.props.bbo[0] < priceWeiPerSat) {
+      throw new Error("Can't ask below the current best bid");
+    }
 
     const valueWei = BigNumber.from(amountSats).mul(
       BigNumber.from(priceWeiPerSat)
@@ -134,17 +211,16 @@ export class AskModal extends React.PureComponent<BidAskProps> {
     const scriptHash = destAddr.scriptHash;
 
     // Send
-    const { portal } = this.props;
     const priceStr = priceBtcPerEth.toFixed(5);
     const description = `Ask ${priceStr} x ${amountSats / 1e8} BTC`;
     console.log(description, { priceWeiPerSat, scriptHash, valueWei });
 
+    const { portal } = this.props;
     const tx = await portal.postAsk(priceWeiPerSat, scriptHash, {
       value: valueWei,
     });
 
-    this.props.addRecentTransaction({ description, hash: tx.hash });
-    this.props.onClose();
+    return { description, tx };
   };
 
   render() {
@@ -165,8 +241,11 @@ export class AskModal extends React.PureComponent<BidAskProps> {
           <input ref={this.refDestAddr} placeholder="2..."></input>
         </div>
         <div className="exchange-row">
-          <button onClick={this.postAsk}>Post ask</button>
+          <button onClick={this.postAsk} disabled={this.disableTx()}>
+            Post ask
+          </button>
         </div>
+        {this.renderTxStatus()}
       </Modal>
     );
   }
@@ -174,8 +253,13 @@ export class AskModal extends React.PureComponent<BidAskProps> {
 
 type BuySellProps = BidAskProps & { order: Order };
 
-export class BuyModal extends React.PureComponent<BuySellProps> {
-  buy = async () => {
+export class BuyModal extends TxModal<BuySellProps> {
+  buy = () => {
+    if (this.disableTx()) return;
+    this.trySend(this.buyTx);
+  };
+
+  buyTx = async () => {
     // Calculate amounts
     const { order, params, portal } = this.props;
     const { orderID, priceWeiPerSat } = order;
@@ -193,8 +277,7 @@ export class BuyModal extends React.PureComponent<BuySellProps> {
       value: stakeWei,
     });
 
-    this.props.addRecentTransaction({ description, hash: tx.hash });
-    this.props.onClose();
+    return { description, tx };
   };
 
   render() {
@@ -216,18 +299,26 @@ export class BuyModal extends React.PureComponent<BuySellProps> {
           <Addr scriptHash={scriptHash} network={params.btcNetwork} />.
         </div>
         <div className="exchange-row">
-          <button onClick={this.buy}>Buy</button> pays {params.stakePercent}%
-          refundable stake
+          <button onClick={this.buy} disabled={this.disableTx()}>
+            Buy
+          </button>{" "}
+          pays {params.stakePercent}% refundable stake
         </div>
+        {this.renderTxStatus()}
       </Modal>
     );
   }
 }
 
-export class SellModal extends React.PureComponent<BuySellProps> {
+export class SellModal extends TxModal<BuySellProps> {
   refDestAddr = createRef<HTMLInputElement>();
 
-  sell = async () => {
+  sell = () => {
+    if (this.disableTx()) return;
+    this.trySend(this.sellTx);
+  };
+
+  sellTx = async () => {
     // Calculate amount
     const { order, params, portal } = this.props;
     const { orderID, amountSats, priceWeiPerSat } = order;
@@ -251,8 +342,7 @@ export class SellModal extends React.PureComponent<BuySellProps> {
       value: amountWei,
     });
 
-    this.props.addRecentTransaction({ description, hash: tx.hash });
-    this.props.onClose();
+    return { description, tx };
   };
 
   render() {
@@ -276,15 +366,23 @@ export class SellModal extends React.PureComponent<BuySellProps> {
           <input ref={this.refDestAddr} placeholder="2..."></input>
         </div>
         <div className="exchange-row">
-          <button onClick={this.sell}>Sell</button>
+          <button onClick={this.sell} disabled={this.disableTx()}>
+            Sell
+          </button>
         </div>
+        {this.renderTxStatus()}
       </Modal>
     );
   }
 }
 
-export class CancelModal extends React.PureComponent<BuySellProps> {
-  cancel = async () => {
+export class CancelModal extends TxModal<BuySellProps> {
+  cancel = () => {
+    if (this.disableTx()) return;
+    this.trySend(this.cancelTx);
+  };
+
+  cancelTx = async () => {
     // Send it
     const { portal, order } = this.props;
     const { amountSats, orderID } = order;
@@ -294,24 +392,22 @@ export class CancelModal extends React.PureComponent<BuySellProps> {
 
     const tx = await portal.cancelOrder(orderID);
 
-    this.props.addRecentTransaction({ description, hash: tx.hash });
-    this.props.onClose();
+    return { description, tx };
   };
 
   render() {
     const { order } = this.props;
     const { amountSats, priceWeiPerSat } = order;
-    const type = amountSats.isNegative() ? "ask" : "bid";
+    const aType = amountSats.isNegative() ? "an ask" : "a bid";
     let refundWei = toFloat64(order.stakedWei);
-    if (type === "ask") {
+    if (aType === "an ask") {
       refundWei -= toFloat64(priceWeiPerSat.mul(amountSats));
     }
-    console.log("fuck", refundWei, order);
 
     return (
       <Modal title="Cancel" onClose={this.props.onClose}>
         <div className="exchange-row">
-          You are cancelling your {type} order. You will receive a refund of{" "}
+          You are cancelling {aType} order. You will receive a refund of{" "}
           <Amount n={refundWei} type="wei" decimals={6} />.
         </div>
         <div className="exchange-row">
@@ -319,8 +415,11 @@ export class CancelModal extends React.PureComponent<BuySellProps> {
         </div>
         <br />
         <div className="exchange-row">
-          <button onClick={this.cancel}>Cancel</button>
+          <button onClick={this.cancel} disabled={this.disableTx()}>
+            Cancel Order
+          </button>
         </div>
+        {this.renderTxStatus()}
       </Modal>
     );
   }
@@ -336,10 +435,15 @@ function NoPartialFills() {
 
 type EscrowProps = BidAskProps & { escrow: Escrow };
 
-export class ProveModal extends React.PureComponent<EscrowProps> {
+export class ProveModal extends TxModal<EscrowProps> {
   refBitcoinTx = createRef<HTMLInputElement>();
 
-  prove = async () => {
+  prove = () => {
+    if (this.disableTx()) return;
+    this.trySend(this.proveTx);
+  };
+
+  proveTx = async () => {
     const { escrow, portal } = this.props;
     const txId = this.refBitcoinTx.current.value;
 
@@ -369,8 +473,7 @@ export class ProveModal extends React.PureComponent<EscrowProps> {
       proof.txOutIx
     );
 
-    this.props.addRecentTransaction({ description, hash: tx.hash });
-    this.props.onClose();
+    return { description, tx };
   };
 
   render() {
@@ -408,15 +511,23 @@ export class ProveModal extends React.PureComponent<EscrowProps> {
           <input ref={this.refBitcoinTx}></input>
         </div>
         <div className="exchange-row">
-          <button onClick={this.prove}>Prove settlement</button>
+          <button onClick={this.prove} disabled={this.disableTx()}>
+            Prove settlement
+          </button>
         </div>
+        {this.renderTxStatus()}
       </Modal>
     );
   }
 }
 
-export class SlashModal extends React.PureComponent<EscrowProps> {
-  slash = async () => {
+export class SlashModal extends TxModal<EscrowProps> {
+  slash = () => {
+    if (this.disableTx()) return;
+    this.trySend(this.slashTx);
+  };
+
+  slashTx = async () => {
     const { portal, escrow } = this.props;
 
     // Send it
@@ -425,8 +536,7 @@ export class SlashModal extends React.PureComponent<EscrowProps> {
 
     const tx = await portal.slash(escrow.escrowId);
 
-    this.props.addRecentTransaction({ description, hash: tx.hash });
-    this.props.onClose();
+    return { description, tx };
   };
 
   render() {

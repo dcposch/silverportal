@@ -4,11 +4,11 @@ import * as React from "react";
 export default function ConnectSection() {
   return (
     <div>
-      <h2>Connect</h2>
+      <h2>Connection</h2>
       <div className="exchange-two-col">
         <div>
           <label>Ethereum, Ropsten testnet</label>
-          <ConnectButton showBalance={false} />
+          <ConnectButton showBalance={false} chainStatus="icon" />
         </div>
         <div>
           <label>Bitcoin testnet</label>
