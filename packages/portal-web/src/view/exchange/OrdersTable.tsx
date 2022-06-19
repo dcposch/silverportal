@@ -77,7 +77,7 @@ function OrderRow({
   const priceBtcPerEth = (1e10 / priceWeiPerSat).toFixed(5);
 
   let orderAction: ModalInfo, orderLabel: string;
-  if (isOurs && false) {
+  if (isOurs) {
     orderAction = { type: "cancel", order: o };
     orderLabel = "Del";
   } else if (type === "ASK") {

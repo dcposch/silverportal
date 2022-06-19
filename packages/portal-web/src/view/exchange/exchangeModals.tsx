@@ -548,8 +548,11 @@ export class SlashModal extends TxModal<EscrowProps> {
           receive the <Amount n={escrow.escrowWei} type="wei" /> from escrow.
         </div>
         <div className="exchange-row">
-          <button onClick={this.slash}>Slash</button>
+          <button onClick={this.slash} disabled={this.disableTx()}>
+            Slash
+          </button>
         </div>
+        {this.renderTxStatus()}
       </Modal>
     );
   }
