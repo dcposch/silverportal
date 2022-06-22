@@ -279,7 +279,7 @@ contract Portal is Ownable {
             orderID,
             o.amountSats,
             o.priceWeiPerSat,
-            0,
+            expectedStakeWei,
             o.maker,
             msg.sender
         );
@@ -317,7 +317,7 @@ contract Portal is Ownable {
             orderID,
             o.amountSats,
             o.priceWeiPerSat,
-            msg.value,
+            0,
             o.maker,
             msg.sender
         );
