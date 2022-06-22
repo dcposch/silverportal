@@ -88,6 +88,7 @@
 .exchange-tx-status {
     margin-top: 1em;
     padding: 0.5em;
+    color: var(--color-gray);
 }
 
 .exchange-tx-succeeded {

@@ -25,13 +25,14 @@ import "openzeppelin-contracts/access/Ownable.sol";
 //                                        +
 //
 
-uint256 constant MAX_SATS = 21000000 * 100 * 1000000; // 21m BTC in sats
-uint256 constant MAX_PRICE_WEI_PER_SAT = 1e18; // Max allowed price, 1sat = 1ETH
+uint256 constant MAX_SATS = 21e6 * 1e8; // Max order size: 21m BTC
+uint256 constant MAX_PRICE_WEI_PER_SAT = 1e18; // Max allowed price: 1sat = 1ETH
+
 /**
  * @dev Each order represents a bid or ask.
  */
 struct Order {
-    /** @dev Liquidity maker that created this bid or ask. */
+    /** @dev Market maker that created this bid or ask. */
     address maker;
     /** @dev Positive if buying ether (bid), negative if selling (ask). */
     int128 amountSats;
@@ -61,6 +62,7 @@ struct Escrow {
     address timeoutRecipient;
 }
 
+/** Implements a limit order book for trust-minimized BTC-ETH trades. */
 contract Portal is Ownable {
     event OrderPlaced(
         uint256 orderID,
@@ -233,6 +235,8 @@ contract Portal is Ownable {
             weiToSend = uint256(uint128(-o.amountSats) * o.priceWeiPerSat);
         }
 
+        emit OrderCancelled(orderID);
+
         // Delete order now. Prevent reentrancy issues.
         delete orderbook[orderID];
 
@@ -270,8 +274,6 @@ contract Portal is Ownable {
         e.timeoutRecipient = o.maker;
 
         // Order matched and filled.
-        delete orderbook[orderID];
-
         emit OrderMatched(
             escrowID,
             orderID,
@@ -281,6 +283,8 @@ contract Portal is Ownable {
             o.maker,
             msg.sender
         );
+
+        delete orderbook[orderID];
     }
 
     /** @notice Sell ether, receive bitcoin. */
@@ -308,8 +312,6 @@ contract Portal is Ownable {
         e.timeoutRecipient = msg.sender;
 
         // Order matched and filled.
-        delete orderbook[orderID];
-
         emit OrderMatched(
             escrowID,
             orderID,
@@ -319,6 +321,8 @@ contract Portal is Ownable {
             o.maker,
             msg.sender
         );
+
+        delete orderbook[orderID];
     }
 
     /** @notice The bidder proves they've sent bitcoin, completing the sale. */
@@ -331,25 +335,24 @@ contract Portal is Ownable {
         Escrow storage e = escrows[escrowID];
         require(msg.sender == e.successRecipient, "Wrong caller");
 
-        require(
-            btcVerifier.verifyPayment(
-                minConfirmations,
-                bitcoinBlockNum,
-                bitcoinTransactionProof,
-                txOutIx,
-                e.destScriptHash,
-                uint256(e.amountSatsDue)
-            ),
-            "Bad bitcoin transaction"
+        bool valid = btcVerifier.verifyPayment(
+            minConfirmations,
+            bitcoinBlockNum,
+            bitcoinTransactionProof,
+            txOutIx,
+            e.destScriptHash,
+            uint256(e.amountSatsDue)
         );
+        require(valid, "Bad bitcoin transaction");
 
         uint256 weiToSend = e.escrowWei;
+
+        emit EscrowSettled(escrowID, e.amountSatsDue, msg.sender, weiToSend);
+
         delete escrows[escrowID];
 
         (bool success, ) = msg.sender.call{value: weiToSend}("");
         require(success, "Transfer failed");
-
-        emit EscrowSettled(escrowID, e.amountSatsDue, msg.sender, weiToSend);
     }
 
     function slash(uint256 escrowID) public {
@@ -359,11 +362,11 @@ contract Portal is Ownable {
         require(e.deadline < block.timestamp, "Too early");
 
         uint256 weiToSend = e.escrowWei;
+        emit EscrowSlashed(escrowID, e.deadline, msg.sender, weiToSend);
+
         delete escrows[escrowID];
 
         (bool success, ) = msg.sender.call{value: weiToSend}("");
         require(success, "Transfer failed");
-
-        emit EscrowSlashed(escrowID, e.deadline, msg.sender, weiToSend);
     }
 }
