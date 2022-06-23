@@ -103,27 +103,68 @@ contract PortalTest is Test {
         p.postBid{value: stakeWei}(1e8, 0);
     }
 
-    function testAsk() public {}
+    function testAsk() public returns (Portal p) {
+        p = new Portal(5, IBtcTxVerifier(address(0)));
+        bytes20 destScriptHash = hex"0011223344556677889900112233445566778899";
 
-    function testBuy() public {}
+        // Test a successful ask
+        vm.expectEmit(true, true, true, true);
+        emit OrderPlaced(1, -1e8, 20e10, 0, address(this));
+        uint256 orderId = p.postAsk{value: 20 ether}(
+            1e8,
+            20e10, /* 20 ETH/BTC */
+            destScriptHash
+        );
+        assertEq(orderId, 1);
+
+        // Test invalid bids
+        vm.expectRevert(bytes("Incorrect stake"));
+        p.postBid{value: 21 ether}(1e8, 20e10);
+
+        vm.expectRevert(bytes("Amount overflow"));
+        p.postBid{value: 20 ether}(22e6 * 1e8, 20e10);
+
+        vm.expectRevert(bytes("Price overflow"));
+        p.postBid{value: 20 ether}(1e8, 20e20);
+
+        vm.expectRevert(bytes("Amount underflow"));
+        p.postBid{value: 20 ether}(0, 20e10);
+
+        vm.expectRevert(bytes("Price underflow"));
+        p.postBid{value: 20 ether}(1e8, 0);
+    }
+
+    function testBuy() public returns (Portal p) {
+        p = testAsk();
+
+        // Hit the ask. Buy 1 BTC for 20 ETH.
+        uint256 orderID = 1;
+
+        // Invalid buys first...
+        vm.expectRevert(bytes("Wrong payment"));
+        p.initiateBuy(1, 1e8);
+
+        // Then, do it right. Stake 5% = 1 ETH.
+        p.initiateBuy{value: 1 ether}(1, 1e8);
+    }
 
     function testSell() public returns (Portal p) {
         p = testBid();
 
-        // Hit the bid. Buy 1 BTC for 20 ETH.
+        // Hit the bid. Sell 1 BTC for 20 ETH.
         uint256 orderID = 1;
         bytes20 destScriptHash = hex"0011223344556677889900112233445566778899";
 
-        // Invalid bids first...
+        // Invalid sells first...
         vm.expectRevert(bytes("Wrong payment"));
         p.initiateSell(orderID, 1e8, destScriptHash);
 
         vm.expectRevert(bytes("Amount incorrect"));
         p.initiateSell(orderID, 9e7, destScriptHash);
 
-        // Valid bid
+        // Valid sell
         address alice = address(this);
-        address bob = address(this); // TODO
+        address bob = address(this);
         vm.expectEmit(true, true, true, true);
         emit OrderMatched(1e9, orderID, 1e8, 20e10, 0, alice, bob);
         uint256 escrowID = p.initiateSell{value: 20 ether}(
@@ -138,11 +179,60 @@ contract PortalTest is Test {
         p.initiateSell{value: 20 ether}(orderID, 1e8, destScriptHash);
     }
 
-    function testCancel() public {}
+    function testCancel() public {
+        Portal p = testBid();
 
-    function testSettle() public {}
+        vm.expectEmit(true, true, true, true);
+        emit OrderCancelled(1);
+        p.cancelOrder(1);
 
-    function testSlash() public {}
+        vm.expectRevert(bytes("Order not found"));
+        p.cancelOrder(1);
+    }
+
+    receive() external payable {
+        console.log("Received mETH", msg.value / 1e15);
+    }
+
+    function testSettle() public {
+        Portal p = testSell();
+        BtcTxProof memory proof;
+
+        // First, stub in an failed proof validation.
+        p.setBtcVerifier(new StubBtcTxVerifier(false));
+        vm.expectRevert(bytes("Bad bitcoin transaction"));
+        p.proveSettlement(1e9, 123, proof, 12);
+
+        //  Prove settlement. Successful proof validation.
+        p.setBtcVerifier(new StubBtcTxVerifier(true));
+        vm.expectEmit(true, true, true, true);
+        emit EscrowSettled(1e9, 1e8, address(this), 21 ether);
+        p.proveSettlement(1e9, 123, proof, 12);
+
+        // Finally, try again. Escrow should be gone.
+        vm.expectRevert(bytes("Escrow not found"));
+        p.proveSettlement(1e9, 123, proof, 12);
+    }
+
+    function testSlash() public {
+        Portal p = testSell();
+
+        // We can't slash immediately
+        vm.expectRevert(bytes("Too early"));
+        p.slash(1e9);
+
+        // ...or after 24 hours
+        skip(3600 * 24);
+        vm.expectRevert(bytes("Too early"));
+        p.slash(1e9);
+        uint256 tPlus24 = block.timestamp;
+
+        // We can slash after 24 hours and 1 second
+        skip(1);
+        vm.expectEmit(true, true, true, true);
+        emit EscrowSlashed(1e9, tPlus24, address(this), 21 ether);
+        p.slash(1e9);
+    }
 }
 
 contract StubBtcTxVerifier is IBtcTxVerifier {
@@ -160,6 +250,6 @@ contract StubBtcTxVerifier is IBtcTxVerifier {
         bytes20 destScriptHash,
         uint256 amountSats
     ) external view returns (bool) {
-        return true;
+        return alwaysBet;
     }
 }

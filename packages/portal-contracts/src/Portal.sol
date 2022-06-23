@@ -191,14 +191,13 @@ contract Portal is Ownable {
      * @notice Posts an ask. You send ether, which is now for sale at the stated
      *         price. To buy, a buyer sends bitcoin to the state P2SH address.
      */
-    function postAsk(uint256 priceWeiPerSat, bytes20 scriptHash)
-        public
-        payable
-        returns (uint256 orderID)
-    {
+    function postAsk(
+        uint256 amountSats,
+        uint256 priceWeiPerSat,
+        bytes20 scriptHash
+    ) public payable returns (uint256 orderID) {
         require(priceWeiPerSat <= MAX_PRICE_WEI_PER_SAT, "Price overflow");
         require(priceWeiPerSat > 0, "Price underflow");
-        uint256 amountSats = msg.value / priceWeiPerSat;
         require(amountSats <= MAX_SATS, "Amount overflow");
         require(amountSats > 0, "Amount underflow");
         require(amountSats * priceWeiPerSat == msg.value, "Wrong payment");
@@ -223,8 +222,8 @@ contract Portal is Ownable {
     function cancelOrder(uint256 orderID) public {
         Order storage o = orderbook[orderID];
 
-        require(msg.sender == o.maker, "Not your order");
-        require(o.amountSats != 0, "Order already filled");
+        require(o.amountSats != 0, "Order not found");
+        require(msg.sender == o.maker, "Order not yours");
 
         uint256 weiToSend;
         if (o.amountSats > 0) {
@@ -262,7 +261,7 @@ contract Portal is Ownable {
         // Verify correct stake amount.
         uint256 totalWei = uint256(amountSats) * uint256(o.priceWeiPerSat);
         uint256 expectedStakeWei = (totalWei * stakePercent) / 100;
-        require(msg.value != expectedStakeWei, "Wrong payment");
+        require(msg.value == expectedStakeWei, "Wrong payment");
 
         // Put the COMBINED eth (buyer's stake + the order amount) into escrow.
         Escrow storage e = escrows[escrowID];
@@ -333,6 +332,7 @@ contract Portal is Ownable {
         uint256 txOutIx
     ) public {
         Escrow storage e = escrows[escrowID];
+        require(e.successRecipient != address(0), "Escrow not found");
         require(msg.sender == e.successRecipient, "Wrong caller");
 
         bool valid = btcVerifier.verifyPayment(
