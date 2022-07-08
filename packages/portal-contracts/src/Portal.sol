@@ -2,7 +2,8 @@
 pragma solidity >=0.8.0;
 
 import "btcmirror/interfaces/IBtcTxVerifier.sol";
-import "openzeppelin-contracts/access/Ownable.sol";
+import "solmate/auth/Owned.sol";
+import "openzeppelin-contracts/interfaces/IERC20.sol";
 
 //
 //                                        #
@@ -25,8 +26,10 @@ import "openzeppelin-contracts/access/Ownable.sol";
 //                                        +
 //
 
-uint256 constant MAX_SATS = 21e6 * 1e8; // Max order size: 21m BTC
-uint256 constant MAX_PRICE_WEI_PER_SAT = 1e18; // Max allowed price: 1sat = 1ETH
+// Max order size: 21m BTC
+uint256 constant MAX_SATS = 21e6 * 1e8;
+// Max allowed price: 1sat = 1WETH or 1e18 of another ERC20 token.
+uint256 constant MAX_PRICE_TOK_PER_SAT = 1e18;
 
 /**
  * @dev Each order represents a bid or ask.
@@ -36,12 +39,12 @@ struct Order {
     address maker;
     /** @dev Positive if buying ether (bid), negative if selling (ask). */
     int128 amountSats;
-    /** @dev INVERSE price, in weis per sat. You're buying or selling weis.*/
-    uint128 priceWeiPerSat;
+    /** @dev INVERSE price, in token units per sat. */
+    uint128 priceTokPerSat;
     /** @dev Unused for bid. Bitcoin P2SH address for asks. */
     bytes20 scriptHash;
-    /** @dev Unused for ask. Staked wei for bids. */
-    uint256 stakedWei;
+    /** @dev Unused for ask. Staked token amount for bids. */
+    uint256 stakedTok;
 }
 
 /**
@@ -54,21 +57,21 @@ struct Escrow {
     uint128 amountSatsDue;
     /** @dev Due date, in Unix seconds. */
     uint128 deadline;
-    /** @dev Ether held in escrow. */
-    uint256 escrowWei;
-    /** @dev If correct amount is paid to script hash, who gets the eth? */
+    /** @dev Tokens held in escrow. */
+    uint256 escrowTok;
+    /** @dev If correct amount is paid to script hash, who keeps the escrow? */
     address successRecipient;
-    /** @dev If deadline passes without proof of payment, who gets the eth? */
+    /** @dev If deadline passes without proof of payment, who keeps escrow? */
     address timeoutRecipient;
 }
 
-/** Implements a limit order book for trust-minimized BTC-ETH trades. */
-contract Portal is Ownable {
+/** @notice Implements a limit order book for trust-minimized BTC-ETH trades. */
+contract Portal is Owned {
     event OrderPlaced(
         uint256 orderID,
         int128 amountSats,
-        uint128 priceWeiPerSat,
-        uint256 makerStakedWei,
+        uint128 priceTokPerSat,
+        uint256 makerStakedTok,
         address maker
     );
 
@@ -78,8 +81,8 @@ contract Portal is Ownable {
         uint256 escrowID,
         uint256 orderID,
         int128 amountSats,
-        uint128 priceWeiPerSat,
-        uint256 takerStakedWei,
+        uint128 priceTokPerSat,
+        uint256 takerStakedTok,
         address maker,
         address taker
     );
@@ -99,6 +102,9 @@ contract Portal is Ownable {
     );
 
     event ParamUpdated(uint256 oldVal, uint256 newVal, string name);
+
+    /** The token we are trading for BTC. */
+    IERC20 public immutable token;
 
     /**
      * @dev Required stake for buy transactions. If you promise to send X BTC to
@@ -122,7 +128,12 @@ contract Portal is Ownable {
     /** @dev Next order ID = number of orders so far + 1. */
     uint256 public nextOrderID;
 
-    constructor(uint256 _stakePercent, IBtcTxVerifier _btcVerifier) {
+    constructor(
+        IERC20 _token,
+        uint256 _stakePercent,
+        IBtcTxVerifier _btcVerifier
+    ) Owned(msg.sender) {
+        token = _token;
         stakePercent = _stakePercent;
         btcVerifier = _btcVerifier;
         nextOrderID = 1;
@@ -156,7 +167,7 @@ contract Portal is Ownable {
      *         at the stated price. You must stake a percentage of the total
      *         eth value, which is returned after a successful transaction.
      */
-    function postBid(uint256 amountSats, uint256 priceWeiPerSat)
+    function postBid(uint256 amountSats, uint256 priceTokPerSat)
         public
         payable
         returns (uint256 orderID)
@@ -164,25 +175,27 @@ contract Portal is Ownable {
         // Validate order and stake amount.
         require(amountSats <= MAX_SATS, "Amount overflow");
         require(amountSats > 0, "Amount underflow");
-        require(priceWeiPerSat <= MAX_PRICE_WEI_PER_SAT, "Price overflow");
-        require(priceWeiPerSat > 0, "Price underflow");
-        uint256 totalValueWei = amountSats * priceWeiPerSat;
-        uint256 requiredStakeWei = (totalValueWei * stakePercent) / 100;
-        require(msg.value == requiredStakeWei, "Incorrect stake");
+        require(priceTokPerSat <= MAX_PRICE_TOK_PER_SAT, "Price overflow");
+        require(priceTokPerSat > 0, "Price underflow");
+        uint256 totalValueTok = amountSats * priceTokPerSat;
+        uint256 requiredStakeTok = (totalValueTok * stakePercent) / 100;
+
+        // Receive stake amount
+        _transferFromSender(requiredStakeTok);
 
         // Record order.
         orderID = nextOrderID++;
         Order storage o = orderbook[orderID];
         o.maker = msg.sender;
         o.amountSats = int128(uint128(amountSats));
-        o.priceWeiPerSat = uint128(priceWeiPerSat);
-        o.stakedWei = requiredStakeWei;
+        o.priceTokPerSat = uint128(priceTokPerSat);
+        o.stakedTok = requiredStakeTok;
 
         emit OrderPlaced(
             orderID,
             o.amountSats,
-            o.priceWeiPerSat,
-            o.stakedWei,
+            o.priceTokPerSat,
+            o.stakedTok,
             msg.sender
         );
     }
@@ -193,27 +206,29 @@ contract Portal is Ownable {
      */
     function postAsk(
         uint256 amountSats,
-        uint256 priceWeiPerSat,
+        uint256 priceTokPerSat,
         bytes20 scriptHash
     ) public payable returns (uint256 orderID) {
-        require(priceWeiPerSat <= MAX_PRICE_WEI_PER_SAT, "Price overflow");
-        require(priceWeiPerSat > 0, "Price underflow");
+        require(priceTokPerSat <= MAX_PRICE_TOK_PER_SAT, "Price overflow");
+        require(priceTokPerSat > 0, "Price underflow");
         require(amountSats <= MAX_SATS, "Amount overflow");
         require(amountSats > 0, "Amount underflow");
-        require(amountSats * priceWeiPerSat == msg.value, "Wrong payment");
+
+        // Receive payment
+        _transferFromSender(amountSats * priceTokPerSat);
 
         // Record order.
         orderID = nextOrderID++;
         Order storage o = orderbook[orderID];
         o.maker = msg.sender;
         o.amountSats = -int128(uint128(amountSats));
-        o.priceWeiPerSat = uint128(priceWeiPerSat);
+        o.priceTokPerSat = uint128(priceTokPerSat);
         o.scriptHash = scriptHash;
 
         emit OrderPlaced(
             orderID,
             o.amountSats,
-            o.priceWeiPerSat,
+            o.priceTokPerSat,
             0,
             msg.sender
         );
@@ -225,13 +240,13 @@ contract Portal is Ownable {
         require(o.amountSats != 0, "Order not found");
         require(msg.sender == o.maker, "Order not yours");
 
-        uint256 weiToSend;
+        uint256 tokToSend;
         if (o.amountSats > 0) {
             // Bid, return stake
-            weiToSend = o.stakedWei;
+            tokToSend = o.stakedTok;
         } else {
             // Ask, return liquidity
-            weiToSend = uint256(uint128(-o.amountSats) * o.priceWeiPerSat);
+            tokToSend = uint256(uint128(-o.amountSats) * o.priceTokPerSat);
         }
 
         emit OrderCancelled(orderID);
@@ -239,8 +254,7 @@ contract Portal is Ownable {
         // Delete order now. Prevent reentrancy issues.
         delete orderbook[orderID];
 
-        (bool success, ) = msg.sender.call{value: weiToSend}("");
-        require(success, "Transfer failed");
+        _transferToSender(tokToSend);
     }
 
     /** @notice Buy ether, posting stake and promising to send bitcoin. */
@@ -259,16 +273,18 @@ contract Portal is Ownable {
         require(-o.amountSats == int128(amountSats), "Amount incorrect");
 
         // Verify correct stake amount.
-        uint256 totalWei = uint256(amountSats) * uint256(o.priceWeiPerSat);
-        uint256 expectedStakeWei = (totalWei * stakePercent) / 100;
-        require(msg.value == expectedStakeWei, "Wrong payment");
+        uint256 totalTok = uint256(amountSats) * uint256(o.priceTokPerSat);
+        uint256 expectedStakeTok = (totalTok * stakePercent) / 100;
+
+        // Receive stake
+        _transferFromSender(expectedStakeTok);
 
         // Put the COMBINED eth (buyer's stake + the order amount) into escrow.
         Escrow storage e = escrows[escrowID];
         e.destScriptHash = o.scriptHash;
         e.amountSatsDue = amountSats;
         e.deadline = uint128(block.timestamp + 24 hours);
-        e.escrowWei = totalWei + msg.value;
+        e.escrowTok = totalTok + msg.value;
         e.successRecipient = msg.sender;
         e.timeoutRecipient = o.maker;
 
@@ -277,8 +293,8 @@ contract Portal is Ownable {
             escrowID,
             orderID,
             o.amountSats,
-            o.priceWeiPerSat,
-            expectedStakeWei,
+            o.priceTokPerSat,
+            expectedStakeTok,
             o.maker,
             msg.sender
         );
@@ -296,7 +312,9 @@ contract Portal is Ownable {
         Order storage o = orderbook[orderID];
         require(o.amountSats > 0, "Order already filled"); // Must be a bid
         require(o.amountSats == int128(amountSats), "Amount incorrect");
-        require(msg.value == amountSats * o.priceWeiPerSat, "Wrong payment");
+
+        // Receive sale payment
+        _transferFromSender(amountSats * o.priceTokPerSat);
 
         // Put the COMBINED eth--the value being sold, plus the liquidity
         // maker's stake--into escrow. If the maker sends bitcoin as
@@ -306,7 +324,7 @@ contract Portal is Ownable {
         e.destScriptHash = destScriptHash;
         e.amountSatsDue = amountSats;
         e.deadline = uint128(block.timestamp + 24 hours);
-        e.escrowWei = o.stakedWei + msg.value;
+        e.escrowTok = o.stakedTok + msg.value;
         e.successRecipient = o.maker;
         e.timeoutRecipient = msg.sender;
 
@@ -315,7 +333,7 @@ contract Portal is Ownable {
             escrowID,
             orderID,
             o.amountSats,
-            o.priceWeiPerSat,
+            o.priceTokPerSat,
             0,
             o.maker,
             msg.sender
@@ -345,14 +363,13 @@ contract Portal is Ownable {
         );
         require(valid, "Bad bitcoin transaction");
 
-        uint256 weiToSend = e.escrowWei;
+        uint256 tokToSend = e.escrowTok;
 
-        emit EscrowSettled(escrowID, e.amountSatsDue, msg.sender, weiToSend);
+        emit EscrowSettled(escrowID, e.amountSatsDue, msg.sender, tokToSend);
 
         delete escrows[escrowID];
 
-        (bool success, ) = msg.sender.call{value: weiToSend}("");
-        require(success, "Transfer failed");
+        _transferToSender(tokToSend);
     }
 
     function slash(uint256 escrowID) public {
@@ -361,12 +378,34 @@ contract Portal is Ownable {
         require(msg.sender == e.timeoutRecipient, "Wrong caller");
         require(e.deadline < block.timestamp, "Too early");
 
-        uint256 weiToSend = e.escrowWei;
-        emit EscrowSlashed(escrowID, e.deadline, msg.sender, weiToSend);
+        uint256 tokToSend = e.escrowTok;
+        emit EscrowSlashed(escrowID, e.deadline, msg.sender, tokToSend);
 
         delete escrows[escrowID];
 
-        (bool success, ) = msg.sender.call{value: weiToSend}("");
-        require(success, "Transfer failed");
+        _transferToSender(tokToSend);
+    }
+
+    function _transferFromSender(uint256 tok) private {
+        if (address(token) == address(0)) {
+            // Receive wei
+            require(msg.value == tok, "Wrong payment");
+            return;
+        }
+
+        bool success = token.transferFrom(msg.sender, address(this), tok);
+        require(success, "transferFrom failed");
+    }
+
+    function _transferToSender(uint256 tok) private {
+        if (address(token) == address(0)) {
+            // Send wei
+            (bool suc, ) = msg.sender.call{value: tok}(hex"");
+            require(suc, "Send failed");
+            return;
+        }
+
+        bool success = token.transfer(msg.sender, tok);
+        require(success, "transfer failed");
     }
 }

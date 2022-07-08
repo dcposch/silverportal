@@ -7,12 +7,18 @@ import "btcmirror/BtcTxVerifier.sol";
 import "../Portal.sol";
 
 contract PortalDeploy is Test {
-    function run(bool mainnet) public {
+    function run(
+        bool mainnet,
+        IERC20 token,
+        BtcMirror existingMirror
+    ) public {
         vm.startBroadcast();
 
         // DEPLOY MIRROR
         BtcMirror mirror;
-        if (mainnet) {
+        if (address(existingMirror) != address(0)) {
+            mirror = existingMirror;
+        } else if (mainnet) {
             // ...STARTING AT MAINNET BLOCK 739000
             mirror = new BtcMirror(
                 739000,
@@ -36,7 +42,7 @@ contract PortalDeploy is Test {
         BtcTxVerifier verifier = new BtcTxVerifier(mirror);
 
         // DEPLOY PORTAL
-        new Portal(5, verifier);
+        new Portal(token, 5, verifier);
 
         vm.stopBroadcast();
     }

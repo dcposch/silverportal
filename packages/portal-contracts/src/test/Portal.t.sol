@@ -42,9 +42,11 @@ contract PortalTest is Test {
 
     event ParamUpdated(uint256 oldVal, uint256 newVal, string name);
 
+    IERC20 immutable ETH = IERC20(address(0x0));
+
     function testSetParam() public {
         // Create a new Portal. Verify default params.
-        Portal p = new Portal(5, IBtcTxVerifier(address(23)));
+        Portal p = new Portal(ETH, 5, IBtcTxVerifier(address(23)));
         assertEq(p.stakePercent(), 5);
         assertEq(p.minConfirmations(), 1);
         assertEq(address(p.btcVerifier()), address(23));
@@ -60,21 +62,21 @@ contract PortalTest is Test {
         p.setBtcVerifier(IBtcTxVerifier(address(123)));
         assertEq(address(p.btcVerifier()), address(123));
 
-        // Burn our ownership
-        p.renounceOwnership();
+        // // Burn our ownership
+        p.setOwner(address(0));
         assertEq(address(p.owner()), address(0));
 
-        // Ensure we can no longer set params
-        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        // // Ensure we can no longer set params
+        vm.expectRevert(bytes("UNAUTHORIZED"));
         p.setStakePercent(0);
-        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        vm.expectRevert(bytes("UNAUTHORIZED"));
         p.setMinConfirmations(0);
-        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        vm.expectRevert(bytes("UNAUTHORIZED"));
         p.setBtcVerifier(IBtcTxVerifier(address(0)));
     }
 
     function testBid() public returns (Portal p) {
-        p = new Portal(5, IBtcTxVerifier(address(0)));
+        p = new Portal(ETH, 5, IBtcTxVerifier(address(0)));
 
         // Test a successful bid
         uint256 stakeWei = 1 ether; /* 1 ETH = 5% of 1 * 20 ETH */
@@ -87,7 +89,7 @@ contract PortalTest is Test {
         assertEq(orderId, 1);
 
         // Test invalid bids
-        vm.expectRevert(bytes("Incorrect stake"));
+        vm.expectRevert(bytes("Wrong payment"));
         p.postBid{value: 9e17}(1e8, 20e10);
 
         vm.expectRevert(bytes("Amount overflow"));
@@ -104,7 +106,7 @@ contract PortalTest is Test {
     }
 
     function testAsk() public returns (Portal p) {
-        p = new Portal(5, IBtcTxVerifier(address(0)));
+        p = new Portal(ETH, 5, IBtcTxVerifier(address(0)));
         bytes20 destScriptHash = hex"0011223344556677889900112233445566778899";
 
         // Test a successful ask
@@ -118,7 +120,7 @@ contract PortalTest is Test {
         assertEq(orderId, 1);
 
         // Test invalid bids
-        vm.expectRevert(bytes("Incorrect stake"));
+        vm.expectRevert(bytes("Wrong payment"));
         p.postBid{value: 21 ether}(1e8, 20e10);
 
         vm.expectRevert(bytes("Amount overflow"));
@@ -138,7 +140,7 @@ contract PortalTest is Test {
         p = testAsk();
 
         // Hit the ask. Buy 1 BTC for 20 ETH.
-        uint256 orderID = 1;
+        // uint256 orderID = 1;
 
         // Invalid buys first...
         vm.expectRevert(bytes("Wrong payment"));
@@ -146,6 +148,8 @@ contract PortalTest is Test {
 
         // Then, do it right. Stake 5% = 1 ETH.
         p.initiateBuy{value: 1 ether}(1, 1e8);
+
+        // TODO
     }
 
     function testSell() public returns (Portal p) {
@@ -243,12 +247,12 @@ contract StubBtcTxVerifier is IBtcTxVerifier {
     }
 
     function verifyPayment(
-        uint256 minConfirmations,
-        uint256 blockNum,
-        BtcTxProof calldata inclusionProof,
-        uint256 txOutIx,
-        bytes20 destScriptHash,
-        uint256 amountSats
+        uint256, /* minConfirmations */
+        uint256, /* blockNum */
+        BtcTxProof calldata, /* inclusionProof */
+        uint256, /* txOutIx */
+        bytes20, /* destScriptHash */
+        uint256 /* amountSats */
     ) external view returns (bool) {
         return alwaysBet;
     }
