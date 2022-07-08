@@ -15,10 +15,8 @@
 
 To swap ETH for BTC, you first send ETH to the exchange contract. A market maker
 sends you the corresponding BTC. They post a proof to the contract, claiming the
-ether.
-
-If the market maker fails to send you your bitcoin, you get your ether
-back after the escrow period, say after two days.
+ether. If the market maker fails to send you your bitcoin, you get your ether
+back after an escrow period.
 
 The other direction is even easier. You send BTC to the market maker's Bitcoin
 address, then post a proof to the contract to claim your ETH.
