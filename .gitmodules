@@ -6,7 +6,7 @@
 	url = https://github.com/dcposch/btcmirror
 [submodule "packages/portal-contracts/lib/openzeppelin-contracts"]
 	path = packages/portal-contracts/lib/openzeppelin-contracts
-	url = git@github.com:OpenZeppelin/openzeppelin-contracts.git
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
 [submodule "packages/portal-contracts/lib/solmate"]
 	path = packages/portal-contracts/lib/solmate
-	url = git@github.com:Rari-Capital/solmate.git
+	url = https://github.com/Rari-Capital/solmate
