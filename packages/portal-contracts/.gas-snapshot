@@ -1,0 +1,8 @@
+PortalTest:testAsk():(address) (gas: 1693305)
+PortalTest:testBid():(address) (gas: 1693434)
+PortalTest:testBuy():(address) (gas: 1762472)
+PortalTest:testCancel() (gas: 1652417)
+PortalTest:testSell():(address) (gas: 1776687)
+PortalTest:testSetParam() (gas: 1595330)
+PortalTest:testSettle() (gas: 1935749)
+PortalTest:testSlash() (gas: 1698649)
