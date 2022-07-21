@@ -1,0 +1,34 @@
+name: contracts
+
+on:
+  push:
+    branches: "**"
+    paths:
+      - "packages/portal-contracts/**"
+      - ".github/workflows/contracts.yml"
+
+concurrency: contracts
+
+jobs:
+  contracts-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./packages/portal-contracts
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+ 
+      - name: Run install
+        run: forge install
+
+      - name: Run tests
+        run: forge test -vvv
+
+      - name: Run snapshot
+        run: forge snapshot
