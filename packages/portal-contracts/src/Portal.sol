@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 import "btcmirror/interfaces/IBtcTxVerifier.sol";
 import "solmate/auth/Owned.sol";
 import "openzeppelin-contracts/interfaces/IERC20.sol";
+import {PRBMathSD59x18} from "prb-math/PRBMathSD59x18.sol";
 
 //
 //                                        #
@@ -67,6 +68,8 @@ struct Escrow {
 
 /** @notice Implements a limit order book for trust-minimized BTC-ETH trades. */
 contract Portal is Owned {
+    using PRBMathSD59x18 for int256;
+
     event OrderPlaced(
         uint256 orderID,
         int128 amountSats,
@@ -81,6 +84,7 @@ contract Portal is Owned {
         uint256 escrowID,
         uint256 orderID,
         int128 amountSats,
+        int128 amountSatsFilled,
         uint128 priceTokPerSat,
         uint256 takerStakedTok,
         address maker,
@@ -127,6 +131,9 @@ contract Portal is Owned {
 
     /** @dev Next order ID = number of orders so far + 1. */
     uint256 public nextOrderID;
+    
+    /** @dev Next escrow ID = number of fills/partial fills so far + 1. */
+    uint256 public nextEscrowID;
 
     constructor(
         IERC20 _token,
@@ -137,6 +144,7 @@ contract Portal is Owned {
         stakePercent = _stakePercent;
         btcVerifier = _btcVerifier;
         nextOrderID = 1;
+        nextEscrowID = 1;
         minConfirmations = 1;
     }
 
@@ -263,20 +271,17 @@ contract Portal is Owned {
         payable
         returns (uint256 escrowID)
     {
-        // Orders can only be filled in their entirety, for now.
-        // This means escrows are 1:1 with orders.
-        // TODO: allow partial fills?
-        escrowID = orderID * 1e9;
+        escrowID = nextEscrowID++;
 
         Order storage o = orderbook[orderID];
         require(o.amountSats < 0, "Order already filled");
-        require(-o.amountSats == int128(amountSats), "Amount incorrect");
+        require(-o.amountSats >= int128(amountSats), "Amount incorrect");
 
         // Verify correct stake amount.
         uint256 totalTok = uint256(amountSats) * uint256(o.priceTokPerSat);
         uint256 expectedStakeTok = (totalTok * stakePercent) / 100;
 
-        // Receive stake
+        // Receive stake. Validates that msg.value == expectedStateTok (for ether based payments)
         _transferFromSender(expectedStakeTok);
 
         // Put the COMBINED eth (buyer's stake + the order amount) into escrow.
@@ -284,22 +289,29 @@ contract Portal is Owned {
         e.destScriptHash = o.scriptHash;
         e.amountSatsDue = amountSats;
         e.deadline = uint128(block.timestamp + 24 hours);
-        e.escrowTok = totalTok + msg.value;
+        e.escrowTok = totalTok + expectedStakeTok;
         e.successRecipient = msg.sender;
         e.timeoutRecipient = o.maker;
 
-        // Order matched and filled.
+        // Order matched.
         emit OrderMatched(
             escrowID,
             orderID,
             o.amountSats,
+            int128(amountSats),
             o.priceTokPerSat,
             expectedStakeTok,
             o.maker,
             msg.sender
         );
 
-        delete orderbook[orderID];
+        // Update the amount of liquidity in this order
+        o.amountSats += int128(amountSats);
+
+        // Delete the order if there is no more liquidity left
+        if (o.amountSats == 0) {
+          delete orderbook[orderID];
+        }
     }
 
     /** @notice Sell ether, receive bitcoin. */
@@ -308,13 +320,21 @@ contract Portal is Owned {
         uint128 amountSats,
         bytes20 destScriptHash
     ) public payable returns (uint256 escrowID) {
-        escrowID = orderID * 1e9;
+        escrowID = nextEscrowID++;
         Order storage o = orderbook[orderID];
         require(o.amountSats > 0, "Order already filled"); // Must be a bid
-        require(o.amountSats == int128(amountSats), "Amount incorrect");
+        require(o.amountSats >= int128(amountSats), "Amount incorrect");
+
+        uint256 totalValue = amountSats * o.priceTokPerSat;
+        int256 orderSats = int256(o.amountSats).fromInt();
+        int256 fillSats = int256(uint256(amountSats)).fromInt();
+        int256 stake = int256(o.stakedTok).fromInt();
+
+        int256 ratio = fillSats.div(orderSats);
+        uint256 portionOfStake = uint256(stake.mul(ratio)) / 1e18;
 
         // Receive sale payment
-        _transferFromSender(amountSats * o.priceTokPerSat);
+        _transferFromSender(totalValue);
 
         // Put the COMBINED eth--the value being sold, plus the liquidity
         // maker's stake--into escrow. If the maker sends bitcoin as
@@ -324,22 +344,30 @@ contract Portal is Owned {
         e.destScriptHash = destScriptHash;
         e.amountSatsDue = amountSats;
         e.deadline = uint128(block.timestamp + 24 hours);
-        e.escrowTok = o.stakedTok + msg.value;
+        e.escrowTok = portionOfStake + totalValue;
         e.successRecipient = o.maker;
         e.timeoutRecipient = msg.sender;
 
-        // Order matched and filled.
+        // Order matched.
         emit OrderMatched(
             escrowID,
             orderID,
             o.amountSats,
+            int128(amountSats),
             o.priceTokPerSat,
             0,
             o.maker,
             msg.sender
         );
 
-        delete orderbook[orderID];
+        o.amountSats -= int128(amountSats);
+        o.stakedTok -= portionOfStake;
+        emit OrderCancelled(o.stakedTok);
+
+        // Delete the order if its been filled.
+        if (o.amountSats == 0) {
+          delete orderbook[orderID];
+        }
     }
 
     /** @notice The bidder proves they've sent bitcoin, completing the sale. */

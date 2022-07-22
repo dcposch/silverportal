@@ -11,9 +11,8 @@ contract TestLottery is Test {
     function run() public {
         vm.startBroadcast();
 
-        ILottery l = ILottery(
-            address(0x8DE42dAE71A75203fBdb9C45eBC0e6E69206c5c5)
-        );
+        ILottery l =
+            ILottery(address(0x8DE42dAE71A75203fBdb9C45eBC0e6E69206c5c5));
 
         uint256 nTix = l.numberOfTickets();
 
