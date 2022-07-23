@@ -78,6 +78,13 @@ contract Portal is Owned {
         address maker
     );
 
+    event OrderUpdated(
+        uint256 orderID,
+        int128 amountSats,
+        uint256 makerStakedTok,
+        address maker
+    );
+
     event OrderCancelled(uint256 orderID);
 
     event OrderMatched(
@@ -412,6 +419,42 @@ contract Portal is Owned {
         delete escrows[escrowID];
 
         _transferToSender(tokToSend);
+    }
+
+    // Update an existing bid or ask order. amountSats is negative if the order is an ask.
+    function updateOrder(uint256 orderID, int128 amountSats) public payable {
+        Order storage o = orderbook[orderID];
+
+        require(o.amountSats != 0, "Order not found");
+        require(o.maker == msg.sender, "Order not yours");
+
+        if (o.amountSats < 0) {
+          // This is an ask. Receive the ether to be sold and update the order.
+          require(amountSats < 0 && uint256(int256(-(o.amountSats + amountSats))) <= MAX_SATS, "Must be adding a valid amount of liquidity");
+
+          uint256 additionalValue = uint256(int256(-amountSats * int128(o.priceTokPerSat)));
+          o.amountSats += amountSats;
+
+          _transferFromSender(additionalValue);
+        } else {
+          // This is a bid, update the order and take the additional stake
+          require(amountSats > 0 && uint256(int256(o.amountSats)) + uint256(int256(amountSats)) <= MAX_SATS, "Must be adding a valid amount of liquidity");
+          uint256 expectedStakeTok = (uint256(int256(amountSats)) * uint256(o.priceTokPerSat) * stakePercent) / 100;
+          
+          // Update the order
+          o.amountSats += amountSats;
+          o.stakedTok += expectedStakeTok;
+
+          // Receive the additional stake
+          _transferFromSender(expectedStakeTok);
+        }
+
+        emit OrderUpdated(
+          orderID,
+          o.amountSats,
+          o.stakedTok,
+          o.maker
+        );
     }
 
     function _transferFromSender(uint256 tok) private {
