@@ -251,7 +251,7 @@ contract PortalTest is Test {
         console.log("Received mETH", msg.value / 1e15);
     }
 
-    function testSettle() public {
+    function testSettleFromSell() public {
         Portal p = testSell();
         BtcTxProof memory proof;
 
@@ -271,7 +271,7 @@ contract PortalTest is Test {
         p.proveSettlement(1, 123, proof, 12);
     }
     
-    function testPartialSettle() public {
+    function testPartialSettleFromSell() public {
         Portal p = testPartialSell();
         BtcTxProof memory proof;
 
@@ -314,6 +314,51 @@ contract PortalTest is Test {
         vm.expectEmit(true, true, true, true);
         emit EscrowSlashed(1, tPlus24, address(this), 21 ether);
         p.slash(1);
+    }
+    
+    function testSettleFromBuy() public {
+        Portal p = testBuy();
+        BtcTxProof memory proof;
+
+        // First, stub in an failed proof validation.
+        p.setBtcVerifier(new StubBtcTxVerifier(false));
+        vm.expectRevert(bytes("Bad bitcoin transaction"));
+        p.proveSettlement(1, 123, proof, 12);
+
+        //  Prove settlement. Successful proof validation.
+        p.setBtcVerifier(new StubBtcTxVerifier(true));
+        vm.expectEmit(true, true, true, true);
+        emit EscrowSettled(1, 1e8, address(this), 21 ether);
+        p.proveSettlement(1, 123, proof, 12);
+
+        // Finally, try again. Escrow should be gone.
+        vm.expectRevert(bytes("Escrow not found"));
+        p.proveSettlement(1, 123, proof, 12);
+    }
+    
+    function testPartialSettleFromBuy() public {
+        Portal p = testPartialBuy();
+        BtcTxProof memory proof;
+
+        // First, stub in an failed proof validation.
+        p.setBtcVerifier(new StubBtcTxVerifier(false));
+        vm.expectRevert(bytes("Bad bitcoin transaction"));
+        p.proveSettlement(1, 123, proof, 12);
+
+        //  Prove settlement. Successful proof validation.
+        p.setBtcVerifier(new StubBtcTxVerifier(true));
+        vm.expectEmit(true, true, true, true);
+        emit EscrowSettled(1, 1e7, address(this), 2.1 ether);
+        p.proveSettlement(1, 123, proof, 12);
+        
+        // Finally, try again. Escrow should be gone.
+        vm.expectRevert(bytes("Escrow not found"));
+        p.proveSettlement(1, 123, proof, 12);
+        
+        // Fill the final escrow
+        vm.expectEmit(true, true, true, true);
+        emit EscrowSettled(2, 1e8-1e7, address(this), 18.9 ether);
+        p.proveSettlement(2, 123, proof, 12);
     }
 }
 
