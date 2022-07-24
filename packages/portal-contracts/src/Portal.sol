@@ -362,7 +362,6 @@ contract Portal is Owned {
 
         o.amountSats -= int128(amountSats);
         o.stakedTok -= portionOfStake;
-        emit OrderCancelled(o.stakedTok);
 
         // Delete the order if its been filled.
         if (o.amountSats == 0) {
