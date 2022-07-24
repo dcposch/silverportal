@@ -4,7 +4,6 @@ pragma solidity >=0.8.0;
 import "btcmirror/interfaces/IBtcTxVerifier.sol";
 import "solmate/auth/Owned.sol";
 import "openzeppelin-contracts/interfaces/IERC20.sol";
-import {PRBMathSD59x18} from "prb-math/PRBMathSD59x18.sol";
 
 //
 //                                        #
@@ -68,8 +67,6 @@ struct Escrow {
 
 /** @notice Implements a limit order book for trust-minimized BTC-ETH trades. */
 contract Portal is Owned {
-    using PRBMathSD59x18 for int256;
-
     event OrderPlaced(
         uint256 orderID,
         int128 amountSats,
@@ -187,6 +184,7 @@ contract Portal is Owned {
         require(priceTokPerSat > 0, "Price underflow");
         uint256 totalValueTok = amountSats * priceTokPerSat;
         uint256 requiredStakeTok = (totalValueTok * stakePercent) / 100;
+        require(requiredStakeTok < 2**128, "stake must be < 2**128");
 
         // Receive stake amount
         _transferFromSender(requiredStakeTok);
@@ -326,12 +324,7 @@ contract Portal is Owned {
         require(o.amountSats >= int128(amountSats), "Amount incorrect");
 
         uint256 totalValue = amountSats * o.priceTokPerSat;
-        int256 orderSats = int256(o.amountSats).fromInt();
-        int256 fillSats = int256(uint256(amountSats)).fromInt();
-        int256 stake = int256(o.stakedTok).fromInt();
-
-        int256 ratio = fillSats.div(orderSats);
-        uint256 portionOfStake = uint256(stake.mul(ratio)) / 1e18;
+        uint256 portionOfStake = o.stakedTok * uint256(amountSats) / uint256(uint128(o.amountSats));
 
         // Receive sale payment
         _transferFromSender(totalValue);
