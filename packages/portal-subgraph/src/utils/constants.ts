@@ -1,0 +1,11 @@
+import { BigInt } from '@graphprotocol/graph-ts';
+
+export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+export const ESCROW_STATUS_PENDING = 'PENDING';
+export const ESCROW_STATUS_SETTLED = 'SETTLED';
+export const ESCROW_STATUS_SLASHED = 'SLASHED';
+
+export const ORDER_STATUS_PENDING = 'PENDING';
+export const ORDER_STATUS_FILLED = 'FILLED';
+export const ORDER_STATUS_CANCELED = 'CANCELLED';

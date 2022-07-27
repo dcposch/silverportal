@@ -1,4 +1,4 @@
-import { BigInt } from "@graphprotocol/graph-ts"
+import { BigInt, log } from "@graphprotocol/graph-ts"
 import {
   Portal,
   EscrowSettled,
@@ -9,31 +9,26 @@ import {
   OwnerUpdated,
   ParamUpdated
 } from "../generated/Portal/Portal"
-import { ExampleEntity } from "../generated/schema"
+import { Escrow, Order } from "../generated/schema"
+import { ESCROW_STATUS_PENDING, ESCROW_STATUS_SETTLED, ESCROW_STATUS_SLASHED, ORDER_STATUS_PENDING, ORDER_STATUS_FILLED, ORDER_STATUS_CANCELLED } from "utils/constants";
 
 export function handleEscrowSettled(event: EscrowSettled): void {
-  // Entities can be loaded from the store using a string ID; this ID
-  // needs to be unique across all entities of the same type
-  let entity = ExampleEntity.load(event.transaction.from.toHex())
+  let escrowID = event.params.id.toString();
+  let escrow = Escrow.load(escrowID);
 
   // Entities only exist after they have been saved to the store;
   // `null` checks allow to create entities on demand
-  if (!entity) {
-    entity = new ExampleEntity(event.transaction.from.toHex())
-
-    // Entity fields can be set using simple assignments
-    entity.count = BigInt.fromI32(0)
+  if (!escrow) {
+    log.error('[handleEscrowSettled] Escrow #{} not found. Hash {}', [
+      escrowID,
+      event.transaction.hash.toHex(),
+    ]);
   }
 
-  // BigInt and BigDecimal math are supported
-  entity.count = entity.count + BigInt.fromI32(1)
-
-  // Entity fields can be set based on event parameters
-  entity.escrowID = event.params.escrowID
-  entity.amountSats = event.params.amountSats
+  escrow.status = ESCROW_STATUS_SETTLED;
 
   // Entities can be written to the store with `.save()`
-  entity.save()
+  escrow.save()
 
   // Note: If a handler doesn't require existing field values, it is faster
   // _not_ to load the entity from the store. Instead, create it fresh with
@@ -60,13 +55,74 @@ export function handleEscrowSettled(event: EscrowSettled): void {
   // - contract.token(...)
 }
 
-export function handleEscrowSlashed(event: EscrowSlashed): void {}
+export function handleEscrowSlashed(event: EscrowSlashed): void {
+  let escrowID = event.params.escrowID.toString();
+  let escrow = Escrow.load(escrowID);
 
-export function handleOrderCancelled(event: OrderCancelled): void {}
+  if (!escrow) {
+    log.error('[handleEscrowSettled] Escrow #{} not found. Hash {}', [
+      escrowID,
+      event.transaction.hash.toHex(),
+    ]);
+  }
 
-export function handleOrderMatched(event: OrderMatched): void {}
+  escrow.status = ESCROW_STATUS_SLASHED;
 
-export function handleOrderPlaced(event: OrderPlaced): void {}
+  escrow.save()
+}
+
+export function handleOrderCancelled(event: OrderCancelled): void {
+  let orderID = event.params.orderID.toString();
+  let order = Order.load(orderID);
+
+  if (!order) {
+    log.error('[handleOrderCancelled] Order #{} not found. Hash {}', [
+      orderID,
+      event.transaction.hash.toHex(),
+    ]);
+  }
+
+  order.status = ORDER_STATUS_CANCELLED;
+
+  order.save()
+}
+
+export function handleOrderMatched(event: OrderMatched): void {
+  let orderID = event.params.orderID.toString();
+  let order = Order.load(orderID);
+
+  if (!order) {
+    log.error('[handleOrderMatched] Order #{} not found. Hash {}', [
+      orderID,
+      event.transaction.hash.toHex(),
+    ]);
+  }
+
+  let orderSats = event.params.amountSats;
+  if (order.amountSats.equals(orderSats)) {
+    order.status = ORDER_STATUS_FILLED;
+    order.save()
+  }
+
+  let escrow = new Escrow(event.params.escrowID.toString());
+  escrow.order = orderID;
+  escrow.amountSatsDue = event.params.amountSats;
+  escrow.deadline = event.params.deadlne;
+  escrow.successRecipient = event.params.maker;
+  escrow.timeoutRecipient = event.params.taker;
+  escrow.status = ESCROW_STATUS_PENDING;
+  escrow.save();
+}
+
+export function handleOrderPlaced(event: OrderPlaced): void {
+  let orderID = event.params.orderID.toString();
+  let order = new Order(orderID);
+  order.maker = event.params.maker;
+  order.amountSats = event.params.amountSats;
+  order.priceTokPerSat = event.params.priceTokPerSat;
+  order.stakedTok = event.params.stakedTok;
+  order.status = ORDER_STATUS_PENDING;
+}
 
 export function handleOwnerUpdated(event: OwnerUpdated): void {}
 

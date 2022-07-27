@@ -8,6 +8,7 @@ dataSources:
     source:
       address: "0x0Dc46AB6D26d78698f54501D12522EbCDE574c51"
       abi: Portal
+      startBlock: 12675097
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
