@@ -31,7 +31,7 @@ dataSources:
           handler: handleEscrowSlashed
         - event: OrderCancelled(uint256)
           handler: handleOrderCancelled
-        - event: OrderMatched(uint256,uint256,int128,uint128,uint256,address,address)
+        - event: OrderMatched(uint256,uint256,int128,int128,uint128,uint256,uint128,address,address)
           handler: handleOrderMatched
         - event: OrderPlaced(uint256,int128,uint128,uint256,address)
           handler: handleOrderPlaced

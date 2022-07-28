@@ -113,20 +113,28 @@ export class OrderMatched__Params {
     return this._event.parameters[2].value.toBigInt();
   }
 
-  get priceTokPerSat(): BigInt {
+  get amountSatsFilled(): BigInt {
     return this._event.parameters[3].value.toBigInt();
   }
 
-  get takerStakedTok(): BigInt {
+  get priceTokPerSat(): BigInt {
     return this._event.parameters[4].value.toBigInt();
   }
 
+  get takerStakedTok(): BigInt {
+    return this._event.parameters[5].value.toBigInt();
+  }
+
+  get deadline(): BigInt {
+    return this._event.parameters[6].value.toBigInt();
+  }
+
   get maker(): Address {
-    return this._event.parameters[5].value.toAddress();
+    return this._event.parameters[7].value.toAddress();
   }
 
   get taker(): Address {
-    return this._event.parameters[6].value.toAddress();
+    return this._event.parameters[8].value.toAddress();
   }
 }
 

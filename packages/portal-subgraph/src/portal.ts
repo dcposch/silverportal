@@ -13,7 +13,7 @@ import { Escrow, Order } from "../generated/schema"
 import { ESCROW_STATUS_PENDING, ESCROW_STATUS_SETTLED, ESCROW_STATUS_SLASHED, ORDER_STATUS_PENDING, ORDER_STATUS_FILLED, ORDER_STATUS_CANCELLED } from "./utils/constants";
 
 export function handleEscrowSettled(event: EscrowSettled): void {
-  let escrowID = event.params.id.toString();
+  let escrowID = event.params.escrowID.toString();
   let escrow = Escrow.load(escrowID);
 
   // Entities only exist after they have been saved to the store;
@@ -23,6 +23,7 @@ export function handleEscrowSettled(event: EscrowSettled): void {
       escrowID,
       event.transaction.hash.toHex(),
     ]);
+    return;
   }
 
   escrow.status = ESCROW_STATUS_SETTLED;
@@ -64,6 +65,7 @@ export function handleEscrowSlashed(event: EscrowSlashed): void {
       escrowID,
       event.transaction.hash.toHex(),
     ]);
+    return;
   }
 
   escrow.status = ESCROW_STATUS_SLASHED;
@@ -80,6 +82,7 @@ export function handleOrderCancelled(event: OrderCancelled): void {
       orderID,
       event.transaction.hash.toHex(),
     ]);
+    return;
   }
 
   order.status = ORDER_STATUS_CANCELLED;
@@ -96,23 +99,24 @@ export function handleOrderMatched(event: OrderMatched): void {
       orderID,
       event.transaction.hash.toHex(),
     ]);
+    return;
   }
 
   let orderSats = event.params.amountSatsFilled;
   if (order.amountSats.equals(orderSats)) {
     order.status = ORDER_STATUS_FILLED;
-  } else {
-    order.amountSats -= orderSats;
   }
+  order.amountSats -= orderSats;
   order.save()
 
   let escrow = new Escrow(event.params.escrowID.toString());
   escrow.order = orderID;
-  escrow.amountSatsDue = event.params.amountSats;
-  escrow.deadline = event.params.deadlne;
+  escrow.amountSatsDue = event.params.amountSatsFilled;
+  escrow.deadline = event.params.deadline;
   escrow.successRecipient = event.params.maker.toHexString();
   escrow.timeoutRecipient = event.params.taker.toHexString();
   escrow.status = ESCROW_STATUS_PENDING;
+  escrow.escrowTok = event.params.takerStakedTok;
   escrow.save();
 }
 

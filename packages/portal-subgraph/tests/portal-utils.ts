@@ -99,8 +99,10 @@ export function createOrderMatchedEvent(
   escrowID: BigInt,
   orderID: BigInt,
   amountSats: BigInt,
+  amountSatsFilled: BigInt,
   priceTokPerSat: BigInt,
   takerStakedTok: BigInt,
+  deadline: BigInt,
   maker: Address,
   taker: Address
 ): OrderMatched {
@@ -128,6 +130,12 @@ export function createOrderMatchedEvent(
   )
   orderMatchedEvent.parameters.push(
     new ethereum.EventParam(
+      "amountSatsFilled",
+      ethereum.Value.fromSignedBigInt(amountSatsFilled)
+    )
+  )
+  orderMatchedEvent.parameters.push(
+    new ethereum.EventParam(
       "priceTokPerSat",
       ethereum.Value.fromUnsignedBigInt(priceTokPerSat)
     )
@@ -136,6 +144,12 @@ export function createOrderMatchedEvent(
     new ethereum.EventParam(
       "takerStakedTok",
       ethereum.Value.fromUnsignedBigInt(takerStakedTok)
+    )
+  )
+  orderMatchedEvent.parameters.push(
+    new ethereum.EventParam(
+      "deadline",
+      ethereum.Value.fromUnsignedBigInt(deadline)
     )
   )
   orderMatchedEvent.parameters.push(

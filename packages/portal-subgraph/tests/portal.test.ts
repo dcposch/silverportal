@@ -9,8 +9,8 @@ import {
 import { BigInt, Address } from "@graphprotocol/graph-ts"
 import { Order, Escrow } from "../generated/schema"
 import { EscrowSettled } from "../generated/Portal/Portal"
-import { handleOrderPlaced, handleOrderMatched, handleEscrowSettled } from "../src/portal"
-import { createOrderPlacedEvent, createOrderMatchedEvent, createEscrowSettledEvent } from "./portal-utils"
+import { handleOrderPlaced, handleOrderMatched, handleOrderCancelled, handleEscrowSettled, handleEscrowSlashed } from "../src/portal"
+import { createOrderPlacedEvent, createOrderMatchedEvent, createOrderCancelledEvent, createEscrowSettledEvent, createEscrowSlashedEvent } from "./portal-utils"
 
 // Tests structure (matchstick-as >=0.5.0)
 // https://thegraph.com/docs/en/developer/matchstick/#tests-structure-0-5-0
@@ -32,6 +32,30 @@ describe("Describe entity assertions", () => {
       ethDest
     )
     handleOrderPlaced(newOrderPlacedEvent)
+    
+    // Create a partial order
+    let escrowID = BigInt.fromI32(11)
+    let amountSatsFilled = BigInt.fromI32(111)
+    let maker = Address.fromString(
+      "0x0000000000000000000000000000000000000001"
+    )
+    let taker = Address.fromString(
+      "0x0000000000000000000000000000000000000002"
+    )
+    let deadline = BigInt.fromI32(123123123);
+    let newOrderMatchedEvent = createOrderMatchedEvent(
+      escrowID,
+      orderID,
+      amountSats,
+      amountSatsFilled,
+      pricePerTok,
+      stakedTok,
+      deadline,
+      maker,
+      taker,
+    )
+
+    handleOrderMatched(newOrderMatchedEvent)
   })
 
   afterAll(() => {
@@ -41,15 +65,16 @@ describe("Describe entity assertions", () => {
   // For more test scenarios, see:
   // https://thegraph.com/docs/en/developer/matchstick/#write-a-unit-test
 
-  test("Order created and stored", () => {
+  test("Order and partial escrow", () => {
     assert.entityCount("Order", 1)
+    assert.entityCount("Escrow", 1)
 
     // 0xa16081f360e3847006db660bae1c6d1b2e17ec2a is the default address used in newMockEvent() function
     assert.fieldEquals(
       "Order",
       "111",
       "amountSats",
-      "222"
+      "111"
     )
     assert.fieldEquals(
       "Order",
@@ -76,6 +101,43 @@ describe("Describe entity assertions", () => {
       "PENDING"
     )
 
+    assert.fieldEquals(
+      "Escrow",
+      "11",
+      "amountSatsDue",
+      "111"
+    )
+    assert.fieldEquals(
+      "Escrow",
+      "11",
+      "order",
+      "111"
+    )
+    assert.fieldEquals(
+      "Escrow",
+      "11",
+      "deadline",
+      "123123123"
+    )
+    assert.fieldEquals(
+      "Escrow",
+      "11",
+      "successRecipient",
+      "0x0000000000000000000000000000000000000001"
+    )
+    assert.fieldEquals(
+      "Escrow",
+      "11",
+      "timeoutRecipient",
+      "0x0000000000000000000000000000000000000002"
+    )
+    assert.fieldEquals(
+      "Escrow",
+      "11",
+      "status",
+      "PENDING"
+    )
+
     // More assert options:
     // https://thegraph.com/docs/en/developer/matchstick/#asserts
   })
@@ -94,8 +156,10 @@ describe("Describe entity assertions", () => {
     let deadline = BigInt.fromI32(123123123);
     let pricePerTok = BigInt.fromI32(333);
     let stakedTok = BigInt.fromI32(444);
+    
+    // Create and validate a partial order which fills the order
     let newOrderMatchedEvent = createOrderMatchedEvent(
-      escrowID,
+      BigInt.fromI32(12),
       orderID,
       amountSats,
       amountSatsFilled,
@@ -107,111 +171,122 @@ describe("Describe entity assertions", () => {
     )
 
     handleOrderMatched(newOrderMatchedEvent)
-    assert.entityCount("Order", 1)
-    assert.entityCount("Escrow", 1)
-
-    // 0xa16081f360e3847006db660bae1c6d1b2e17ec2a is the default address used in newMockEvent() function
-    assert.fieldEquals(
-      "Order",
-      "111",
-      "amountSats",
-      "111"
-    )
-    assert.fieldEquals(
-      "Order",
-      "111",
-      "status",
-      "PENDING"
-    )
+    assert.entityCount("Escrow", 2)
 
     assert.fieldEquals(
       "Escrow",
-      "11",
+      "12",
       "amountSatsDue",
       "111"
     )
     assert.fieldEquals(
       "Escrow",
-      "11",
+      "12",
       "order",
       "111"
     )
     assert.fieldEquals(
       "Escrow",
-      "11",
+      "12",
       "deadline",
       "123123123"
     )
     assert.fieldEquals(
       "Escrow",
-      "11",
+      "12",
       "successRecipient",
       "0x0000000000000000000000000000000000000001"
     )
     assert.fieldEquals(
       "Escrow",
-      "11",
+      "12",
       "timeoutRecipient",
       "0x0000000000000000000000000000000000000002"
     )
     assert.fieldEquals(
       "Escrow",
-      "11",
+      "12",
       "status",
       "PENDING"
     )
     
-    let newOrderMatchedEvent2 = createOrderMatchedEvent(
-      BigInt.FromI32(12),
-      orderID,
-      amountSats,
-      amountSatsFilled,
-      pricePerTok,
-      stakedTok,
-      deadline,
-      maker,
-      taker,
-    )
-
-    handleOrderMatched(newOrderMatchedEvent2)
-
+    // Validate the order is filled
     assert.fieldEquals(
-      "Escrow",
-      "12",
-      "amountSatsDue",
-      "111"
-    )
-    assert.fieldEquals(
-      "Escrow",
-      "12",
-      "order",
-      "111"
-    )
-    assert.fieldEquals(
-      "Escrow",
-      "12",
-      "deadline",
-      "123123123"
-    )
-    assert.fieldEquals(
-      "Escrow",
-      "12",
-      "successRecipient",
-      "0x0000000000000000000000000000000000000001"
-    )
-    assert.fieldEquals(
-      "Escrow",
-      "12",
-      "timeoutRecipient",
-      "0x0000000000000000000000000000000000000002"
-    )
-    assert.fieldEquals(
-      "Escrow",
-      "12",
+      "Order",
+      "111",
       "status",
       "FILLED"
     )
     // More assert options:
     // https://thegraph.com/docs/en/developer/matchstick/#asserts
+  })
+  
+  test("Order Cancelled", () => {
+    let orderID = BigInt.fromI32(111)
+    
+    // Create and validate a partial order which fills the order
+    let newOrderCancelledEvent = createOrderCancelledEvent(orderID)
+
+    handleOrderCancelled(newOrderCancelledEvent)
+    assert.entityCount("Order", 1)
+
+    assert.fieldEquals(
+      "Order",
+      "111",
+      "status",
+      "CANCELLED"
+    )
+  })
+
+  test("Escrow settled", () => {
+    let escrowID = BigInt.fromI32(11)
+    let amountSatsFilled = BigInt.fromI32(111)
+    let taker = Address.fromString(
+      "0x0000000000000000000000000000000000000002"
+    )
+    
+    // Create and validate a partial order which fills the order
+    let newEscrowSettledEvent = createEscrowSettledEvent(
+      BigInt.fromI32(12),
+      amountSatsFilled,
+      taker,
+      BigInt.fromI32(123),
+    )
+
+    handleEscrowSettled(newEscrowSettledEvent)
+    assert.entityCount("Escrow", 2)
+
+    assert.fieldEquals(
+      "Escrow",
+      "12",
+      "status",
+      "SETTLED"
+    )
+  })
+
+  test("Escrow slashed", () => {
+    let escrowID = BigInt.fromI32(11)
+    let amountSatsFilled = BigInt.fromI32(111)
+    let taker = Address.fromString(
+      "0x0000000000000000000000000000000000000002"
+    )
+    
+    // Create and validate a partial order which fills the order
+    let newEscrowSlashedEvent = createEscrowSlashedEvent(
+      BigInt.fromI32(12),
+      amountSatsFilled,
+      taker,
+      BigInt.fromI32(123),
+    )
+
+    handleEscrowSlashed(newEscrowSlashedEvent)
+    assert.entityCount("Escrow", 2)
+
+    assert.fieldEquals(
+      "Escrow",
+      "12",
+      "status",
+      "SLASHED"
+    )
   })
 })

@@ -114,6 +114,12 @@
       },
       {
         "indexed": false,
+        "internalType": "int128",
+        "name": "amountSatsFilled",
+        "type": "int128"
+      },
+      {
+        "indexed": false,
         "internalType": "uint128",
         "name": "priceTokPerSat",
         "type": "uint128"
@@ -123,6 +129,12 @@
         "internalType": "uint256",
         "name": "takerStakedTok",
         "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "deadline",
+        "type": "uint128"
       },
       {
         "indexed": false,
