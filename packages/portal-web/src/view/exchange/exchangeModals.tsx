@@ -121,12 +121,12 @@ export class BidModal extends TxModal<BidAskProps> {
 
     const priceBtcPerEth = Number(this.refBidPrice.current.value);
     if (!(priceBtcPerEth > 0)) throw new Error("Must enter a price");
-    const priceWeiPerSat = Math.floor(1 / priceBtcPerEth) * 1e10;
-    if (this.props.bbo[1] > priceWeiPerSat) {
+    const priceTokPerSat = Math.floor(1 / priceBtcPerEth) * 1e10;
+    if (this.props.bbo[1] > priceTokPerSat) {
       throw new Error("Can't bid above the current best ask");
     }
     const totalWei = BigNumber.from(amountSats).mul(
-      BigNumber.from(priceWeiPerSat)
+      BigNumber.from(priceTokPerSat)
     );
 
     // Validate stake
@@ -139,10 +139,10 @@ export class BidModal extends TxModal<BidAskProps> {
     // Send it
     const priceStr = priceBtcPerEth.toFixed(5);
     const description = `Bid ${priceStr} x ${amountSats / 1e8} BTC`;
-    console.log(description, { amountSats, priceWeiPerSat, stakeWei });
+    console.log(description, { amountSats, priceTokPerSat, stakeWei });
 
     const { portal } = this.props;
-    const tx = await portal.postBid(amountSats, priceWeiPerSat, {
+    const tx = await portal.postBid(amountSats, priceTokPerSat, {
       value: stakeWei,
     });
 
@@ -194,13 +194,13 @@ export class AskModal extends TxModal<BidAskProps> {
 
     const priceBtcPerEth = Number(this.refAskPrice.current.value);
     if (!(priceBtcPerEth > 0)) throw new Error("Must enter a price");
-    const priceWeiPerSat = Math.floor(1 / priceBtcPerEth) * 1e10;
-    if (this.props.bbo[0] < priceWeiPerSat) {
+    const priceTokPerSat = Math.floor(1 / priceBtcPerEth) * 1e10;
+    if (this.props.bbo[0] < priceTokPerSat) {
       throw new Error("Can't ask below the current best bid");
     }
 
     const valueWei = BigNumber.from(amountSats).mul(
-      BigNumber.from(priceWeiPerSat)
+      BigNumber.from(priceTokPerSat)
     );
 
     // Validate Bitcoin address
@@ -213,10 +213,10 @@ export class AskModal extends TxModal<BidAskProps> {
     // Send
     const priceStr = priceBtcPerEth.toFixed(5);
     const description = `Ask ${priceStr} x ${amountSats / 1e8} BTC`;
-    console.log(description, { priceWeiPerSat, scriptHash, valueWei });
+    console.log(description, { priceTokPerSat, scriptHash, valueWei });
 
     const { portal } = this.props;
-    const tx = await portal.postAsk(priceWeiPerSat, scriptHash, {
+    const tx = await portal.postAsk(priceTokPerSat, scriptHash, {
       value: valueWei,
     });
 
@@ -262,14 +262,14 @@ export class BuyModal extends TxModal<BuySellProps> {
   buyTx = async () => {
     // Calculate amounts
     const { order, params, portal } = this.props;
-    const { orderID, priceWeiPerSat } = order;
+    const { orderID, priceTokPerSat } = order;
     const amountSats = order.amountSats.mul(-1);
-    const amountWei = priceWeiPerSat.mul(amountSats);
+    const amountWei = priceTokPerSat.mul(amountSats);
     const stakeWei = amountWei.mul(params.stakePercent).div(100);
 
     // Send it
     const { amountStr } = formatAmount(amountWei, "wei");
-    const priceStr = ((1 / toFloat64(priceWeiPerSat)) * 1e10).toFixed(5);
+    const priceStr = ((1 / toFloat64(priceTokPerSat)) * 1e10).toFixed(5);
     const description = `Buy ${amountStr} ETH @ ${priceStr}`;
     console.log(description, { orderID, amountSats, stakeWei });
 
@@ -282,9 +282,9 @@ export class BuyModal extends TxModal<BuySellProps> {
 
   render() {
     const { order, params } = this.props;
-    const { priceWeiPerSat, scriptHash } = order;
+    const { priceTokPerSat, scriptHash } = order;
     const amountSats = order.amountSats.mul(-1);
-    const amountWei = priceWeiPerSat.mul(amountSats);
+    const amountWei = priceTokPerSat.mul(amountSats);
     const price = toFloat64(amountSats) / 1e8 / (toFloat64(amountWei) / 1e18);
 
     return (
@@ -321,8 +321,8 @@ export class SellModal extends TxModal<BuySellProps> {
   sellTx = async () => {
     // Calculate amount
     const { order, params, portal } = this.props;
-    const { orderID, amountSats, priceWeiPerSat } = order;
-    const amountWei = priceWeiPerSat.mul(amountSats);
+    const { orderID, amountSats, priceTokPerSat } = order;
+    const amountWei = priceTokPerSat.mul(amountSats);
 
     // Validate destination address
     const destAddrStr = this.refDestAddr.current.value;
@@ -333,7 +333,7 @@ export class SellModal extends TxModal<BuySellProps> {
 
     // Send it
     const { amountStr } = formatAmount(amountWei, "wei");
-    const priceStr = ((1 / toFloat64(priceWeiPerSat)) * 1e10).toFixed(5);
+    const priceStr = ((1 / toFloat64(priceTokPerSat)) * 1e10).toFixed(5);
     const description = `Sell ${amountStr} ETH @ ${priceStr}`;
     const { scriptHash } = destAddr;
     console.log(description, orderID, amountSats, scriptHash, amountWei);
@@ -347,8 +347,8 @@ export class SellModal extends TxModal<BuySellProps> {
 
   render() {
     const { order } = this.props;
-    const { amountSats, priceWeiPerSat } = order;
-    const amountWei = priceWeiPerSat.mul(amountSats);
+    const { amountSats, priceTokPerSat } = order;
+    const amountWei = priceTokPerSat.mul(amountSats);
     const price = toFloat64(amountSats) / 1e8 / (toFloat64(amountWei) / 1e18);
 
     return (
@@ -397,11 +397,11 @@ export class CancelModal extends TxModal<BuySellProps> {
 
   render() {
     const { order } = this.props;
-    const { amountSats, priceWeiPerSat } = order;
+    const { amountSats, priceTokPerSat } = order;
     const aType = amountSats.isNegative() ? "an ask" : "a bid";
     let refundWei = toFloat64(order.stakedWei);
     if (aType === "an ask") {
-      refundWei -= toFloat64(priceWeiPerSat.mul(amountSats));
+      refundWei -= toFloat64(priceTokPerSat.mul(amountSats));
     }
 
     return (

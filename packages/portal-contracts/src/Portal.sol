@@ -35,7 +35,7 @@ uint256 constant MAX_PRICE_TOK_PER_SAT = 1e18;
  * @dev Each order represents a bid or ask.
  */
 struct Order {
-/**
+    /**
      * @dev Market maker that created this bid or ask.
      */
     address maker;
@@ -61,7 +61,7 @@ struct Order {
  * @dev During an in-progress transaction, ether is held in escrow.
  */
 struct Escrow {
-/**
+    /**
      * @dev Bitcoin P2SH address to which bitcoin must be sent.
      */
     bytes20 destScriptHash;
@@ -115,7 +115,10 @@ contract Portal is Owned {
     );
 
     event EscrowSettled(
-        uint256 escrowID, uint256 amountSats, address ethDest, uint256 ethAmount
+        uint256 escrowID,
+        uint256 amountSats,
+        address ethDest,
+        uint256 ethAmount
     );
 
     event EscrowSlashed(
@@ -181,9 +184,7 @@ contract Portal is Owned {
         IERC20 _token,
         uint256 _stakePercent,
         IBtcTxVerifier _btcVerifier
-    )
-        Owned(msg.sender)
-    {
+    ) Owned(msg.sender) {
         token = _token;
         stakePercent = _stakePercent;
         btcVerifier = _btcVerifier;
@@ -237,7 +238,7 @@ contract Portal is Owned {
         require(priceTokPerSat > 0, "Price underflow");
         uint256 totalValueTok = amountSats * priceTokPerSat;
         uint256 requiredStakeTok = (totalValueTok * stakePercent) / 100;
-        require(requiredStakeTok < 2 ** 128, "stake must be < 2**128");
+        require(requiredStakeTok < 2**128, "stake must be < 2**128");
 
         // Receive stake amount
         _transferFromSender(requiredStakeTok);
@@ -251,8 +252,12 @@ contract Portal is Owned {
         o.stakedTok = requiredStakeTok;
 
         emit OrderPlaced(
-            orderID, o.amountSats, o.priceTokPerSat, o.stakedTok, msg.sender
-            );
+            orderID,
+            o.amountSats,
+            o.priceTokPerSat,
+            o.stakedTok,
+            msg.sender
+        );
     }
 
     /**
@@ -263,11 +268,7 @@ contract Portal is Owned {
         uint256 amountSats,
         uint256 priceTokPerSat,
         bytes20 scriptHash
-    )
-        public
-        payable
-        returns (uint256 orderID)
-    {
+    ) public payable returns (uint256 orderID) {
         require(priceTokPerSat <= MAX_PRICE_TOK_PER_SAT, "Price overflow");
         require(priceTokPerSat > 0, "Price underflow");
         require(amountSats <= MAX_SATS, "Amount overflow");
@@ -284,7 +285,13 @@ contract Portal is Owned {
         o.priceTokPerSat = uint128(priceTokPerSat);
         o.scriptHash = scriptHash;
 
-        emit OrderPlaced(orderID, o.amountSats, o.priceTokPerSat, 0, msg.sender);
+        emit OrderPlaced(
+            orderID,
+            o.amountSats,
+            o.priceTokPerSat,
+            0,
+            msg.sender
+        );
     }
 
     function cancelOrder(uint256 orderID) public {
@@ -352,7 +359,7 @@ contract Portal is Owned {
             o.maker,
             msg.sender,
             o.scriptHash
-            );
+        );
 
         // Update the amount of liquidity in this order
         o.amountSats += int128(amountSats);
@@ -372,19 +379,15 @@ contract Portal is Owned {
         uint256 orderID,
         uint128 amountSats,
         bytes20 destScriptHash
-    )
-        public
-        payable
-        returns (uint256 escrowID)
-    {
+    ) public payable returns (uint256 escrowID) {
         escrowID = nextEscrowID++;
         Order storage o = orderbook[orderID];
         require(o.amountSats > 0, "Order already filled"); // Must be a bid
         require(o.amountSats >= int128(amountSats), "Amount incorrect");
 
         uint256 totalValue = amountSats * o.priceTokPerSat;
-        uint256 portionOfStake =
-            o.stakedTok * uint256(amountSats) / uint256(uint128(o.amountSats));
+        uint256 portionOfStake = (o.stakedTok * uint256(amountSats)) /
+            uint256(uint128(o.amountSats));
 
         // Receive sale payment
         _transferFromSender(totalValue);
@@ -413,7 +416,7 @@ contract Portal is Owned {
             o.maker,
             msg.sender,
             destScriptHash
-            );
+        );
 
         o.amountSats -= int128(amountSats);
         o.stakedTok -= portionOfStake;
@@ -434,9 +437,7 @@ contract Portal is Owned {
         uint256 bitcoinBlockNum,
         BtcTxProof calldata bitcoinTransactionProof,
         uint256 txOutIx
-    )
-        public
-    {
+    ) public {
         Escrow storage e = escrows[escrowID];
         require(e.successOpenEscrow != address(0), "Escrow not found");
         require(msg.sender == e.successOpenEscrow, "Wrong caller");
@@ -503,7 +504,7 @@ contract Portal is Owned {
     function _transferToSender(uint256 tok) private {
         if (address(token) == address(0)) {
             // Send wei
-            (bool suc,) = msg.sender.call{value: tok}(hex"");
+            (bool suc, ) = msg.sender.call{value: tok}(hex"");
             require(suc, "Send failed");
             return;
         }
@@ -527,7 +528,8 @@ contract Portal is Owned {
         // Say Alice opens an escrow at block height 1000. She submits a Bitcoin transaction.
         // A normal two-block reorg occurs, and her transaction ends up confirmed at block height 999.
         openEscrows[recKey] =
-            btcVerifier.mirror().getLatestBlockHeight() - minConfirmations;
+            btcVerifier.mirror().getLatestBlockHeight() -
+            minConfirmations;
     }
 
     // Returns true if there is an escrow inflight for this scriptHash/amountSats pair, otherwise false.

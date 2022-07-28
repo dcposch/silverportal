@@ -17,11 +17,7 @@ export default function OrdersTable({
   params: PortalParams;
   dispatch: DispatchFn;
 }) {
-  const account = useAccount().data;
-  const connectedAccount = account && account.address;
-
-  const bidFn = useCallback(() => dispatch({ type: "bid" }), []);
-  const askFn = useCallback(() => dispatch({ type: "ask" }), []);
+  const connectedAccount = useAccount().address;
 
   if (orders == null || params == null) return null;
 
@@ -41,14 +37,6 @@ export default function OrdersTable({
           {orders.asks.map((o, i) => (
             <OrderRow key={o.orderID} o={o} nthBest={i} {...props} />
           ))}
-        </div>
-      </div>
-      <div className="exchange-two-col">
-        <div className="exchange-place-order">
-          <button onClick={bidFn}>Post Bid</button>
-        </div>
-        <div className="exchange-place-order">
-          <button onClick={askFn}>Post Ask</button>
         </div>
       </div>
     </div>
@@ -71,10 +59,10 @@ function OrderRow({
   if (!isOurs && nthBest >= TOP_N) return null;
 
   const amountSats = toFloat64(o.amountSats);
-  const priceWeiPerSat = toFloat64(o.priceWeiPerSat);
+  const priceTokPerSat = toFloat64(o.priceTokPerSat);
   const type = amountSats < 0 ? "ASK" : "BID";
   const amountBtc = Math.abs(amountSats / 1e8).toFixed(5);
-  const priceBtcPerEth = (1e10 / priceWeiPerSat).toFixed(5);
+  const priceBtcPerEth = (1e10 / priceTokPerSat).toFixed(5);
 
   let orderAction: ModalInfo, orderLabel: string;
   if (isOurs) {

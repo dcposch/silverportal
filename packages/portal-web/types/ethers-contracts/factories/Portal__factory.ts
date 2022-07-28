@@ -129,7 +129,7 @@ const _abi = [
       {
         indexed: false,
         internalType: "uint128",
-        name: "priceWeiPerSat",
+        name: "priceTokPerSat",
         type: "uint128",
       },
       {
@@ -172,7 +172,7 @@ const _abi = [
       {
         indexed: false,
         internalType: "uint128",
-        name: "priceWeiPerSat",
+        name: "priceTokPerSat",
         type: "uint128",
       },
       {
@@ -349,7 +349,7 @@ const _abi = [
       },
       {
         internalType: "uint128",
-        name: "priceWeiPerSat",
+        name: "priceTokPerSat",
         type: "uint128",
       },
       {
@@ -370,7 +370,7 @@ const _abi = [
     inputs: [
       {
         internalType: "uint256",
-        name: "priceWeiPerSat",
+        name: "priceTokPerSat",
         type: "uint256",
       },
       {
@@ -399,7 +399,7 @@ const _abi = [
       },
       {
         internalType: "uint256",
-        name: "priceWeiPerSat",
+        name: "priceTokPerSat",
         type: "uint256",
       },
     ],

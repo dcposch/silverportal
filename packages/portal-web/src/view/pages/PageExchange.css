@@ -92,9 +92,74 @@
 }
 
 .exchange-tx-succeeded {
-    background: var(--color-green);
+    background: var(--color-bg-green);
 }
 
 .exchange-tx-failed {
-    background: var(--color-red);
+    background: var(--color-bg-red);
+}
+
+.exchange-of {
+    max-width: 20em;
+}
+
+.exchange-of-error {
+    color: var(--color-red);
+}
+
+.exchange-of-row {
+    position: relative;
+    display: flex;
+    gap: 0.5em;
+    font-variant-numeric: tabular-nums;
+    white-space: pre;
+    margin: 0.5em 0;
+    height: 2em;
+}
+
+.exchange-of input[type=checkbox] {
+    width: 0.9em;
+    min-width: 0.9em;
+    height: 0.9em;
+    margin-top: 0.6em;
+    position: relative;
+    top: 0.1em;
+}
+
+.exchange-of-baseline {
+    align-items: baseline;
+}
+
+.exchange-of-row select {
+    border-radius: 0.1em;
+    background-color: var(--color-offwhite);
+    border: none;
+    padding: 0.5em;
+}
+
+.exchange-of-trade-arrow {
+    text-align: center;
+    margin: -1.05em 0;
+}
+
+.exchange-of-trade-arrow span {
+    position: relative;
+    z-index: 1;
+    display: inline-block;
+    background-color: var(--color-bg);
+    border-radius: 0.3em;
+    padding: 0 0.35em;
+}
+
+.exchange-of-limit-price {
+    flex-grow: 1;
+    text-align: right;
+    padding-right: 3em;
+}
+
+.exchange-of-sublabel {
+    position:absolute;
+    right: 0.5em;
+    top: 0.75em;
+    font-size: 75%;
 }

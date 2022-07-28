@@ -229,7 +229,7 @@ export interface OrderMatchedEventObject {
   escrowID: BigNumber;
   orderID: BigNumber;
   amountSats: BigNumber;
-  priceWeiPerSat: BigNumber;
+  priceTokPerSat: BigNumber;
   takerStakedWei: BigNumber;
   maker: string;
   taker: string;
@@ -244,7 +244,7 @@ export type OrderMatchedEventFilter = TypedEventFilter<OrderMatchedEvent>;
 export interface OrderPlacedEventObject {
   orderID: BigNumber;
   amountSats: BigNumber;
-  priceWeiPerSat: BigNumber;
+  priceTokPerSat: BigNumber;
   makerStakedWei: BigNumber;
   maker: string;
 }
@@ -325,21 +325,21 @@ export interface Portal extends BaseContract {
       [string, BigNumber, BigNumber, string, BigNumber] & {
         maker: string;
         amountSats: BigNumber;
-        priceWeiPerSat: BigNumber;
+        priceTokPerSat: BigNumber;
         scriptHash: string;
         stakedWei: BigNumber;
       }
     >;
 
     postAsk(
-      priceWeiPerSat: PromiseOrValue<BigNumberish>,
+      priceTokPerSat: PromiseOrValue<BigNumberish>,
       scriptHash: PromiseOrValue<BytesLike>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     postBid(
       amountSats: PromiseOrValue<BigNumberish>,
-      priceWeiPerSat: PromiseOrValue<BigNumberish>,
+      priceTokPerSat: PromiseOrValue<BigNumberish>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
@@ -402,21 +402,21 @@ export interface Portal extends BaseContract {
     [string, BigNumber, BigNumber, string, BigNumber] & {
       maker: string;
       amountSats: BigNumber;
-      priceWeiPerSat: BigNumber;
+      priceTokPerSat: BigNumber;
       scriptHash: string;
       stakedWei: BigNumber;
     }
   >;
 
   postAsk(
-    priceWeiPerSat: PromiseOrValue<BigNumberish>,
+    priceTokPerSat: PromiseOrValue<BigNumberish>,
     scriptHash: PromiseOrValue<BytesLike>,
     overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   postBid(
     amountSats: PromiseOrValue<BigNumberish>,
-    priceWeiPerSat: PromiseOrValue<BigNumberish>,
+    priceTokPerSat: PromiseOrValue<BigNumberish>,
     overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
@@ -479,21 +479,21 @@ export interface Portal extends BaseContract {
       [string, BigNumber, BigNumber, string, BigNumber] & {
         maker: string;
         amountSats: BigNumber;
-        priceWeiPerSat: BigNumber;
+        priceTokPerSat: BigNumber;
         scriptHash: string;
         stakedWei: BigNumber;
       }
     >;
 
     postAsk(
-      priceWeiPerSat: PromiseOrValue<BigNumberish>,
+      priceTokPerSat: PromiseOrValue<BigNumberish>,
       scriptHash: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     postBid(
       amountSats: PromiseOrValue<BigNumberish>,
-      priceWeiPerSat: PromiseOrValue<BigNumberish>,
+      priceTokPerSat: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -547,7 +547,7 @@ export interface Portal extends BaseContract {
       escrowID?: null,
       orderID?: null,
       amountSats?: null,
-      priceWeiPerSat?: null,
+      priceTokPerSat?: null,
       takerStakedWei?: null,
       maker?: null,
       taker?: null
@@ -556,7 +556,7 @@ export interface Portal extends BaseContract {
       escrowID?: null,
       orderID?: null,
       amountSats?: null,
-      priceWeiPerSat?: null,
+      priceTokPerSat?: null,
       takerStakedWei?: null,
       maker?: null,
       taker?: null
@@ -565,14 +565,14 @@ export interface Portal extends BaseContract {
     "OrderPlaced(uint256,int128,uint128,uint256,address)"(
       orderID?: null,
       amountSats?: null,
-      priceWeiPerSat?: null,
+      priceTokPerSat?: null,
       makerStakedWei?: null,
       maker?: null
     ): OrderPlacedEventFilter;
     OrderPlaced(
       orderID?: null,
       amountSats?: null,
-      priceWeiPerSat?: null,
+      priceTokPerSat?: null,
       makerStakedWei?: null,
       maker?: null
     ): OrderPlacedEventFilter;
@@ -612,14 +612,14 @@ export interface Portal extends BaseContract {
     ): Promise<BigNumber>;
 
     postAsk(
-      priceWeiPerSat: PromiseOrValue<BigNumberish>,
+      priceTokPerSat: PromiseOrValue<BigNumberish>,
       scriptHash: PromiseOrValue<BytesLike>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     postBid(
       amountSats: PromiseOrValue<BigNumberish>,
-      priceWeiPerSat: PromiseOrValue<BigNumberish>,
+      priceTokPerSat: PromiseOrValue<BigNumberish>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
@@ -673,14 +673,14 @@ export interface Portal extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     postAsk(
-      priceWeiPerSat: PromiseOrValue<BigNumberish>,
+      priceTokPerSat: PromiseOrValue<BigNumberish>,
       scriptHash: PromiseOrValue<BytesLike>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     postBid(
       amountSats: PromiseOrValue<BigNumberish>,
-      priceWeiPerSat: PromiseOrValue<BigNumberish>,
+      priceTokPerSat: PromiseOrValue<BigNumberish>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 

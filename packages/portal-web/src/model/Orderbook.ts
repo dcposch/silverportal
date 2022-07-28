@@ -5,7 +5,7 @@ export interface Order {
   orderID: number;
   maker: string;
   amountSats: ethers.BigNumber;
-  priceWeiPerSat: ethers.BigNumber;
+  priceTokPerSat: ethers.BigNumber;
   scriptHash: string;
   stakedWei: ethers.BigNumber;
 }
@@ -20,7 +20,7 @@ export class Orderbook {
   constructor(orders: Order[]) {
     // Split bids and asks, sort by price
     const byPrice = (a: Order, b: Order, c: number) =>
-      (a.priceWeiPerSat.toNumber() - b.priceWeiPerSat.toNumber()) * c;
+      (a.priceTokPerSat.toNumber() - b.priceTokPerSat.toNumber()) * c;
     this.bids = orders
       .filter((o) => !o.amountSats.isNegative())
       .sort((a, b) => byPrice(a, b, 1));
@@ -36,8 +36,8 @@ export class Orderbook {
   getBestBidAsk(): number[] {
     const o = this;
     return [
-      o.bids[0] ? o.bids[0].priceWeiPerSat.toNumber() : undefined,
-      o.asks[0] ? o.asks[0].priceWeiPerSat.toNumber() : undefined,
+      o.bids[0] ? o.bids[0].priceTokPerSat.toNumber() : undefined,
+      o.asks[0] ? o.asks[0].priceTokPerSat.toNumber() : undefined,
     ];
   }
 }

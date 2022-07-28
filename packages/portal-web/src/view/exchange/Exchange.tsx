@@ -23,6 +23,7 @@ import {
   SellModal,
   SlashModal,
 } from "./exchangeModals";
+import OrderForm from "./OrderForm";
 import OrdersTable from "./OrdersTable";
 
 interface ExchangeProps {
@@ -46,12 +47,18 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
   _reloadInterval = 0;
 
   /** Load data + reload periodically. */
-  componentDidMount() {
-    console.log("Loading Portal parameters...");
-    const { portal } = this.props;
-    loadParams(portal)
-      .then((params) => this.setState({ params }))
-      .catch(console.error);
+  async componentDidMount() {
+    for (let delay = 1000; ; delay *= 2) {
+      console.log("Loading Portal parameters...");
+      try {
+        const params = await loadParams(this.props.portal);
+        this.setState({ params });
+        break;
+      } catch (e) {
+        console.log("Param loading failed. Waiting, then retrying...", e);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
 
     this._reloadInterval = window.setInterval(this.reloadData, 10_000);
     this.reloadData();
@@ -66,13 +73,17 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
     const { portal, connectedAddress } = this.props;
 
     console.log("Loading orderbook...");
-    loadOrderbook(portal)
-      .then((orders) => this.setState({ orders }))
-      .catch(console.error);
+    const orders = await loadOrderbook(portal);
+    this.setState({ orders });
+    //.then((orders) => this.setState({ orders }))
+    //.catch(console.error);
+
     if (connectedAddress) {
-      loadEscrowForAddr(connectedAddress, portal)
-        .then((escrow) => this.setState({ escrow }))
-        .catch(console.error);
+      console.log("Loading escrows...");
+      const escrow = await loadEscrowForAddr(connectedAddress, portal);
+      this.setState({ escrow });
+      //.then((escrow) => this.setState({ escrow }))
+      //.catch(console.error);
     } else {
       this.setState({ escrow: undefined });
     }
@@ -94,6 +105,7 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
   render() {
     const { portal, addRecentTransaction } = this.props;
     const { params, orders, escrow, modal } = this.state;
+    console.log(`Rendering Exchange`, params);
     if (params == null) return null;
     const { ethNetwork, contractAddr } = params;
 
@@ -103,6 +115,8 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
 
     return (
       <div>
+        <h2>Order</h2>
+        <OrderForm orders={orders} />
         <h2>
           Orderbook{" "}
           <small>

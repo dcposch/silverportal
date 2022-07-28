@@ -3,6 +3,7 @@ pragma solidity >=0.8.0;
 
 import "forge-std/Test.sol";
 import "../Portal.sol";
+import "btcmirror/interfaces/IBtcMirror.sol";
 import "btcmirror/interfaces/IBtcTxVerifier.sol";
 import {console} from "forge-std/console.sol";
 
@@ -10,7 +11,7 @@ contract PortalTest is Test {
     event OrderPlaced(
         uint256 orderID,
         int128 amountSats,
-        uint128 priceWeiPerSat,
+        uint128 priceTokPerSat,
         uint256 makerStakedWei,
         address maker
     );
@@ -22,12 +23,12 @@ contract PortalTest is Test {
         uint256 orderID,
         int128 amountSats,
         int128 amountSatsFilled,
-        uint128 priceWeiPerSat,
+        uint128 priceTokPerSat,
         uint256 takerStakedWei,
-	uint128 deadline,
+        uint128 deadline,
         address maker,
         address taker,
-	bytes20 destScriptHash
+        bytes20 destScriptHash
     );
 
     event EscrowSettled(
@@ -157,7 +158,7 @@ contract PortalTest is Test {
         vm.expectRevert(bytes("Order already filled"));
         p.initiateSell{value: 0.1 ether}(1, 1e7);
     }
-    
+
     function testPartialSell() public returns (Portal p) {
         p = testBid();
 
@@ -171,12 +172,12 @@ contract PortalTest is Test {
         // Then, do it right. Stake 5% = 1 ETH.
         uint256 escrowID = p.initiateSell{value: 0.1 ether}(1, 1e7);
         assertEq(escrowID, 1);
-        
-	vm.expectRevert(bytes("Escrow collision, please retry"));
+
+        vm.expectRevert(bytes("Escrow collision, please retry"));
         p.initiateSell{value: 0.1 ether}(1, 1e7);
 
         // Fill out the rest of the order
-        escrowID = p.initiateSell{value: 0.9 ether}(1, 1e8-1e7);
+        escrowID = p.initiateSell{value: 0.9 ether}(1, 1e8 - 1e7);
         assertEq(escrowID, 2);
 
         // Order should be filled
@@ -202,7 +203,18 @@ contract PortalTest is Test {
         address alice = address(this);
         address bob = address(this);
         vm.expectEmit(true, true, true, true);
-        emit OrderMatched(1, orderID, 1e8, 1e8, 20e10, 0, uint128(block.timestamp+ 24 hours), alice, bob, destScriptHash);
+        emit OrderMatched(
+            1,
+            orderID,
+            1e8,
+            1e8,
+            20e10,
+            0,
+            uint128(block.timestamp + 24 hours),
+            alice,
+            bob,
+            destScriptHash
+        );
         uint256 escrowID = p.initiateBuy{value: 20 ether}(
             orderID,
             1e8,
@@ -214,7 +226,7 @@ contract PortalTest is Test {
         vm.expectRevert(bytes("Order already filled"));
         p.initiateBuy{value: 20 ether}(orderID, 1e8, destScriptHash);
     }
-    
+
     function testPartialBuy() public returns (Portal p) {
         p = testAsk();
 
@@ -226,7 +238,18 @@ contract PortalTest is Test {
         address alice = address(this);
         address bob = address(this);
         vm.expectEmit(true, true, true, true);
-        emit OrderMatched(1, orderID, 1e8, 1e7, 20e10, 0, uint128(block.timestamp + 24 hours), alice, bob, destScriptHash);
+        emit OrderMatched(
+            1,
+            orderID,
+            1e8,
+            1e7,
+            20e10,
+            0,
+            uint128(block.timestamp + 24 hours),
+            alice,
+            bob,
+            destScriptHash
+        );
         uint256 escrowID = p.initiateBuy{value: 2 ether}(
             orderID,
             1e7,
@@ -234,15 +257,11 @@ contract PortalTest is Test {
         );
         assertEq(escrowID, 1);
 
-	vm.expectRevert(bytes("Escrow collision, please retry"));
-	p.initiateBuy{value: 2 ether}(
-	    orderID,
-	    1e7,
-	    destScriptHash
-	);
+        vm.expectRevert(bytes("Escrow collision, please retry"));
+        p.initiateBuy{value: 2 ether}(orderID, 1e7, destScriptHash);
 
         // Take the rest of the order
-        p.initiateBuy{value: 18 ether}(orderID, 1e8-1e7, destScriptHash);
+        p.initiateBuy{value: 18 ether}(orderID, 1e8 - 1e7, destScriptHash);
 
         // Try again. Bid should be filled now.
         vm.expectRevert(bytes("Order already filled"));
@@ -272,9 +291,9 @@ contract PortalTest is Test {
         p.setBtcVerifier(new StubBtcTxVerifier(false));
         vm.expectRevert(bytes("Bad bitcoin transaction"));
         p.proveSettlement(1, 1234, proof, 12);
-        
+
         p.setBtcVerifier(new StubBtcTxVerifier(true));
-	vm.expectRevert(bytes("Can't use old proof of payment"));
+        vm.expectRevert(bytes("Can't use old proof of payment"));
         p.proveSettlement(1, 998, proof, 12);
 
         //  Prove settlement. Successful proof validation.
@@ -287,7 +306,7 @@ contract PortalTest is Test {
         vm.expectRevert(bytes("Escrow not found"));
         p.proveSettlement(1, 1234, proof, 12);
     }
-    
+
     function testPartialSettleFromSell() public {
         Portal p = testPartialSell();
         BtcTxProof memory proof;
@@ -296,9 +315,9 @@ contract PortalTest is Test {
         p.setBtcVerifier(new StubBtcTxVerifier(false));
         vm.expectRevert(bytes("Bad bitcoin transaction"));
         p.proveSettlement(1, 1234, proof, 12);
-	
+
         p.setBtcVerifier(new StubBtcTxVerifier(true));
-	vm.expectRevert(bytes("Can't use old proof of payment"));
+        vm.expectRevert(bytes("Can't use old proof of payment"));
         p.proveSettlement(1, 999, proof, 12);
 
         //  Prove settlement. Successful proof validation.
@@ -306,14 +325,14 @@ contract PortalTest is Test {
         vm.expectEmit(true, true, true, true);
         emit EscrowSettled(1, 1e7, address(this), 2.1 ether);
         p.proveSettlement(1, 1234, proof, 12);
-        
+
         // Finally, try again. Escrow should be gone.
         vm.expectRevert(bytes("Escrow not found"));
         p.proveSettlement(1, 1234, proof, 12);
-        
+
         // Fill the final escrow
         vm.expectEmit(true, true, true, true);
-        emit EscrowSettled(2, 1e8-1e7, address(this), 18.9 ether);
+        emit EscrowSettled(2, 1e8 - 1e7, address(this), 18.9 ether);
         p.proveSettlement(2, 1234, proof, 12);
     }
 
@@ -336,7 +355,7 @@ contract PortalTest is Test {
         emit EscrowSlashed(1, tPlus24, address(this), 21 ether);
         p.slash(1);
     }
-    
+
     function testSettleFromBuy() public {
         Portal p = testBuy();
         BtcTxProof memory proof;
@@ -356,7 +375,7 @@ contract PortalTest is Test {
         vm.expectRevert(bytes("Escrow not found"));
         p.proveSettlement(1, 1234, proof, 12);
     }
-    
+
     function testPartialSettleFromBuy() public {
         Portal p = testPartialBuy();
         BtcTxProof memory proof;
@@ -371,14 +390,14 @@ contract PortalTest is Test {
         vm.expectEmit(true, true, true, true);
         emit EscrowSettled(1, 1e7, address(this), 2.1 ether);
         p.proveSettlement(1, 1234, proof, 12);
-        
+
         // Finally, try again. Escrow should be gone.
         vm.expectRevert(bytes("Escrow not found"));
         p.proveSettlement(1, 1234, proof, 12);
-        
+
         // Fill the final escrow
         vm.expectEmit(true, true, true, true);
-        emit EscrowSettled(2, 1e8-1e7, address(this), 18.9 ether);
+        emit EscrowSettled(2, 1e8 - 1e7, address(this), 18.9 ether);
         p.proveSettlement(2, 1234, proof, 12);
     }
 }
@@ -387,19 +406,19 @@ contract StubBtcMirror is IBtcMirror {
     constructor() {}
 
     function getBlockHash(uint256 number) external view returns (bytes32) {
-	    return keccak256(abi.encode(number));
+        return keccak256(abi.encode(number));
     }
 
     function getLatestBlockHeight() external view returns (uint256) {
-	    return 1000;
+        return 1000;
     }
 
     function getLatestBlockTime() external view returns (uint256) {
-	    return 1;
+        return 1;
     }
 
     function submit(uint256 blockHeight, bytes calldata blockHeaders) external {
-	    return;
+        return;
     }
 }
 
@@ -409,7 +428,7 @@ contract StubBtcTxVerifier is IBtcTxVerifier {
 
     constructor(bool _alwaysBet) {
         alwaysBet = _alwaysBet;
-	_mirror = new StubBtcMirror();
+        _mirror = new StubBtcMirror();
     }
 
     function verifyPayment(
