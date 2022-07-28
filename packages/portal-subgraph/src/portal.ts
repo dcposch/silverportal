@@ -10,7 +10,7 @@ import {
   ParamUpdated
 } from "../generated/Portal/Portal"
 import { Escrow, Order } from "../generated/schema"
-import { ESCROW_STATUS_PENDING, ESCROW_STATUS_SETTLED, ESCROW_STATUS_SLASHED, ORDER_STATUS_PENDING, ORDER_STATUS_FILLED, ORDER_STATUS_CANCELLED } from "utils/constants";
+import { ESCROW_STATUS_PENDING, ESCROW_STATUS_SETTLED, ESCROW_STATUS_SLASHED, ORDER_STATUS_PENDING, ORDER_STATUS_FILLED, ORDER_STATUS_CANCELLED } from "./utils/constants";
 
 export function handleEscrowSettled(event: EscrowSettled): void {
   let escrowID = event.params.id.toString();
@@ -98,18 +98,20 @@ export function handleOrderMatched(event: OrderMatched): void {
     ]);
   }
 
-  let orderSats = event.params.amountSats;
+  let orderSats = event.params.amountSatsFilled;
   if (order.amountSats.equals(orderSats)) {
     order.status = ORDER_STATUS_FILLED;
-    order.save()
+  } else {
+    order.amountSats -= orderSats;
   }
+  order.save()
 
   let escrow = new Escrow(event.params.escrowID.toString());
   escrow.order = orderID;
   escrow.amountSatsDue = event.params.amountSats;
   escrow.deadline = event.params.deadlne;
-  escrow.successRecipient = event.params.maker;
-  escrow.timeoutRecipient = event.params.taker;
+  escrow.successRecipient = event.params.maker.toHexString();
+  escrow.timeoutRecipient = event.params.taker.toHexString();
   escrow.status = ESCROW_STATUS_PENDING;
   escrow.save();
 }
@@ -117,11 +119,12 @@ export function handleOrderMatched(event: OrderMatched): void {
 export function handleOrderPlaced(event: OrderPlaced): void {
   let orderID = event.params.orderID.toString();
   let order = new Order(orderID);
-  order.maker = event.params.maker;
+  order.maker = event.params.maker.toHexString();
   order.amountSats = event.params.amountSats;
   order.priceTokPerSat = event.params.priceTokPerSat;
-  order.stakedTok = event.params.stakedTok;
+  order.stakedTok = event.params.makerStakedTok;
   order.status = ORDER_STATUS_PENDING;
+  order.save()
 }
 
 export function handleOwnerUpdated(event: OwnerUpdated): void {}
