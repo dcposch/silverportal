@@ -84,6 +84,7 @@ contract Portal is Owned {
         int128 amountSatsFilled,
         uint128 priceTokPerSat,
         uint256 takerStakedTok,
+	uint128 deadline,
         address maker,
         address taker
     );
@@ -299,6 +300,7 @@ contract Portal is Owned {
             int128(amountSats),
             o.priceTokPerSat,
             expectedStakeTok,
+	    e.deadline,
             o.maker,
             msg.sender
         );
@@ -349,6 +351,7 @@ contract Portal is Owned {
             int128(amountSats),
             o.priceTokPerSat,
             0,
+	    e.deadline,
             o.maker,
             msg.sender
         );
