@@ -1,0 +1,6 @@
+type ExampleEntity @entity {
+  id: ID!
+  count: BigInt!
+  escrowID: BigInt! # uint256
+  amountSats: BigInt! # uint256
+}

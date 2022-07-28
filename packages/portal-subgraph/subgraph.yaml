@@ -1,0 +1,41 @@
+specVersion: 0.0.4
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: Portal
+    network: ropsten
+    source:
+      address: "0x0Dc46AB6D26d78698f54501D12522EbCDE574c51"
+      abi: Portal
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - EscrowSettled
+        - EscrowSlashed
+        - OrderCancelled
+        - OrderMatched
+        - OrderPlaced
+        - OwnerUpdated
+        - ParamUpdated
+      abis:
+        - name: Portal
+          file: ./abis/Portal.json
+      eventHandlers:
+        - event: EscrowSettled(uint256,uint256,address,uint256)
+          handler: handleEscrowSettled
+        - event: EscrowSlashed(uint256,uint256,address,uint256)
+          handler: handleEscrowSlashed
+        - event: OrderCancelled(uint256)
+          handler: handleOrderCancelled
+        - event: OrderMatched(uint256,uint256,int128,uint128,uint256,address,address)
+          handler: handleOrderMatched
+        - event: OrderPlaced(uint256,int128,uint128,uint256,address)
+          handler: handleOrderPlaced
+        - event: OwnerUpdated(indexed address,indexed address)
+          handler: handleOwnerUpdated
+        - event: ParamUpdated(uint256,uint256,string)
+          handler: handleParamUpdated
+      file: ./src/portal.ts
