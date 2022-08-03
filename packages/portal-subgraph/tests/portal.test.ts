@@ -62,14 +62,10 @@ describe("Describe entity assertions", () => {
     clearStore()
   })
 
-  // For more test scenarios, see:
-  // https://thegraph.com/docs/en/developer/matchstick/#write-a-unit-test
-
   test("Order and partial escrow", () => {
     assert.entityCount("Order", 1)
     assert.entityCount("Escrow", 1)
 
-    // 0xa16081f360e3847006db660bae1c6d1b2e17ec2a is the default address used in newMockEvent() function
     assert.fieldEquals(
       "Order",
       "111",
@@ -137,9 +133,6 @@ describe("Describe entity assertions", () => {
       "status",
       "PENDING"
     )
-
-    // More assert options:
-    // https://thegraph.com/docs/en/developer/matchstick/#asserts
   })
   
   test("OrderPlaced and EscrowCreated", () => {
@@ -217,8 +210,6 @@ describe("Describe entity assertions", () => {
       "status",
       "FILLED"
     )
-    // More assert options:
-    // https://thegraph.com/docs/en/developer/matchstick/#asserts
   })
   
   test("Order Cancelled", () => {

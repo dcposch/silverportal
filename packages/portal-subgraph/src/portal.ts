@@ -16,8 +16,6 @@ export function handleEscrowSettled(event: EscrowSettled): void {
   let escrowID = event.params.escrowID.toString();
   let escrow = Escrow.load(escrowID);
 
-  // Entities only exist after they have been saved to the store;
-  // `null` checks allow to create entities on demand
   if (!escrow) {
     log.error('[handleEscrowSettled] Escrow #{} not found. Hash {}', [
       escrowID,
@@ -27,33 +25,7 @@ export function handleEscrowSettled(event: EscrowSettled): void {
   }
 
   escrow.status = ESCROW_STATUS_SETTLED;
-
-  // Entities can be written to the store with `.save()`
   escrow.save()
-
-  // Note: If a handler doesn't require existing field values, it is faster
-  // _not_ to load the entity from the store. Instead, create it fresh with
-  // `new Entity(...)`, set the fields that should be updated and save the
-  // entity back to the store. Fields that were not set or unset remain
-  // unchanged, allowing for partial updates to be applied.
-
-  // It is also possible to access smart contracts from mappings. For
-  // example, the contract that has emitted the event can be connected to
-  // with:
-  //
-  // let contract = Contract.bind(event.address)
-  //
-  // The following functions can then be called on this contract to access
-  // state variables and other data:
-  //
-  // - contract.btcVerifier(...)
-  // - contract.escrows(...)
-  // - contract.minConfirmations(...)
-  // - contract.nextOrderID(...)
-  // - contract.orderbook(...)
-  // - contract.owner(...)
-  // - contract.stakePercent(...)
-  // - contract.token(...)
 }
 
 export function handleEscrowSlashed(event: EscrowSlashed): void {
