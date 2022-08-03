@@ -5,7 +5,7 @@ enum OrderStatus {
 }
 
 type Order @entity {
-  "Soldiity ID"
+  "ID for this bid or ask"
   id: ID!
 
   "Market maker that created this bid or ask"
