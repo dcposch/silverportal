@@ -1,0 +1,472 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "_token",
+        "type": "address"
+      },
+      { "internalType": "uint256", "name": "_stakePercent", "type": "uint256" },
+      {
+        "internalType": "contract IBtcTxVerifier",
+        "name": "_btcVerifier",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "escrowID",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amountSats",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "ethDest",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "ethAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "EscrowSettled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "escrowID",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "escrowDeadline",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "ethDest",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "ethAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "EscrowSlashed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "orderID",
+        "type": "uint256"
+      }
+    ],
+    "name": "OrderCancelled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "escrowID",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "orderID",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "int128",
+        "name": "amountSats",
+        "type": "int128"
+      },
+      {
+        "indexed": false,
+        "internalType": "int128",
+        "name": "amountSatsFilled",
+        "type": "int128"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "priceTokPerSat",
+        "type": "uint128"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "takerStakedTok",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "deadline",
+        "type": "uint128"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "maker",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "taker",
+        "type": "address"
+      }
+    ],
+    "name": "OrderMatched",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "orderID",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "int128",
+        "name": "amountSats",
+        "type": "int128"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "priceTokPerSat",
+        "type": "uint128"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "makerStakedTok",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "maker",
+        "type": "address"
+      }
+    ],
+    "name": "OrderPlaced",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnerUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldVal",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newVal",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
+      }
+    ],
+    "name": "ParamUpdated",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "btcVerifier",
+    "outputs": [
+      {
+        "internalType": "contract IBtcTxVerifier",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "orderID", "type": "uint256" }
+    ],
+    "name": "cancelOrder",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "name": "escrows",
+    "outputs": [
+      {
+        "internalType": "bytes20",
+        "name": "destScriptHash",
+        "type": "bytes20"
+      },
+      { "internalType": "uint128", "name": "amountSatsDue", "type": "uint128" },
+      { "internalType": "uint128", "name": "deadline", "type": "uint128" },
+      { "internalType": "uint256", "name": "escrowTok", "type": "uint256" },
+      {
+        "internalType": "address",
+        "name": "successRecipient",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "timeoutRecipient",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "orderID", "type": "uint256" },
+      { "internalType": "uint128", "name": "amountSats", "type": "uint128" }
+    ],
+    "name": "initiateBuy",
+    "outputs": [
+      { "internalType": "uint256", "name": "escrowID", "type": "uint256" }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "orderID", "type": "uint256" },
+      { "internalType": "uint128", "name": "amountSats", "type": "uint128" },
+      { "internalType": "bytes20", "name": "destScriptHash", "type": "bytes20" }
+    ],
+    "name": "initiateSell",
+    "outputs": [
+      { "internalType": "uint256", "name": "escrowID", "type": "uint256" }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "minConfirmations",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nextOrderID",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "name": "orderbook",
+    "outputs": [
+      { "internalType": "address", "name": "maker", "type": "address" },
+      { "internalType": "int128", "name": "amountSats", "type": "int128" },
+      {
+        "internalType": "uint128",
+        "name": "priceTokPerSat",
+        "type": "uint128"
+      },
+      { "internalType": "bytes20", "name": "scriptHash", "type": "bytes20" },
+      { "internalType": "uint256", "name": "stakedTok", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "amountSats", "type": "uint256" },
+      {
+        "internalType": "uint256",
+        "name": "priceTokPerSat",
+        "type": "uint256"
+      },
+      { "internalType": "bytes20", "name": "scriptHash", "type": "bytes20" }
+    ],
+    "name": "postAsk",
+    "outputs": [
+      { "internalType": "uint256", "name": "orderID", "type": "uint256" }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "amountSats", "type": "uint256" },
+      { "internalType": "uint256", "name": "priceTokPerSat", "type": "uint256" }
+    ],
+    "name": "postBid",
+    "outputs": [
+      { "internalType": "uint256", "name": "orderID", "type": "uint256" }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "escrowID", "type": "uint256" },
+      {
+        "internalType": "uint256",
+        "name": "bitcoinBlockNum",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          { "internalType": "bytes", "name": "blockHeader", "type": "bytes" },
+          { "internalType": "bytes32", "name": "txId", "type": "bytes32" },
+          { "internalType": "uint256", "name": "txIndex", "type": "uint256" },
+          { "internalType": "bytes", "name": "txMerkleProof", "type": "bytes" },
+          { "internalType": "bytes", "name": "rawTx", "type": "bytes" }
+        ],
+        "internalType": "struct BtcTxProof",
+        "name": "bitcoinTransactionProof",
+        "type": "tuple"
+      },
+      { "internalType": "uint256", "name": "txOutIx", "type": "uint256" }
+    ],
+    "name": "proveSettlement",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IBtcTxVerifier",
+        "name": "_btcVerifier",
+        "type": "address"
+      }
+    ],
+    "name": "setBtcVerifier",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_minConfirmations",
+        "type": "uint256"
+      }
+    ],
+    "name": "setMinConfirmations",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "newOwner", "type": "address" }
+    ],
+    "name": "setOwner",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_stakePercent", "type": "uint256" }
+    ],
+    "name": "setStakePercent",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "escrowID", "type": "uint256" }
+    ],
+    "name": "slash",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "stakePercent",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "token",
+    "outputs": [
+      { "internalType": "contract IERC20", "name": "", "type": "address" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

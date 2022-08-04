@@ -23,6 +23,7 @@ contract PortalTest is Test {
         int128 amountSatsFilled,
         uint128 priceWeiPerSat,
         uint256 takerStakedWei,
+	uint128 deadline,
         address maker,
         address taker
     );
@@ -196,7 +197,7 @@ contract PortalTest is Test {
         address alice = address(this);
         address bob = address(this);
         vm.expectEmit(true, true, true, true);
-        emit OrderMatched(1, orderID, 1e8, 1e8, 20e10, 0, alice, bob);
+        emit OrderMatched(1, orderID, 1e8, 1e8, 20e10, 0, uint128(block.timestamp+ 24 hours), alice, bob);
         uint256 escrowID = p.initiateSell{value: 20 ether}(
             orderID,
             1e8,
@@ -220,7 +221,7 @@ contract PortalTest is Test {
         address alice = address(this);
         address bob = address(this);
         vm.expectEmit(true, true, true, true);
-        emit OrderMatched(1, orderID, 1e8, 1e7, 20e10, 0, alice, bob);
+        emit OrderMatched(1, orderID, 1e8, 1e7, 20e10, 0, uint128(block.timestamp + 24 hours), alice, bob);
         uint256 escrowID = p.initiateSell{value: 2 ether}(
             orderID,
             1e7,

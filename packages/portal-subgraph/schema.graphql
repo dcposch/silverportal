@@ -1,0 +1,57 @@
+enum OrderStatus {
+  PENDING
+  FILLED
+  CANCELLED
+}
+
+type Order @entity {
+  "ID for this bid or ask"
+  id: ID!
+
+  "Market maker that created this bid or ask"
+  maker: String!
+
+  "Positive if buying ether (bid), negative if selling (ask)."
+  amountSats: BigInt! # uint256
+
+  "INVERSE price, in token units per sat."
+  priceTokPerSat: BigInt!
+
+  "Unused for ask. Staked token amount for bids."
+  stakedTok: BigInt
+
+  "Current status of the order."
+  status: OrderStatus!
+}
+
+enum EscrowStatus {
+  PENDING
+  SETTLED
+  SLASHED
+}
+
+type Escrow @entity {
+  "Solidity ID"
+  id: ID!
+
+  "Bitcoin due, in satoshis."
+  amountSatsDue: BigInt!
+
+  "Due date, in Unix seconds."
+  deadline: BigInt!
+
+  "Tokens held in escrow."
+  escrowTok: BigInt!
+
+  "If correct amount is paid to script hash, who keeps the escrow?"
+  successRecipient: String!
+
+  "If deadline passes without proof of payment, who keeps the escrow"
+  timeoutRecipient: String!
+
+  "The order this Escrow maps to"
+  order: Order!
+
+  "Status of the escrow"
+  status: EscrowStatus! 
+}

@@ -9,7 +9,4 @@
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
 [submodule "packages/portal-contracts/lib/solmate"]
 	path = packages/portal-contracts/lib/solmate
-	url = https://github.com/Rari-Capital/solmate
-[submodule "packages/portal-contracts/lib/prb-math"]
-	path = packages/portal-contracts/lib/prb-math
-	url = https://github.com/paulrberg/prb-math
+	url = https://github.com/transmissions11/solmate
