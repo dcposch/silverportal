@@ -168,12 +168,12 @@ contract Portal is Owned {
     }
 
     /**
-     * @notice Posts a bid. By calling this function, you represent that you
+     * @notice Posts an ask. By calling this function, you represent that you
      *         have a stated amount of bitcoin, and are willing to buy ether
      *         at the stated price. You must stake a percentage of the total
      *         eth value, which is returned after a successful transaction.
      */
-    function postBid(uint256 amountSats, uint256 priceTokPerSat)
+    function postAsk(uint256 amountSats, uint256 priceTokPerSat)
         public
         payable
         returns (uint256 orderID)
@@ -208,10 +208,10 @@ contract Portal is Owned {
     }
 
     /**
-     * @notice Posts an ask. You send ether, which is now for sale at the stated
+     * @notice Posts a bid. You send ether, which is now for sale at the stated
      *         price. To buy, a buyer sends bitcoin to the state P2SH address.
      */
-    function postAsk(
+    function postBid(
         uint256 amountSats,
         uint256 priceTokPerSat,
         bytes20 scriptHash
@@ -264,8 +264,8 @@ contract Portal is Owned {
         _transferToSender(tokToSend);
     }
 
-    /** @notice Buy ether, posting stake and promising to send bitcoin. */
-    function initiateBuy(uint256 orderID, uint128 amountSats)
+    /** @notice Sell BTC receive ERC-20. */
+    function initiateSell(uint256 orderID, uint128 amountSats)
         public
         payable
         returns (uint256 escrowID)
@@ -314,8 +314,8 @@ contract Portal is Owned {
         }
     }
 
-    /** @notice Sell ether, receive bitcoin. */
-    function initiateSell(
+    /** @notice Buy bitcoin, paying via ERC-20 */
+    function initiateBuy(
         uint256 orderID,
         uint128 amountSats,
         bytes20 destScriptHash
