@@ -181,6 +181,15 @@ export class Escrow extends Entity {
     this.set("order", Value.fromString(value));
   }
 
+  get destScriptHash(): string {
+    let value = this.get("destScriptHash");
+    return value!.toString();
+  }
+
+  set destScriptHash(value: string) {
+    this.set("destScriptHash", Value.fromString(value));
+  }
+
   get status(): string {
     let value = this.get("status");
     return value!.toString();

@@ -136,6 +136,10 @@ export class OrderMatched__Params {
   get taker(): Address {
     return this._event.parameters[8].value.toAddress();
   }
+
+  get destScriptHash(): Bytes {
+    return this._event.parameters[9].value.toBytes();
+  }
 }
 
 export class OrderPlaced extends ethereum.Event {

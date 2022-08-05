@@ -52,6 +52,9 @@ type Escrow @entity {
   "The order this Escrow maps to"
   order: Order!
 
+  "The destination that should receive BTC"
+  destScriptHash: String!
+
   "Status of the escrow"
   status: EscrowStatus! 
 }

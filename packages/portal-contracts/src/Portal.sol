@@ -86,7 +86,8 @@ contract Portal is Owned {
         uint256 takerStakedTok,
 	uint128 deadline,
         address maker,
-        address taker
+        address taker,
+	bytes20 destScriptHash
     );
 
     event EscrowSettled(
@@ -302,7 +303,8 @@ contract Portal is Owned {
             expectedStakeTok,
 	    e.deadline,
             o.maker,
-            msg.sender
+            msg.sender,
+	    o.scriptHash
         );
 
         // Update the amount of liquidity in this order
@@ -353,7 +355,8 @@ contract Portal is Owned {
             0,
 	    e.deadline,
             o.maker,
-            msg.sender
+            msg.sender,
+	    destScriptHash
         );
 
         o.amountSats -= int128(amountSats);

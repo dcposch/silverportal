@@ -25,7 +25,8 @@ contract PortalTest is Test {
         uint256 takerStakedWei,
 	uint128 deadline,
         address maker,
-        address taker
+        address taker,
+	bytes20 destScriptHash
     );
 
     event EscrowSettled(
@@ -197,7 +198,7 @@ contract PortalTest is Test {
         address alice = address(this);
         address bob = address(this);
         vm.expectEmit(true, true, true, true);
-        emit OrderMatched(1, orderID, 1e8, 1e8, 20e10, 0, uint128(block.timestamp+ 24 hours), alice, bob);
+        emit OrderMatched(1, orderID, 1e8, 1e8, 20e10, 0, uint128(block.timestamp+ 24 hours), alice, bob, destScriptHash);
         uint256 escrowID = p.initiateSell{value: 20 ether}(
             orderID,
             1e8,
@@ -221,7 +222,7 @@ contract PortalTest is Test {
         address alice = address(this);
         address bob = address(this);
         vm.expectEmit(true, true, true, true);
-        emit OrderMatched(1, orderID, 1e8, 1e7, 20e10, 0, uint128(block.timestamp + 24 hours), alice, bob);
+        emit OrderMatched(1, orderID, 1e8, 1e7, 20e10, 0, uint128(block.timestamp + 24 hours), alice, bob, destScriptHash);
         uint256 escrowID = p.initiateSell{value: 2 ether}(
             orderID,
             1e7,

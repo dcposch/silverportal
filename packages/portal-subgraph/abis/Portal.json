@@ -147,6 +147,12 @@
         "internalType": "address",
         "name": "taker",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes20",
+        "name": "destScriptHash",
+        "type": "bytes20"
       }
     ],
     "name": "OrderMatched",
