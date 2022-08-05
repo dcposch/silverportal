@@ -6,7 +6,7 @@ import {
   beforeAll,
   afterAll
 } from "matchstick-as/assembly/index"
-import { BigInt, Address } from "@graphprotocol/graph-ts"
+import { BigInt, Address, Bytes } from "@graphprotocol/graph-ts"
 import { Order, Escrow } from "../generated/schema"
 import { EscrowSettled } from "../generated/Portal/Portal"
 import { handleOrderPlaced, handleOrderMatched, handleOrderCancelled, handleEscrowSettled, handleEscrowSlashed } from "../src/portal"
@@ -43,6 +43,7 @@ describe("Describe entity assertions", () => {
       "0x0000000000000000000000000000000000000002"
     )
     let deadline = BigInt.fromI32(123123123);
+    let destScriptHash = Bytes.fromI32(123123333);
     let newOrderMatchedEvent = createOrderMatchedEvent(
       escrowID,
       orderID,
@@ -53,6 +54,7 @@ describe("Describe entity assertions", () => {
       deadline,
       maker,
       taker,
+      destScriptHash,
     )
 
     handleOrderMatched(newOrderMatchedEvent)
@@ -150,6 +152,7 @@ describe("Describe entity assertions", () => {
     let pricePerTok = BigInt.fromI32(333);
     let stakedTok = BigInt.fromI32(444);
     
+    let destScriptHash = Bytes.fromI32(123123333);
     // Create and validate a partial order which fills the order
     let newOrderMatchedEvent = createOrderMatchedEvent(
       BigInt.fromI32(12),
@@ -161,6 +164,7 @@ describe("Describe entity assertions", () => {
       deadline,
       maker,
       taker,
+      destScriptHash
     )
 
     handleOrderMatched(newOrderMatchedEvent)

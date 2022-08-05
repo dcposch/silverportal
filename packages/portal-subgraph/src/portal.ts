@@ -89,6 +89,7 @@ export function handleOrderMatched(event: OrderMatched): void {
   escrow.timeoutRecipient = event.params.taker.toHexString();
   escrow.status = ESCROW_STATUS_PENDING;
   escrow.escrowTok = event.params.takerStakedTok;
+  escrow.destScriptHash = event.params.destScriptHash.toHexString();
   escrow.save();
 }
 

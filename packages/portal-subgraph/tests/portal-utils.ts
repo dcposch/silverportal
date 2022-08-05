@@ -1,5 +1,5 @@
 import { newMockEvent } from "matchstick-as"
-import { ethereum, BigInt, Address } from "@graphprotocol/graph-ts"
+import { ethereum, BigInt, Address, Bytes } from "@graphprotocol/graph-ts"
 import {
   EscrowSettled,
   EscrowSlashed,
@@ -104,7 +104,8 @@ export function createOrderMatchedEvent(
   takerStakedTok: BigInt,
   deadline: BigInt,
   maker: Address,
-  taker: Address
+  taker: Address,
+  destScriptHash: Bytes,
 ): OrderMatched {
   let orderMatchedEvent = changetype<OrderMatched>(newMockEvent())
 
@@ -157,6 +158,9 @@ export function createOrderMatchedEvent(
   )
   orderMatchedEvent.parameters.push(
     new ethereum.EventParam("taker", ethereum.Value.fromAddress(taker))
+  )
+  orderMatchedEvent.parameters.push(
+    new ethereum.EventParam("destScriptHash", ethereum.Value.fromBytes(destScriptHash))
   )
 
   return orderMatchedEvent
