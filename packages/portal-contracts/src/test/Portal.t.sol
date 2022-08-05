@@ -78,14 +78,14 @@ contract PortalTest is Test {
         p.setBtcVerifier(IBtcTxVerifier(address(0)));
     }
 
-    function testBid() public returns (Portal p) {
+    function testAsk() public returns (Portal p) {
         p = new Portal(ETH, 5, IBtcTxVerifier(address(0)));
 
         // Test a successful bid
         uint256 stakeWei = 1 ether; /* 1 ETH = 5% of 1 * 20 ETH */
         vm.expectEmit(true, true, true, true);
         emit OrderPlaced(1, 1e8, 20e10, 1e18, address(this));
-        uint256 orderId = p.postBid{value: stakeWei}(
+        uint256 orderId = p.postAsk{value: stakeWei}(
             1e8, /* 1 BTC */
             20e10 /* 20 ETH/BTC */
         );
@@ -93,29 +93,29 @@ contract PortalTest is Test {
 
         // Test invalid bids
         vm.expectRevert(bytes("Wrong payment"));
-        p.postBid{value: 9e17}(1e8, 20e10);
+        p.postAsk{value: 9e17}(1e8, 20e10);
 
         vm.expectRevert(bytes("Amount overflow"));
-        p.postBid{value: stakeWei}(22e6 * 1e8, 20e10);
+        p.postAsk{value: stakeWei}(22e6 * 1e8, 20e10);
 
         vm.expectRevert(bytes("Price overflow"));
-        p.postBid{value: stakeWei}(1e8, 20e20);
+        p.postAsk{value: stakeWei}(1e8, 20e20);
 
         vm.expectRevert(bytes("Amount underflow"));
-        p.postBid{value: stakeWei}(0, 20e10);
+        p.postAsk{value: stakeWei}(0, 20e10);
 
         vm.expectRevert(bytes("Price underflow"));
-        p.postBid{value: stakeWei}(1e8, 0);
+        p.postAsk{value: stakeWei}(1e8, 0);
     }
 
-    function testAsk() public returns (Portal p) {
+    function testBid() public returns (Portal p) {
         p = new Portal(ETH, 5, IBtcTxVerifier(address(0)));
         bytes20 destScriptHash = hex"0011223344556677889900112233445566778899";
 
         // Test a successful ask
         vm.expectEmit(true, true, true, true);
         emit OrderPlaced(1, -1e8, 20e10, 0, address(this));
-        uint256 orderId = p.postAsk{value: 20 ether}(
+        uint256 orderId = p.postBid{value: 20 ether}(
             1e8,
             20e10, /* 20 ETH/BTC */
             destScriptHash
@@ -124,64 +124,64 @@ contract PortalTest is Test {
 
         // Test invalid bids
         vm.expectRevert(bytes("Wrong payment"));
-        p.postBid{value: 21 ether}(1e8, 20e10);
+        p.postBid{value: 21 ether}(1e8, 20e10, destScriptHash);
 
         vm.expectRevert(bytes("Amount overflow"));
-        p.postBid{value: 20 ether}(22e6 * 1e8, 20e10);
+        p.postBid{value: 20 ether}(22e6 * 1e8, 20e10, destScriptHash);
 
         vm.expectRevert(bytes("Price overflow"));
-        p.postBid{value: 20 ether}(1e8, 20e20);
+        p.postBid{value: 20 ether}(1e8, 20e20, destScriptHash);
 
         vm.expectRevert(bytes("Amount underflow"));
-        p.postBid{value: 20 ether}(0, 20e10);
+        p.postBid{value: 20 ether}(0, 20e10, destScriptHash);
 
         vm.expectRevert(bytes("Price underflow"));
-        p.postBid{value: 20 ether}(1e8, 0);
-    }
-
-    function testBuy() public returns (Portal p) {
-        p = testAsk();
-
-        // Hit the ask. Buy 1 BTC for 20 ETH.
-        // uint256 orderID = 1;
-
-        // Invalid buys first...
-        vm.expectRevert(bytes("Wrong payment"));
-        p.initiateBuy(1, 1e8);
-
-        // Then, do it right. Stake 5% = 1 ETH.
-        uint256 escrowID = p.initiateBuy{value: 1 ether}(1, 1e8);
-        assertEq(escrowID, 1);
-
-        vm.expectRevert(bytes("Order already filled"));
-        p.initiateBuy{value: 0.1 ether}(1, 1e7);
-    }
-    
-    function testPartialBuy() public returns (Portal p) {
-        p = testAsk();
-
-        // Hit the ask. Buy 1 BTC for 20 ETH.
-        // uint256 orderID = 1;
-
-        // Invalid buys first...
-        vm.expectRevert(bytes("Wrong payment"));
-        p.initiateBuy(1, 1e8);
-
-        // Then, do it right. Stake 5% = 1 ETH.
-        uint256 escrowID = p.initiateBuy{value: 0.1 ether}(1, 1e7);
-        assertEq(escrowID, 1);
-
-        // Fill out the rest of the order
-        escrowID = p.initiateBuy{value: 0.9 ether}(1, 1e8-1e7);
-        assertEq(escrowID, 2);
-
-        // Order should be filled
-        vm.expectRevert(bytes("Order already filled"));
-        p.initiateBuy{value: 0.1 ether}(1, 1e7);
+        p.postBid{value: 20 ether}(1e8, 0, destScriptHash);
     }
 
     function testSell() public returns (Portal p) {
         p = testBid();
+
+        // Hit the ask. Buy 1 BTC for 20 ETH.
+        // uint256 orderID = 1;
+
+        // Invalid buys first...
+        vm.expectRevert(bytes("Wrong payment"));
+        p.initiateSell(1, 1e8);
+
+        // Then, do it right. Stake 5% = 1 ETH.
+        uint256 escrowID = p.initiateSell{value: 1 ether}(1, 1e8);
+        assertEq(escrowID, 1);
+
+        vm.expectRevert(bytes("Order already filled"));
+        p.initiateSell{value: 0.1 ether}(1, 1e7);
+    }
+    
+    function testPartialSell() public returns (Portal p) {
+        p = testBid();
+
+        // Hit the ask. Sell 1 BTC for 20 ETH.
+        // uint256 orderID = 1;
+
+        // Invalid buys first...
+        vm.expectRevert(bytes("Wrong payment"));
+        p.initiateSell(1, 1e8);
+
+        // Then, do it right. Stake 5% = 1 ETH.
+        uint256 escrowID = p.initiateSell{value: 0.1 ether}(1, 1e7);
+        assertEq(escrowID, 1);
+
+        // Fill out the rest of the order
+        escrowID = p.initiateSell{value: 0.9 ether}(1, 1e8-1e7);
+        assertEq(escrowID, 2);
+
+        // Order should be filled
+        vm.expectRevert(bytes("Order already filled"));
+        p.initiateSell{value: 0.1 ether}(1, 1e7);
+    }
+
+    function testBuy() public returns (Portal p) {
+        p = testAsk();
 
         // Hit the bid. Sell 1 BTC for 20 ETH.
         uint256 orderID = 1;
@@ -189,17 +189,17 @@ contract PortalTest is Test {
 
         // Invalid sells first...
         vm.expectRevert(bytes("Wrong payment"));
-        p.initiateSell(orderID, 1e8, destScriptHash);
+        p.initiateBuy(orderID, 1e8, destScriptHash);
 
         vm.expectRevert(bytes("Amount incorrect"));
-        p.initiateSell(orderID, 9e23, destScriptHash);
+        p.initiateBuy(orderID, 9e23, destScriptHash);
 
         // Valid sell
         address alice = address(this);
         address bob = address(this);
         vm.expectEmit(true, true, true, true);
         emit OrderMatched(1, orderID, 1e8, 1e8, 20e10, 0, uint128(block.timestamp+ 24 hours), alice, bob, destScriptHash);
-        uint256 escrowID = p.initiateSell{value: 20 ether}(
+        uint256 escrowID = p.initiateBuy{value: 20 ether}(
             orderID,
             1e8,
             destScriptHash
@@ -208,13 +208,13 @@ contract PortalTest is Test {
 
         // Try again. Bid should be filled now.
         vm.expectRevert(bytes("Order already filled"));
-        p.initiateSell{value: 20 ether}(orderID, 1e8, destScriptHash);
+        p.initiateBuy{value: 20 ether}(orderID, 1e8, destScriptHash);
     }
     
-    function testPartialSell() public returns (Portal p) {
-        p = testBid();
+    function testPartialBuy() public returns (Portal p) {
+        p = testAsk();
 
-        // Hit the bid. Sell 1 BTC for 20 ETH.
+        // Hit the bid. Buy 1 BTC for 20 ETH.
         uint256 orderID = 1;
         bytes20 destScriptHash = hex"0011223344556677889900112233445566778899";
 
@@ -223,7 +223,7 @@ contract PortalTest is Test {
         address bob = address(this);
         vm.expectEmit(true, true, true, true);
         emit OrderMatched(1, orderID, 1e8, 1e7, 20e10, 0, uint128(block.timestamp + 24 hours), alice, bob, destScriptHash);
-        uint256 escrowID = p.initiateSell{value: 2 ether}(
+        uint256 escrowID = p.initiateBuy{value: 2 ether}(
             orderID,
             1e7,
             destScriptHash
@@ -231,11 +231,11 @@ contract PortalTest is Test {
         assertEq(escrowID, 1);
 
         // Take the rest of the order
-        p.initiateSell{value: 18 ether}(orderID, 1e8-1e7, destScriptHash);
+        p.initiateBuy{value: 18 ether}(orderID, 1e8-1e7, destScriptHash);
 
         // Try again. Bid should be filled now.
         vm.expectRevert(bytes("Order already filled"));
-        p.initiateSell{value: 20 ether}(orderID, 1e8, destScriptHash);
+        p.initiateBuy{value: 20 ether}(orderID, 1e8, destScriptHash);
     }
 
     function testCancel() public {
