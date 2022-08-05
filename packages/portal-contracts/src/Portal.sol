@@ -168,7 +168,7 @@ contract Portal is Owned {
     }
 
     /**
-     * @notice Posts an Ask. By calling this function, you represent that you
+     * @notice Posts an ask. By calling this function, you represent that you
      *         have a stated amount of bitcoin, and are willing to buy ether
      *         at the stated price. You must stake a percentage of the total
      *         eth value, which is returned after a successful transaction.
@@ -314,7 +314,7 @@ contract Portal is Owned {
         }
     }
 
-    /** @notice Sell ether, receive bitcoin. */
+    /** @notice Buy bitcoin, paying via ERC-20 */
     function initiateBuy(
         uint256 orderID,
         uint128 amountSats,
