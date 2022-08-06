@@ -2,6 +2,10 @@
     margin: 0.5em 0;
 }
 
+.exchange-row button {
+    margin-top: 0.5em;
+}
+
 .exchange-two-col {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -20,8 +24,24 @@
     }
 }
 
-.exchange-two-col h3{
+.exchange-two-col h3 {
     margin-top: 0;
+}
+
+.exchange-llabel {
+    display: inline-block;
+    width: 4em;
+}
+
+.exchange-ramount {
+    display: inline-block;
+    width: 6em;
+    text-align: right;
+    margin: 0 0.3em;
+}
+
+.exchange-ramount strong {
+    user-select: all;
 }
 
 .exchange-order-row {
@@ -121,9 +141,9 @@
     width: 0.9em;
     min-width: 0.9em;
     height: 0.9em;
-    margin-top: 0.6em;
     position: relative;
     top: 0.1em;
+    margin-top: 0.57em; /** Match baseline checked vs unchecked. */
 }
 
 .exchange-of-baseline {
@@ -160,6 +180,6 @@
 .exchange-of-sublabel {
     position:absolute;
     right: 0.5em;
-    top: 0.75em;
+    bottom: 0.3em;
     font-size: 75%;
 }

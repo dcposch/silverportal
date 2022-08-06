@@ -2,9 +2,11 @@ import { BigNumber } from "ethers";
 import * as React from "react";
 import { useCallback } from "react";
 import { Order, Orderbook } from "../../model/Orderbook";
+import { DispatchFn } from "./exchangeActions";
 
 interface OrderFormProps {
   orders: Orderbook;
+  dispatch: DispatchFn;
 }
 
 export default class OrderForm extends React.PureComponent<OrderFormProps> {
@@ -15,6 +17,7 @@ export default class OrderForm extends React.PureComponent<OrderFormProps> {
     amountTok: 0,
     limitPriceTokPerSat: 0,
     error: "",
+    orderToFill: undefined as Order,
   };
 
   render() {
@@ -70,6 +73,7 @@ export default class OrderForm extends React.PureComponent<OrderFormProps> {
             <input
               className="exchange-of-limit-price"
               defaultValue={limitPriceStr}
+              onFocus={this.selectLimitPrice}
               onChange={this.setLimitPrice}
             />
           )}
@@ -81,9 +85,12 @@ export default class OrderForm extends React.PureComponent<OrderFormProps> {
           )}
         </div>
         <div className="exchange-of-row exchange-of-baseline">
-          <button disabled={amountSats === 0 || this.state.error != ""}>
-            {isLimit && isBuy && "Place bid"}
-            {isLimit && !isBuy && "Place ask"}
+          <button
+            disabled={amountSats === 0 || this.state.error != ""}
+            onClick={this.trade}
+          >
+            {isLimit && isBuy && "Post bid"}
+            {isLimit && !isBuy && "Post ask"}
             {!isLimit && isBuy && "Buy BTC"}
             {!isLimit && !isBuy && "Sell BTC"}
           </button>
@@ -93,18 +100,40 @@ export default class OrderForm extends React.PureComponent<OrderFormProps> {
     );
   }
 
+  trade = () => {
+    const { dispatch } = this.props;
+    const { tokTo, amountSats, orderToFill, limitPriceTokPerSat } = this.state;
+
+    const isBuy = tokTo === "BTC";
+    const isLimit = limitPriceTokPerSat > 0;
+
+    if (isLimit) {
+      const tokPerSat = limitPriceTokPerSat;
+      if (isBuy) dispatch({ type: "bid", amountSats, tokPerSat });
+      else dispatch({ type: "ask", amountSats, tokPerSat });
+    } else {
+      const order = orderToFill;
+      dispatch({ type: "buy", amountSats, order });
+      dispatch({ type: "sell", amountSats, order });
+    }
+  };
+
   setIsLimit = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { checked } = e.target;
     const limitTokPerSat = checked ? this.getMidMarketOr1() : 0;
     this.calcPrice(undefined, limitTokPerSat);
   };
 
-  setLimitPrice(e: React.ChangeEvent<HTMLInputElement>) {
-    const tokPerBtc = parseFloat(e.target.value);
-    const limitTokPerSat = Math.round(tokPerBtc * 1e8);
-    if (!(limitTokPerSat > 0)) return; // TODO
+  selectLimitPrice = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.select();
+  };
+
+  setLimitPrice = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const pricePerBtc = parseFloat(e.target.value);
+    const limitTokPerSat = Math.round(pricePerBtc * 1e10);
+    if (!(limitTokPerSat > 0)) return;
     this.calcPrice(undefined, limitTokPerSat);
-  }
+  };
 
   /** Gets the mid-market price, in tokens per satoshi, or 1. Always >0. */
   getMidMarketOr1() {
@@ -148,6 +177,7 @@ export default class OrderForm extends React.PureComponent<OrderFormProps> {
       `calcPrice limit ${isLimit} buy ${isBuy} btc ${amountSats / 1e8}`
     );
 
+    let orderToFill = null;
     let amountTok = 0;
     let error = "";
     if (orders == null) {
@@ -168,7 +198,7 @@ export default class OrderForm extends React.PureComponent<OrderFormProps> {
         `Market ${isBuy ? "buy" : "sell"} ${amountSats}sat`,
         liquidityOrders
       );
-      const orderToFill = getFirstBigEnoughOrder(amountSats, liquidityOrders);
+      orderToFill = getFirstBigEnoughOrder(amountSats, liquidityOrders);
       if (orderToFill == null) {
         error = "Not enough liquidity, try limit order";
       } else {
@@ -176,7 +206,13 @@ export default class OrderForm extends React.PureComponent<OrderFormProps> {
       }
     }
 
-    this.setState({ amountSats, amountTok, limitPriceTokPerSat, error });
+    this.setState({
+      amountSats,
+      amountTok,
+      limitPriceTokPerSat,
+      orderToFill,
+      error,
+    });
   };
 
   setTokFrom = (tokFrom: string) => {

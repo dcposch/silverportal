@@ -5,4 +5,8 @@ export interface PortalParams {
   contractAddr: string;
   stakePercent: number;
   btcMinConfirmations: number;
+  escrowDurationHours: number;
+
+  // TODO: minOrderSats;
+  // And maybe tickToksPerSat?
 }

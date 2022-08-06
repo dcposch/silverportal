@@ -7,12 +7,14 @@ import { contractAddrs } from "../utils/constants";
 
 export async function loadParams(portal: Portal): Promise<PortalParams> {
   const stakePercent = (await portal.stakePercent()).toNumber();
+
   return {
     stakePercent,
     ethNetwork: "ropsten",
     btcNetwork: "testnet",
     btcMinConfirmations: 1,
     contractAddr: contractAddrs.portal,
+    escrowDurationHours: 24,
   };
 }
 

@@ -1,4 +1,3 @@
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { NewTransaction } from "@rainbow-me/rainbowkit/dist/transactions/transactionStore";
 import * as React from "react";
 import { Portal } from "../../../types/ethers-contracts";
@@ -14,13 +13,10 @@ import ViewContractLink from "../components/ViewContractLink";
 import EscrowTable from "./EscrowTable";
 import { ModalInfo } from "./exchangeActions";
 import {
-  AskModal,
-  BidModal,
-  BuyModal,
   CancelModal,
+  ConfirmOrderModal,
   PleaseConnectModal,
   ProveModal,
-  SellModal,
   SlashModal,
 } from "./exchangeModals";
 import OrderForm from "./OrderForm";
@@ -75,15 +71,11 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
     console.log("Loading orderbook...");
     const orders = await loadOrderbook(portal);
     this.setState({ orders });
-    //.then((orders) => this.setState({ orders }))
-    //.catch(console.error);
 
     if (connectedAddress) {
       console.log("Loading escrows...");
       const escrow = await loadEscrowForAddr(connectedAddress, portal);
       this.setState({ escrow });
-      //.then((escrow) => this.setState({ escrow }))
-      //.catch(console.error);
     } else {
       this.setState({ escrow: undefined });
     }
@@ -116,7 +108,7 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
     return (
       <div>
         <h2>Order</h2>
-        <OrderForm orders={orders} />
+        <OrderForm orders={orders} dispatch={this.dispatch} />
         <h2>
           Orderbook{" "}
           <small>
@@ -126,10 +118,9 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
         <OrdersTable orders={orders} params={params} dispatch={this.dispatch} />
         <EscrowTable escrow={escrow} params={params} dispatch={this.dispatch} />
         {modal.type === "please-connect" && <PleaseConnectModal {...props} />}
-        {modal.type === "bid" && <BidModal {...props} />}
-        {modal.type === "ask" && <AskModal {...props} />}
-        {modal.type === "buy" && <BuyModal {...props} order={modal.order} />}
-        {modal.type === "sell" && <SellModal {...props} order={modal.order} />}
+        {(modal.type === "bid" || modal.type === "ask") && (
+          <ConfirmOrderModal {...props} {...modal} />
+        )}
         {modal.type === "cancel" && (
           <CancelModal {...props} order={modal.order} />
         )}

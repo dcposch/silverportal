@@ -62,23 +62,20 @@ function OrderRow({
   const priceTokPerSat = toFloat64(o.priceTokPerSat);
   const type = amountSats < 0 ? "ASK" : "BID";
   const amountBtc = Math.abs(amountSats / 1e8).toFixed(5);
-  const priceBtcPerEth = (1e10 / priceTokPerSat).toFixed(5);
+  const pricePerBtc = (priceTokPerSat / 1e10).toFixed(5);
 
   let orderAction: ModalInfo, orderLabel: string;
   if (isOurs) {
     orderAction = { type: "cancel", order: o };
-    orderLabel = "Del";
-  } else if (type === "ASK") {
-    orderAction = { type: "buy", order: o };
-    orderLabel = "Buy";
-  } else {
-    orderAction = { type: "sell", order: o };
-    orderLabel = "Sell";
+    orderLabel = "✖";
   }
-  const orderCb = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    dispatch(orderAction);
-  }, []);
+  const orderCb = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      dispatch(orderAction);
+    },
+    [orderAction]
+  );
 
   const isBest = nthBest === 0;
   const dispType = isBest ? `BEST\n${type}` : type;
@@ -91,7 +88,7 @@ function OrderRow({
       <div className="exchange-order-type">{dispType}</div>
       <div className="exchange-order-price">
         {labelPrice}
-        {priceBtcPerEth}
+        {pricePerBtc}
       </div>
       <div className="exchange-order-amount">
         {labelAmount}

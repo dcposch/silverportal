@@ -1,7 +1,9 @@
 import { NewTransaction } from "@rainbow-me/rainbowkit/dist/transactions/transactionStore";
+import { formatMessages } from "esbuild";
 import { BigNumber, ContractTransaction } from "ethers";
 import * as React from "react";
 import { createRef } from "react";
+import { getJSDocTemplateTag } from "typescript";
 import { Portal } from "../../../types/ethers-contracts";
 import { Escrow } from "../../model/Escrow";
 import { Order } from "../../model/Orderbook";
@@ -15,7 +17,7 @@ import Addr from "../components/Addr";
 import Amount, { formatAmount } from "../components/Amount";
 import Modal from "../components/Modal";
 
-interface BidAskProps {
+interface TxModalProps {
   portal: Portal;
   params: PortalParams;
   bbo: number[];
@@ -23,7 +25,7 @@ interface BidAskProps {
   onClose: () => void;
 }
 
-export function PleaseConnectModal(props: BidAskProps) {
+export function PleaseConnectModal(props: TxModalProps) {
   return (
     <Modal title="Connect a wallet" onClose={props.onClose}>
       <p>
@@ -45,7 +47,7 @@ interface TxModalState {
   errorMessage?: string;
 }
 
-class TxModal<P extends BidAskProps> extends React.PureComponent<P> {
+class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
   state = { txState: "none" } as TxModalState;
 
   trySend = async (
@@ -101,107 +103,143 @@ class TxModal<P extends BidAskProps> extends React.PureComponent<P> {
   disableTx(): boolean {
     return !["none", "succeeded", "failed"].includes(this.state.txState);
   }
-}
 
-export class BidModal extends TxModal<BidAskProps> {
-  refBidAmount = createRef<HTMLInputElement>();
-  refBidPrice = createRef<HTMLInputElement>();
-
-  postBid = () => {
-    if (this.disableTx()) return;
-    this.trySend(this.postBidTx);
-  };
-
-  postBidTx = async () => {
-    // Validate amounts
-    const amountSats = Math.round(
-      Number(this.refBidAmount.current.value) * 1e8
+  renderBtc(amountSats: number) {
+    const str = (amountSats / 1e8).toFixed(4);
+    return (
+      <>
+        <strong>{str}</strong> BTC
+      </>
     );
-    if (!(amountSats > 0)) throw new Error("Must enter an amount");
+  }
 
-    const priceBtcPerEth = Number(this.refBidPrice.current.value);
-    if (!(priceBtcPerEth > 0)) throw new Error("Must enter a price");
-    const priceTokPerSat = Math.floor(1 / priceBtcPerEth) * 1e10;
-    if (this.props.bbo[1] > priceTokPerSat) {
-      throw new Error("Can't bid above the current best ask");
-    }
-    const totalWei = BigNumber.from(amountSats).mul(
-      BigNumber.from(priceTokPerSat)
-    );
+  renderEscrowDuration() {
+    return this.props.params.escrowDurationHours + "h";
+  }
 
-    // Validate stake
+  calcStakeWei(totalWei: BigNumber): BigNumber {
     const { stakePercent } = this.props.params;
     if (stakePercent == null || !(stakePercent > 0)) {
       throw new Error("Missing stake percentage");
     }
     const stakeWei = totalWei.mul(stakePercent).div(100);
+    return stakeWei;
+  }
+}
+
+type ConfirmOrderProps = TxModalProps & {
+  type: "bid" | "ask";
+  amountSats: number;
+  tokPerSat: number;
+};
+
+export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
+  refDestAddr = createRef<HTMLInputElement>();
+
+  post = () => {
+    if (this.disableTx()) return;
+    if (this.props.type === "bid") this.trySend(this.postBidTx);
+    else this.trySend(this.postAskTx);
+  };
+
+  render() {
+    const { type, amountSats, tokPerSat } = this.props;
+
+    const priceStr = (tokPerSat / 1e10).toFixed(4);
+
+    const totalWei = BigNumber.from(amountSats).mul(BigNumber.from(tokPerSat));
+    const totalStr = (toFloat64(totalWei) / 1e18).toFixed(4);
+    const stakeWei = this.calcStakeWei(totalWei);
+    const stakeStr = (toFloat64(stakeWei) / 1e18).toFixed(4);
+
+    return (
+      <Modal title={"Confirm " + type} onClose={this.props.onClose}>
+        <div className="exchange-row">
+          You're offering to {type === "bid" ? "buy" : "sell"}{" "}
+          {this.renderBtc(amountSats)}.
+        </div>
+        <div className="exchange-row">
+          <span className="exchange-llabel">Price</span>
+          <span className="exchange-ramount">
+            <strong>{priceStr}</strong>
+          </span>
+          <span>WBTC</span>
+        </div>
+        <div className="exchange-row">
+          <span className="exchange-llabel">Total</span>
+          <span className="exchange-ramount">
+            <strong>{totalStr}</strong>
+          </span>
+          <span>WBTC</span>
+        </div>
+        {type === "ask" && (
+          <>
+            <div className="exchange-row">
+              <span className="exchange-llabel" />
+              <span className="exchange-ramount">
+                + <strong>{stakeStr}</strong>
+              </span>
+              <span>WBTC refundable stake</span>
+            </div>
+            <div className="exchange-row">
+              <blockquote>
+                <div className="exchange-row">
+                  Each time your order is filled, you'll have{" "}
+                  {this.renderEscrowDuration()} to send Bitcoin. Once you prove
+                  payment, stake will be refunded.
+                </div>
+                <div className="exchange-row">
+                  You can cancel your remaining order at any time, which will
+                  also return your stake.
+                </div>
+              </blockquote>
+            </div>
+          </>
+        )}
+        {type === "bid" && (
+          <div className="exchange-row">
+            <label>Destination Bitcoin address. Must start with 2.</label>
+            <input ref={this.refDestAddr} placeholder="2..."></input>
+          </div>
+        )}
+        <div className="exchange-row">
+          <button onClick={this.post} disabled={this.disableTx()}>
+            Confirm
+          </button>
+        </div>
+        {this.renderTxStatus()}
+      </Modal>
+    );
+  }
+
+  postAskTx = async () => {
+    // Validate amounts
+    const { amountSats, tokPerSat } = this.props;
+    const totalWei = BigNumber.from(amountSats).mul(BigNumber.from(tokPerSat));
+    const stakeWei = this.calcStakeWei(totalWei);
 
     // Send it
-    const priceStr = priceBtcPerEth.toFixed(5);
-    const description = `Bid ${priceStr} x ${amountSats / 1e8} BTC`;
-    console.log(description, { amountSats, priceTokPerSat, stakeWei });
+    const pricePerBtc = tokPerSat / 1e10;
+    const priceStr = pricePerBtc.toFixed(4);
+    const description = `Ask ${priceStr} x ${amountSats / 1e8} BTC`;
+    console.log(description, {
+      amountSats,
+      priceTokPerSat: tokPerSat,
+      stakeWei,
+    });
 
     const { portal } = this.props;
-    const tx = await portal.postBid(amountSats, priceTokPerSat, {
+    const tx = await portal.postBid(amountSats, tokPerSat, {
       value: stakeWei,
     });
 
     return { description, tx };
   };
 
-  render() {
-    const bestBidStr = (1e10 / (this.props.bbo[0] || 1e99)).toFixed(5);
-    const { stakePercent } = this.props.params;
-
-    return (
-      <Modal title="Post bid" onClose={this.props.onClose}>
-        <div className="exchange-row">
-          <label>ETH buy price. Current best bid: {bestBidStr} BTC</label>
-          <input ref={this.refBidPrice} placeholder={bestBidStr}></input>
-        </div>
-        <div className="exchange-row">
-          <label>Amount of BTC you're selling.</label>
-          <input ref={this.refBidAmount} placeholder="0"></input>
-        </div>
-        <div className="exchange-row">
-          <button onClick={this.postBid} disabled={this.disableTx()}>
-            Post bid
-          </button>{" "}
-          pays {stakePercent}% refundable stake
-        </div>
-        {this.renderTxStatus()}
-      </Modal>
-    );
-  }
-}
-
-export class AskModal extends TxModal<BidAskProps> {
-  refAskAmount = createRef<HTMLInputElement>();
-  refAskPrice = createRef<HTMLInputElement>();
-  refDestAddr = createRef<HTMLInputElement>();
-
-  postAsk = () => {
-    if (this.disableTx()) return;
-    this.trySend(this.postAskTx);
-  };
-
-  postAskTx = async () => {
+  postBidTx = async () => {
     // Validate amounts
-    const amountSats = Math.round(
-      Number(this.refAskAmount.current.value) * 1e8
-    );
-    if (!(amountSats > 0)) throw new Error("Must enter an amount");
-
-    const priceBtcPerEth = Number(this.refAskPrice.current.value);
-    if (!(priceBtcPerEth > 0)) throw new Error("Must enter a price");
-    const priceTokPerSat = Math.floor(1 / priceBtcPerEth) * 1e10;
-    if (this.props.bbo[0] < priceTokPerSat) {
-      throw new Error("Can't ask below the current best bid");
-    }
-
-    const valueWei = BigNumber.from(amountSats).mul(
-      BigNumber.from(priceTokPerSat)
-    );
+    const { amountSats, tokPerSat } = this.props;
+    const valueWei = BigNumber.from(amountSats).mul(BigNumber.from(tokPerSat));
 
     // Validate Bitcoin address
     const destAddr = parseBitcoinAddr(this.refDestAddr.current.value);
@@ -211,55 +249,106 @@ export class AskModal extends TxModal<BidAskProps> {
     const scriptHash = destAddr.scriptHash;
 
     // Send
-    const priceStr = priceBtcPerEth.toFixed(5);
-    const description = `Ask ${priceStr} x ${amountSats / 1e8} BTC`;
-    console.log(description, { priceTokPerSat, scriptHash, valueWei });
+    const priceStr = tokPerSat.toFixed(4);
+    const description = `Bid ${priceStr} x ${amountSats / 1e8} BTC`;
+    console.log(description, { tokPerSat, scriptHash, valueWei });
 
     const { portal } = this.props;
-    const tx = await portal.postAsk(priceTokPerSat, scriptHash, {
+    const tx = await portal.postBid(tokPerSat, scriptHash, {
       value: valueWei,
     });
 
     return { description, tx };
   };
+}
+
+type ConfirmTradeProps = TxModalProps & {
+  type: "buy" | "sell";
+  order: Order;
+  amountSats: number;
+};
+
+export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
+  refDestAddr = createRef<HTMLInputElement>();
+
+  post = () => {
+    if (this.disableTx()) return;
+    if (this.props.type === "buy") this.trySend(this.buyTx);
+    else this.trySend(this.sellTx);
+  };
 
   render() {
-    const bestAskStr = (1e10 / (this.props.bbo[1] || 1e100)).toFixed(5);
+    const { type, amountSats, order } = this.props;
+
+    const tokPerSat = toFloat64(order.priceTokPerSat);
+    const priceStr = (tokPerSat / 1e10).toFixed(4);
+
+    const totalWei = BigNumber.from(amountSats).mul(BigNumber.from(tokPerSat));
+    const totalStr = (toFloat64(totalWei) / 1e18).toFixed(4);
+    const stakeWei = this.calcStakeWei(totalWei);
+    const stakeStr = (toFloat64(stakeWei) / 1e18).toFixed(4);
 
     return (
-      <Modal title="Post ask" onClose={this.props.onClose}>
+      <Modal title={"Confirm " + type} onClose={this.props.onClose}>
         <div className="exchange-row">
-          <label>ETH sell price. Current best ask: {bestAskStr} BTC</label>
-          <input ref={this.refAskPrice} placeholder={bestAskStr}></input>
+          You're {type}ing {this.renderBtc(amountSats)}.
         </div>
         <div className="exchange-row">
-          <label>Amount of BTC you're buying.</label>
-          <input ref={this.refAskAmount} placeholder="0"></input>
+          <span className="exchange-llabel">Price</span>
+          <span className="exchange-ramount">
+            <strong>{priceStr}</strong>
+          </span>
+          <span>WBTC</span>
         </div>
         <div className="exchange-row">
-          <label>Destination Bitcoin address. Must start with 2.</label>
-          <input ref={this.refDestAddr} placeholder="2..."></input>
+          <span className="exchange-llabel">Total</span>
+          <span className="exchange-ramount">
+            <strong>{totalStr}</strong>
+          </span>
+          <span>WBTC</span>
         </div>
+        {type === "sell" && (
+          <>
+            <div className="exchange-row">
+              <span className="exchange-llabel" />
+              <span className="exchange-ramount">
+                + <strong>{stakeStr}</strong>
+              </span>
+              <span>WBTC refundable stake</span>
+            </div>
+            <div className="exchange-row">
+              <blockquote>
+                <div className="exchange-row">
+                  You'll have {this.renderEscrowDuration()} to send Bitcoin.
+                  Once you prove payment, you'll get your stake back plus the
+                  WBTC you bought.
+                </div>
+                <div className="exchange-row">
+                  Stake is necessary to prevent a free option. Otherwise, people
+                  would trade, then settle only if the price moves in their
+                  favor.
+                </div>
+              </blockquote>
+            </div>
+          </>
+        )}
+        {type === "buy" && (
+          <div className="exchange-row">
+            <label>Destination Bitcoin address. Must start with 2.</label>
+            <input ref={this.refDestAddr} placeholder="2..."></input>
+          </div>
+        )}
         <div className="exchange-row">
-          <button onClick={this.postAsk} disabled={this.disableTx()}>
-            Post ask
+          <button onClick={this.post} disabled={this.disableTx()}>
+            Confirm
           </button>
         </div>
         {this.renderTxStatus()}
       </Modal>
     );
   }
-}
 
-type BuySellProps = BidAskProps & { order: Order };
-
-export class BuyModal extends TxModal<BuySellProps> {
-  buy = () => {
-    if (this.disableTx()) return;
-    this.trySend(this.buyTx);
-  };
-
-  buyTx = async () => {
+  sellTx = async () => {
     // Calculate amounts
     const { order, params, portal } = this.props;
     const { orderID, priceTokPerSat } = order;
@@ -268,9 +357,9 @@ export class BuyModal extends TxModal<BuySellProps> {
     const stakeWei = amountWei.mul(params.stakePercent).div(100);
 
     // Send it
-    const { amountStr } = formatAmount(amountWei, "wei");
-    const priceStr = ((1 / toFloat64(priceTokPerSat)) * 1e10).toFixed(5);
-    const description = `Buy ${amountStr} ETH @ ${priceStr}`;
+    const wbtcStr = formatAmount(amountWei, "wei").amountStr;
+    const btcStr = formatAmount(amountSats, "sats").amountStr;
+    const description = `Sell ${btcStr} BTC, receive ${wbtcStr} WBTC`;
     console.log(description, { orderID, amountSats, stakeWei });
 
     const tx = await portal.initiateBuy(orderID, amountSats, {
@@ -280,45 +369,7 @@ export class BuyModal extends TxModal<BuySellProps> {
     return { description, tx };
   };
 
-  render() {
-    const { order, params } = this.props;
-    const { priceTokPerSat, scriptHash } = order;
-    const amountSats = order.amountSats.mul(-1);
-    const amountWei = priceTokPerSat.mul(amountSats);
-    const price = toFloat64(amountSats) / 1e8 / (toFloat64(amountWei) / 1e18);
-
-    return (
-      <Modal title="Buy" onClose={this.props.onClose}>
-        <NoPartialFills />
-        <div className="exchange-row">
-          Buying <Amount n={amountWei} type="wei" /> at a price of{" "}
-          <code>{price.toFixed(5)}</code> ETH/BTC.
-        </div>
-        <div className="exchange-row">
-          You'll pay <Amount n={amountSats} type="sats" /> to{" "}
-          <Addr scriptHash={scriptHash} network={params.btcNetwork} />.
-        </div>
-        <div className="exchange-row">
-          <button onClick={this.buy} disabled={this.disableTx()}>
-            Buy
-          </button>{" "}
-          pays {params.stakePercent}% refundable stake
-        </div>
-        {this.renderTxStatus()}
-      </Modal>
-    );
-  }
-}
-
-export class SellModal extends TxModal<BuySellProps> {
-  refDestAddr = createRef<HTMLInputElement>();
-
-  sell = () => {
-    if (this.disableTx()) return;
-    this.trySend(this.sellTx);
-  };
-
-  sellTx = async () => {
+  buyTx = async () => {
     // Calculate amount
     const { order, params, portal } = this.props;
     const { orderID, amountSats, priceTokPerSat } = order;
@@ -330,53 +381,24 @@ export class SellModal extends TxModal<BuySellProps> {
     if (!destAddr.supported) throw new Error("Unsupported address");
     const { btcNetwork } = params;
     if (destAddr.network !== btcNetwork) throw new Error("Use " + btcNetwork);
+    const scriptHash = destAddr.scriptHash;
 
     // Send it
-    const { amountStr } = formatAmount(amountWei, "wei");
-    const priceStr = ((1 / toFloat64(priceTokPerSat)) * 1e10).toFixed(5);
-    const description = `Sell ${amountStr} ETH @ ${priceStr}`;
-    const { scriptHash } = destAddr;
-    console.log(description, orderID, amountSats, scriptHash, amountWei);
-
+    const wbtcStr = formatAmount(amountWei, "wei").amountStr;
+    const btcStr = formatAmount(amountSats, "sats").amountStr;
+    const description = `Buy ${btcStr} BTC, paying ${wbtcStr} WBTC`;
+    console.log(description, { orderID, amountSats });
     const tx = await portal.initiateSell(orderID, amountSats, scriptHash, {
       value: amountWei,
     });
 
     return { description, tx };
   };
-
-  render() {
-    const { order } = this.props;
-    const { amountSats, priceTokPerSat } = order;
-    const amountWei = priceTokPerSat.mul(amountSats);
-    const price = toFloat64(amountSats) / 1e8 / (toFloat64(amountWei) / 1e18);
-
-    return (
-      <Modal title="Sell" onClose={this.props.onClose}>
-        <NoPartialFills />
-        <div className="exchange-row">
-          Selling <Amount n={amountWei} type="wei" /> at a price of{" "}
-          <code>{price.toFixed(5)}</code> ETH/BTC.
-        </div>
-        <div className="exchange-row">
-          You'll receive <Amount n={amountSats} type="sats" />.
-        </div>
-        <div className="exchange-row">
-          <label>Destination Bitcoin address. Must start with 2.</label>
-          <input ref={this.refDestAddr} placeholder="2..."></input>
-        </div>
-        <div className="exchange-row">
-          <button onClick={this.sell} disabled={this.disableTx()}>
-            Sell
-          </button>
-        </div>
-        {this.renderTxStatus()}
-      </Modal>
-    );
-  }
 }
 
-export class CancelModal extends TxModal<BuySellProps> {
+type OrderModalProps = TxModalProps & { order: Order };
+
+export class CancelModal extends TxModal<OrderModalProps> {
   cancel = () => {
     if (this.disableTx()) return;
     this.trySend(this.cancelTx);
@@ -425,15 +447,7 @@ export class CancelModal extends TxModal<BuySellProps> {
   }
 }
 
-function NoPartialFills() {
-  return (
-    <blockquote>
-      <p>⚠ Silver Portal doesn't support partial fills yet.</p>
-    </blockquote>
-  );
-}
-
-type EscrowProps = BidAskProps & { escrow: Escrow };
+type EscrowProps = TxModalProps & { escrow: Escrow };
 
 export class ProveModal extends TxModal<EscrowProps> {
   refBitcoinTx = createRef<HTMLInputElement>();

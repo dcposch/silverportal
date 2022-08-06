@@ -11,7 +11,7 @@ import ConnectSection from "../exchange/ConnectSection";
 export default function PageExchange() {
   const provider = useProvider();
   const { data: signer } = useSigner();
-  const { data: account } = useAccount();
+  const { address } = useAccount();
   const addRecentTransaction = useAddRecentTransaction();
 
   const portal = React.useMemo(() => {
@@ -32,7 +32,7 @@ export default function PageExchange() {
       </blockquote>
       <Exchange
         portal={portal}
-        connectedAddress={account ? account.address : undefined}
+        connectedAddress={address}
         addRecentTransaction={addRecentTransaction}
       />
       <ConnectSection />
