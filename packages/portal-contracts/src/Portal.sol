@@ -134,6 +134,13 @@ contract Portal is Owned {
     /** @dev Next escrow ID = number of fills/partial fills so far + 1. */
     uint256 public nextEscrowID;
 
+    /** @dev Tracks inflight escrows, and where we expect payments to come from.
+        Prevents using a single btc payment proof to close multiple escrows.
+        Key is keccak(recipient, amountSats), and the value is the btc mirror block height.
+        This means that no two inflight escrows to the same btc address can be for the same amountSats 
+    */
+    mapping(bytes32 => int256) public recipients;
+
     constructor(
         IERC20 _token,
         uint256 _stakePercent,
@@ -314,6 +321,11 @@ contract Portal is Owned {
         if (o.amountSats == 0) {
           delete orderbook[orderID];
         }
+
+	bytes32 recKey = recipientKey(o.scriptHash, amountSats);
+	int256 storage existingRecipient = recipients[recKey]
+	assert(existingRecipient == 0, "Must send a unique amountSats to recipient compared to inflight escrows");
+        recipients[recKey] = btcVerifier.getLatestBlockHeight();
     }
 
     /** @notice Buy bitcoin, paying via ERC-20 */
@@ -366,6 +378,11 @@ contract Portal is Owned {
         if (o.amountSats == 0) {
           delete orderbook[orderID];
         }
+	
+	bytes32 recKey = recipientKey(destScriptHash, amountSats);;
+	int256 storage existingRecipient = recipients[recKey]
+	assert(existingRecipient == 0, "Must send a unique amountSats to recipient compared to inflight escrows");
+        recipients[recKey] = btcVerifier.getLatestBlockHeight();
     }
 
     /** @notice The bidder proves they've sent bitcoin, completing the sale. */
@@ -378,6 +395,11 @@ contract Portal is Owned {
         Escrow storage e = escrows[escrowID];
         require(e.successRecipient != address(0), "Escrow not found");
         require(msg.sender == e.successRecipient, "Wrong caller");
+
+	// The blockheight of the proof must be > this value.
+	bytes32 recKey = recipientKey(e.destScriptHash, e.amountSatsDue);
+	int256 storage minBlockHeightExclusive = recipients[recKey];
+	assert(bitcoinBlockNum > minBlockHeightExclusive, "proof must be greater than the latest block mirrored when the escrow was opened");
 
         bool valid = btcVerifier.verifyPayment(
             minConfirmations,
@@ -394,8 +416,11 @@ contract Portal is Owned {
         emit EscrowSettled(escrowID, e.amountSatsDue, msg.sender, tokToSend);
 
         delete escrows[escrowID];
-
         _transferToSender(tokToSend);
+	
+	// Delete the recipient key after the _transfer, since it blocks new actions from happening
+	// in case of a re-entrancy attack. We'd rather fail closed, than open.
+	delete recipient[recKey];
     }
 
     function slash(uint256 escrowID) public {
@@ -410,6 +435,10 @@ contract Portal is Owned {
         delete escrows[escrowID];
 
         _transferToSender(tokToSend);
+
+	// Delete the recipient key after the _transfer, since it blocks new actions from happening
+	// in case of a re-entrancy attack. We'd rather fail closed, than open.
+	delete recipient[recipientKey(e.destScriptHash, e.amountSatsDue)];
     }
 
     function _transferFromSender(uint256 tok) private {
@@ -433,5 +462,15 @@ contract Portal is Owned {
 
         bool success = token.transfer(msg.sender, tok);
         require(success, "transfer failed");
+    }
+
+    function recipientKey(bytes20 scriptHash, uint256 amountSats) public view returns (bytes32) {
+	    return keccak256(abi.encode(scriptHash, amountSats));
+    }
+
+    // Returns true if there is an escrow inflight for this scriptHash/amountSats pair, otherwise false.
+    function recipientInflight(bytes20 scriptHash, uint256 amountSats) public view returns (bool) {
+	    int256 storage n = recipients[recipientKey(scriptHash, amountSats)];
+	    return n != 0;
     }
 }
