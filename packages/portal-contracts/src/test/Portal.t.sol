@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 import "forge-std/Test.sol";
 import "../Portal.sol";
 import "btcmirror/interfaces/IBtcTxVerifier.sol";
+import {console} from "forge-std/console.sol";
 
 contract PortalTest is Test {
     event OrderPlaced(
@@ -62,8 +63,8 @@ contract PortalTest is Test {
         p.setMinConfirmations(5);
         assertEq(p.minConfirmations(), 5);
 
-        p.setBtcVerifier(IBtcTxVerifier(address(123)));
-        assertEq(address(p.btcVerifier()), address(123));
+        p.setBtcVerifier(IBtcTxVerifier(address(1234)));
+        assertEq(address(p.btcVerifier()), address(1234));
 
         // // Burn our ownership
         p.setOwner(address(0));
@@ -79,7 +80,7 @@ contract PortalTest is Test {
     }
 
     function testAsk() public returns (Portal p) {
-        p = new Portal(ETH, 5, IBtcTxVerifier(address(0)));
+        p = new Portal(ETH, 5, new StubBtcTxVerifier(false));
 
         // Test a successful bid
         uint256 stakeWei = 1 ether; /* 1 ETH = 5% of 1 * 20 ETH */
@@ -109,7 +110,7 @@ contract PortalTest is Test {
     }
 
     function testBid() public returns (Portal p) {
-        p = new Portal(ETH, 5, IBtcTxVerifier(address(0)));
+        p = new Portal(ETH, 5, new StubBtcTxVerifier(false));
         bytes20 destScriptHash = hex"0011223344556677889900112233445566778899";
 
         // Test a successful ask
@@ -170,6 +171,9 @@ contract PortalTest is Test {
         // Then, do it right. Stake 5% = 1 ETH.
         uint256 escrowID = p.initiateSell{value: 0.1 ether}(1, 1e7);
         assertEq(escrowID, 1);
+        
+	vm.expectRevert(bytes("Escrow collision, please retry"));
+        p.initiateSell{value: 0.1 ether}(1, 1e7);
 
         // Fill out the rest of the order
         escrowID = p.initiateSell{value: 0.9 ether}(1, 1e8-1e7);
@@ -230,6 +234,13 @@ contract PortalTest is Test {
         );
         assertEq(escrowID, 1);
 
+	vm.expectRevert(bytes("Escrow collision, please retry"));
+	p.initiateBuy{value: 2 ether}(
+	    orderID,
+	    1e7,
+	    destScriptHash
+	);
+
         // Take the rest of the order
         p.initiateBuy{value: 18 ether}(orderID, 1e8-1e7, destScriptHash);
 
@@ -260,17 +271,21 @@ contract PortalTest is Test {
         // First, stub in an failed proof validation.
         p.setBtcVerifier(new StubBtcTxVerifier(false));
         vm.expectRevert(bytes("Bad bitcoin transaction"));
-        p.proveSettlement(1, 123, proof, 12);
+        p.proveSettlement(1, 1234, proof, 12);
+        
+        p.setBtcVerifier(new StubBtcTxVerifier(true));
+	vm.expectRevert(bytes("Can't use old proof of payment"));
+        p.proveSettlement(1, 998, proof, 12);
 
         //  Prove settlement. Successful proof validation.
         p.setBtcVerifier(new StubBtcTxVerifier(true));
         vm.expectEmit(true, true, true, true);
         emit EscrowSettled(1, 1e8, address(this), 21 ether);
-        p.proveSettlement(1, 123, proof, 12);
+        p.proveSettlement(1, 1234, proof, 12);
 
         // Finally, try again. Escrow should be gone.
         vm.expectRevert(bytes("Escrow not found"));
-        p.proveSettlement(1, 123, proof, 12);
+        p.proveSettlement(1, 1234, proof, 12);
     }
     
     function testPartialSettleFromSell() public {
@@ -280,22 +295,26 @@ contract PortalTest is Test {
         // First, stub in an failed proof validation.
         p.setBtcVerifier(new StubBtcTxVerifier(false));
         vm.expectRevert(bytes("Bad bitcoin transaction"));
-        p.proveSettlement(1, 123, proof, 12);
+        p.proveSettlement(1, 1234, proof, 12);
+	
+        p.setBtcVerifier(new StubBtcTxVerifier(true));
+	vm.expectRevert(bytes("Can't use old proof of payment"));
+        p.proveSettlement(1, 999, proof, 12);
 
         //  Prove settlement. Successful proof validation.
         p.setBtcVerifier(new StubBtcTxVerifier(true));
         vm.expectEmit(true, true, true, true);
         emit EscrowSettled(1, 1e7, address(this), 2.1 ether);
-        p.proveSettlement(1, 123, proof, 12);
+        p.proveSettlement(1, 1234, proof, 12);
         
         // Finally, try again. Escrow should be gone.
         vm.expectRevert(bytes("Escrow not found"));
-        p.proveSettlement(1, 123, proof, 12);
+        p.proveSettlement(1, 1234, proof, 12);
         
         // Fill the final escrow
         vm.expectEmit(true, true, true, true);
         emit EscrowSettled(2, 1e8-1e7, address(this), 18.9 ether);
-        p.proveSettlement(2, 123, proof, 12);
+        p.proveSettlement(2, 1234, proof, 12);
     }
 
     function testSlash() public {
@@ -325,17 +344,17 @@ contract PortalTest is Test {
         // First, stub in an failed proof validation.
         p.setBtcVerifier(new StubBtcTxVerifier(false));
         vm.expectRevert(bytes("Bad bitcoin transaction"));
-        p.proveSettlement(1, 123, proof, 12);
+        p.proveSettlement(1, 1234, proof, 12);
 
         //  Prove settlement. Successful proof validation.
         p.setBtcVerifier(new StubBtcTxVerifier(true));
         vm.expectEmit(true, true, true, true);
         emit EscrowSettled(1, 1e8, address(this), 21 ether);
-        p.proveSettlement(1, 123, proof, 12);
+        p.proveSettlement(1, 1234, proof, 12);
 
         // Finally, try again. Escrow should be gone.
         vm.expectRevert(bytes("Escrow not found"));
-        p.proveSettlement(1, 123, proof, 12);
+        p.proveSettlement(1, 1234, proof, 12);
     }
     
     function testPartialSettleFromBuy() public {
@@ -345,30 +364,52 @@ contract PortalTest is Test {
         // First, stub in an failed proof validation.
         p.setBtcVerifier(new StubBtcTxVerifier(false));
         vm.expectRevert(bytes("Bad bitcoin transaction"));
-        p.proveSettlement(1, 123, proof, 12);
+        p.proveSettlement(1, 1234, proof, 12);
 
         //  Prove settlement. Successful proof validation.
         p.setBtcVerifier(new StubBtcTxVerifier(true));
         vm.expectEmit(true, true, true, true);
         emit EscrowSettled(1, 1e7, address(this), 2.1 ether);
-        p.proveSettlement(1, 123, proof, 12);
+        p.proveSettlement(1, 1234, proof, 12);
         
         // Finally, try again. Escrow should be gone.
         vm.expectRevert(bytes("Escrow not found"));
-        p.proveSettlement(1, 123, proof, 12);
+        p.proveSettlement(1, 1234, proof, 12);
         
         // Fill the final escrow
         vm.expectEmit(true, true, true, true);
         emit EscrowSettled(2, 1e8-1e7, address(this), 18.9 ether);
-        p.proveSettlement(2, 123, proof, 12);
+        p.proveSettlement(2, 1234, proof, 12);
+    }
+}
+
+contract StubBtcMirror is IBtcMirror {
+    constructor() {}
+
+    function getBlockHash(uint256 number) external view returns (bytes32) {
+	    return keccak256(abi.encode(number));
+    }
+
+    function getLatestBlockHeight() external view returns (uint256) {
+	    return 1000;
+    }
+
+    function getLatestBlockTime() external view returns (uint256) {
+	    return 1;
+    }
+
+    function submit(uint256 blockHeight, bytes calldata blockHeaders) external {
+	    return;
     }
 }
 
 contract StubBtcTxVerifier is IBtcTxVerifier {
     bool alwaysBet;
+    IBtcMirror private immutable _mirror;
 
     constructor(bool _alwaysBet) {
         alwaysBet = _alwaysBet;
+	_mirror = new StubBtcMirror();
     }
 
     function verifyPayment(
@@ -380,5 +421,9 @@ contract StubBtcTxVerifier is IBtcTxVerifier {
         uint256 /* amountSats */
     ) external view returns (bool) {
         return alwaysBet;
+    }
+
+    function mirror() external view returns (IBtcMirror) {
+        return _mirror;
     }
 }
