@@ -8,15 +8,15 @@ import "../Portal.sol";
 
 contract PortalDeploy is Script {
     function run(bool mainnet, IERC20 token, BtcMirror existingMirror)
-       external 
+        external
     {
         vm.startBroadcast();
 
         // DEPLOY MIRROR
         BtcMirror mirror;
-	if (address(existingMirror) != address(0)) {
-		mirror = existingMirror;
-	} else if (mainnet) {
+        if (address(existingMirror) != address(0)) {
+            mirror = existingMirror;
+        } else if (mainnet) {
             // ...STARTING AT MAINNET BLOCK 739000
             mirror = new BtcMirror(
                 739000,

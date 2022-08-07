@@ -35,15 +35,25 @@ uint256 constant MAX_PRICE_TOK_PER_SAT = 1e18;
  * @dev Each order represents a bid or ask.
  */
 struct Order {
-    /** @dev Market maker that created this bid or ask. */
+/**
+     * @dev Market maker that created this bid or ask.
+     */
     address maker;
-    /** @dev Positive if buying ether (bid), negative if selling (ask). */
+    /**
+     * @dev Positive if buying ether (bid), negative if selling (ask).
+     */
     int128 amountSats;
-    /** @dev INVERSE price, in token units per sat. */
+    /**
+     * @dev INVERSE price, in token units per sat.
+     */
     uint128 priceTokPerSat;
-    /** @dev Unused for bid. Bitcoin P2SH address for asks. */
+    /**
+     * @dev Unused for bid. Bitcoin P2SH address for asks.
+     */
     bytes20 scriptHash;
-    /** @dev Unused for ask. Staked token amount for bids. */
+    /**
+     * @dev Unused for ask. Staked token amount for bids.
+     */
     uint256 stakedTok;
 }
 
@@ -51,21 +61,35 @@ struct Order {
  * @dev During an in-progress transaction, ether is held in escrow.
  */
 struct Escrow {
-    /** @dev Bitcoin P2SH address to which bitcoin must be sent. */
+/**
+     * @dev Bitcoin P2SH address to which bitcoin must be sent.
+     */
     bytes20 destScriptHash;
-    /** @dev Bitcoin due, in satoshis. */
+    /**
+     * @dev Bitcoin due, in satoshis.
+     */
     uint128 amountSatsDue;
-    /** @dev Due date, in Unix seconds. */
+    /**
+     * @dev Due date, in Unix seconds.
+     */
     uint128 deadline;
-    /** @dev Tokens held in escrow. */
+    /**
+     * @dev Tokens held in escrow.
+     */
     uint256 escrowTok;
-    /** @dev If correct amount is paid to script hash, who keeps the escrow? */
+    /**
+     * @dev If correct amount is paid to script hash, who keeps the escrow?
+     */
     address successOpenEscrow;
-    /** @dev If deadline passes without proof of payment, who keeps escrow? */
+    /**
+     * @dev If deadline passes without proof of payment, who keeps escrow?
+     */
     address timeoutOpenEscrow;
 }
 
-/** @notice Implements a limit order book for trust-minimized BTC-ETH trades. */
+/**
+ * @notice Implements a limit order book for trust-minimized BTC-ETH trades.
+ */
 contract Portal is Owned {
     event OrderPlaced(
         uint256 orderID,
@@ -84,17 +108,14 @@ contract Portal is Owned {
         int128 amountSatsFilled,
         uint128 priceTokPerSat,
         uint256 takerStakedTok,
-	uint128 deadline,
+        uint128 deadline,
         address maker,
         address taker,
-	bytes20 destScriptHash
+        bytes20 destScriptHash
     );
 
     event EscrowSettled(
-        uint256 escrowID,
-        uint256 amountSats,
-        address ethDest,
-        uint256 ethAmount
+        uint256 escrowID, uint256 amountSats, address ethDest, uint256 ethAmount
     );
 
     event EscrowSlashed(
@@ -106,46 +127,63 @@ contract Portal is Owned {
 
     event ParamUpdated(uint256 oldVal, uint256 newVal, string name);
 
-    /** The token we are trading for BTC. */
+    /**
+     * The token we are trading for BTC.
+     */
     IERC20 public immutable token;
 
     /**
      * @dev Required stake for buy transactions. If you promise to send X BTC to
-     *      buy Y ETH, you have post some percentage of Y ETH, which you lose if
-     *      you don't follow thru sending the Bitcoin. Same for bids.
+     * buy Y ETH, you have post some percentage of Y ETH, which you lose if
+     * you don't follow thru sending the Bitcoin. Same for bids.
      */
     uint256 public stakePercent;
 
-    /** @dev Number of bitcoin confirmations required to settle a trade. */
+    /**
+     * @dev Number of bitcoin confirmations required to settle a trade.
+     */
     uint256 public minConfirmations;
 
-    /** @dev Bitcoin light client. Reports block hashes, allowing tx proofs. */
+    /**
+     * @dev Bitcoin light client. Reports block hashes, allowing tx proofs.
+     */
     IBtcTxVerifier public btcVerifier;
 
-    /** @dev Tracks all available liquidity (bids and asks). */
+    /**
+     * @dev Tracks all available liquidity (bids and asks).
+     */
     mapping(uint256 => Order) public orderbook;
 
-    /** @dev Tracks all pending transactions, by order ID. */
+    /**
+     * @dev Tracks all pending transactions, by order ID.
+     */
     mapping(uint256 => Escrow) public escrows;
 
-    /** @dev Next order ID = number of orders so far + 1. */
+    /**
+     * @dev Next order ID = number of orders so far + 1.
+     */
     uint256 public nextOrderID;
-    
-    /** @dev Next escrow ID = number of fills/partial fills so far + 1. */
+
+    /**
+     * @dev Next escrow ID = number of fills/partial fills so far + 1.
+     */
     uint256 public nextEscrowID;
 
-    /** @dev Tracks inflight escrows, and where we expect payments to come from.
-        Prevents using a single btc payment proof to close multiple escrows.
-        Key is keccak(openEscrow, amountSats), and the value is the btc mirror block height.
-        This means that no two inflight escrows to the same btc address can be for the same amountSats 
-    */
+    /**
+     * @dev Tracks inflight escrows, and where we expect payments to come from.
+     * Prevents using a single btc payment proof to close multiple escrows.
+     * Key is keccak(openEscrow, amountSats), and the value is the btc mirror block height.
+     * This means that no two inflight escrows to the same btc address can be for the same amountSats
+     */
     mapping(bytes32 => uint256) public openEscrows;
 
     constructor(
         IERC20 _token,
         uint256 _stakePercent,
         IBtcTxVerifier _btcVerifier
-    ) Owned(msg.sender) {
+    )
+        Owned(msg.sender)
+    {
         token = _token;
         stakePercent = _stakePercent;
         btcVerifier = _btcVerifier;
@@ -154,21 +192,27 @@ contract Portal is Owned {
         minConfirmations = 1;
     }
 
-    /** @notice Owner-settable parameter. */
+    /**
+     * @notice Owner-settable parameter.
+     */
     function setStakePercent(uint256 _stakePercent) public onlyOwner {
         uint256 old = stakePercent;
         stakePercent = _stakePercent;
         emit ParamUpdated(old, stakePercent, "stakePercent");
     }
 
-    /** @notice Owner-settable parameter. */
+    /**
+     * @notice Owner-settable parameter.
+     */
     function setMinConfirmations(uint256 _minConfirmations) public onlyOwner {
         uint256 old = minConfirmations;
         minConfirmations = _minConfirmations;
         emit ParamUpdated(old, minConfirmations, "minConfirmations");
     }
 
-    /** @notice Owner-settable parameter. */
+    /**
+     * @notice Owner-settable parameter.
+     */
     function setBtcVerifier(IBtcTxVerifier _btcVerifier) public onlyOwner {
         uint160 old = uint160(address(btcVerifier));
         btcVerifier = _btcVerifier;
@@ -177,9 +221,9 @@ contract Portal is Owned {
 
     /**
      * @notice Posts an ask. By calling this function, you represent that you
-     *         have a stated amount of bitcoin, and are willing to buy ether
-     *         at the stated price. You must stake a percentage of the total
-     *         eth value, which is returned after a successful transaction.
+     * have a stated amount of bitcoin, and are willing to buy ether
+     * at the stated price. You must stake a percentage of the total
+     * eth value, which is returned after a successful transaction.
      */
     function postAsk(uint256 amountSats, uint256 priceTokPerSat)
         public
@@ -193,7 +237,7 @@ contract Portal is Owned {
         require(priceTokPerSat > 0, "Price underflow");
         uint256 totalValueTok = amountSats * priceTokPerSat;
         uint256 requiredStakeTok = (totalValueTok * stakePercent) / 100;
-        require(requiredStakeTok < 2**128, "stake must be < 2**128");
+        require(requiredStakeTok < 2 ** 128, "stake must be < 2**128");
 
         // Receive stake amount
         _transferFromSender(requiredStakeTok);
@@ -207,23 +251,23 @@ contract Portal is Owned {
         o.stakedTok = requiredStakeTok;
 
         emit OrderPlaced(
-            orderID,
-            o.amountSats,
-            o.priceTokPerSat,
-            o.stakedTok,
-            msg.sender
-        );
+            orderID, o.amountSats, o.priceTokPerSat, o.stakedTok, msg.sender
+            );
     }
 
     /**
      * @notice Posts a bid. You send ether, which is now for sale at the stated
-     *         price. To buy, a buyer sends bitcoin to the state P2SH address.
+     * price. To buy, a buyer sends bitcoin to the state P2SH address.
      */
     function postBid(
         uint256 amountSats,
         uint256 priceTokPerSat,
         bytes20 scriptHash
-    ) public payable returns (uint256 orderID) {
+    )
+        public
+        payable
+        returns (uint256 orderID)
+    {
         require(priceTokPerSat <= MAX_PRICE_TOK_PER_SAT, "Price overflow");
         require(priceTokPerSat > 0, "Price underflow");
         require(amountSats <= MAX_SATS, "Amount overflow");
@@ -240,13 +284,7 @@ contract Portal is Owned {
         o.priceTokPerSat = uint128(priceTokPerSat);
         o.scriptHash = scriptHash;
 
-        emit OrderPlaced(
-            orderID,
-            o.amountSats,
-            o.priceTokPerSat,
-            0,
-            msg.sender
-        );
+        emit OrderPlaced(orderID, o.amountSats, o.priceTokPerSat, 0, msg.sender);
     }
 
     function cancelOrder(uint256 orderID) public {
@@ -272,7 +310,9 @@ contract Portal is Owned {
         _transferToSender(tokToSend);
     }
 
-    /** @notice Sell BTC receive ERC-20. */
+    /**
+     * @notice Sell BTC receive ERC-20.
+     */
     function initiateSell(uint256 orderID, uint128 amountSats)
         public
         payable
@@ -308,36 +348,43 @@ contract Portal is Owned {
             int128(amountSats),
             o.priceTokPerSat,
             expectedStakeTok,
-	    e.deadline,
+            e.deadline,
             o.maker,
             msg.sender,
-	    o.scriptHash
-        );
+            o.scriptHash
+            );
 
         // Update the amount of liquidity in this order
         o.amountSats += int128(amountSats);
 
         // Delete the order if there is no more liquidity left
         if (o.amountSats == 0) {
-          delete orderbook[orderID];
+            delete orderbook[orderID];
         }
 
-	addOpenEscrow(e.destScriptHash, amountSats);
+        addOpenEscrow(e.destScriptHash, amountSats);
     }
 
-    /** @notice Buy bitcoin, paying via ERC-20 */
+    /**
+     * @notice Buy bitcoin, paying via ERC-20
+     */
     function initiateBuy(
         uint256 orderID,
         uint128 amountSats,
         bytes20 destScriptHash
-    ) public payable returns (uint256 escrowID) {
+    )
+        public
+        payable
+        returns (uint256 escrowID)
+    {
         escrowID = nextEscrowID++;
         Order storage o = orderbook[orderID];
         require(o.amountSats > 0, "Order already filled"); // Must be a bid
         require(o.amountSats >= int128(amountSats), "Amount incorrect");
 
         uint256 totalValue = amountSats * o.priceTokPerSat;
-        uint256 portionOfStake = o.stakedTok * uint256(amountSats) / uint256(uint128(o.amountSats));
+        uint256 portionOfStake =
+            o.stakedTok * uint256(amountSats) / uint256(uint128(o.amountSats));
 
         // Receive sale payment
         _transferFromSender(totalValue);
@@ -362,38 +409,45 @@ contract Portal is Owned {
             int128(amountSats),
             o.priceTokPerSat,
             0,
-	    e.deadline,
+            e.deadline,
             o.maker,
             msg.sender,
-	    destScriptHash
-        );
+            destScriptHash
+            );
 
         o.amountSats -= int128(amountSats);
         o.stakedTok -= portionOfStake;
 
         // Delete the order if its been filled.
         if (o.amountSats == 0) {
-          delete orderbook[orderID];
+            delete orderbook[orderID];
         }
-	
-	addOpenEscrow(destScriptHash, amountSats);
+
+        addOpenEscrow(destScriptHash, amountSats);
     }
 
-    /** @notice The bidder proves they've sent bitcoin, completing the sale. */
+    /**
+     * @notice The bidder proves they've sent bitcoin, completing the sale.
+     */
     function proveSettlement(
         uint256 escrowID,
         uint256 bitcoinBlockNum,
         BtcTxProof calldata bitcoinTransactionProof,
         uint256 txOutIx
-    ) public {
+    )
+        public
+    {
         Escrow storage e = escrows[escrowID];
         require(e.successOpenEscrow != address(0), "Escrow not found");
         require(msg.sender == e.successOpenEscrow, "Wrong caller");
 
-	// The blockheight of the proof must be > this value.
-	bytes32 recKey = openEscrowKey(e.destScriptHash, e.amountSatsDue);
-	uint256 minBlockHeightExclusive = openEscrows[recKey];
-	require(bitcoinBlockNum > minBlockHeightExclusive, "Can't use old proof of payment");
+        // The blockheight of the proof must be > this value.
+        bytes32 recKey = openEscrowKey(e.destScriptHash, e.amountSatsDue);
+        uint256 minBlockHeightExclusive = openEscrows[recKey];
+        require(
+            bitcoinBlockNum > minBlockHeightExclusive,
+            "Can't use old proof of payment"
+        );
 
         bool valid = btcVerifier.verifyPayment(
             minConfirmations,
@@ -411,10 +465,10 @@ contract Portal is Owned {
 
         delete escrows[escrowID];
         _transferToSender(tokToSend);
-	
-	// Delete the openEscrow key after the _transfer, since it blocks new actions from happening
-	// in case of a re-entrancy attack. We'd rather fail closed, than open.
-	delete openEscrows[recKey];
+
+        // Delete the openEscrow key after the _transfer, since it blocks new actions from happening
+        // in case of a re-entrancy attack. We'd rather fail closed, than open.
+        delete openEscrows[recKey];
     }
 
     function slash(uint256 escrowID) public {
@@ -430,9 +484,9 @@ contract Portal is Owned {
 
         _transferToSender(tokToSend);
 
-	// Delete the openEscrow key after the _transfer, since it blocks new actions from happening
-	// in case of a re-entrancy attack. We'd rather fail closed, than open.
-	delete openEscrows[openEscrowKey(e.destScriptHash, e.amountSatsDue)];
+        // Delete the openEscrow key after the _transfer, since it blocks new actions from happening
+        // in case of a re-entrancy attack. We'd rather fail closed, than open.
+        delete openEscrows[openEscrowKey(e.destScriptHash, e.amountSatsDue)];
     }
 
     function _transferFromSender(uint256 tok) private {
@@ -449,7 +503,7 @@ contract Portal is Owned {
     function _transferToSender(uint256 tok) private {
         if (address(token) == address(0)) {
             // Send wei
-            (bool suc, ) = msg.sender.call{value: tok}(hex"");
+            (bool suc,) = msg.sender.call{value: tok}(hex"");
             require(suc, "Send failed");
             return;
         }
@@ -458,22 +512,31 @@ contract Portal is Owned {
         require(success, "transfer failed");
     }
 
-    function openEscrowKey(bytes20 scriptHash, uint256 amountSats) public view returns (bytes32) {
-	    return keccak256(abi.encode(scriptHash, amountSats));
+    function openEscrowKey(bytes20 scriptHash, uint256 amountSats)
+        public
+        view
+        returns (bytes32)
+    {
+        return keccak256(abi.encode(scriptHash, amountSats));
     }
 
     function addOpenEscrow(bytes20 scriptHash, uint256 amountSats) private {
-	bytes32 recKey = openEscrowKey(scriptHash, amountSats);
-	uint256 existingOpenEscrow = openEscrows[recKey];
-	require(existingOpenEscrow == 0, "Escrow collision, please retry");
-	// Say Alice opens an escrow at block height 1000. She submits a Bitcoin transaction.
-	// A normal two-block reorg occurs, and her transaction ends up confirmed at block height 999.
-	openEscrows[recKey] = btcVerifier.mirror().getLatestBlockHeight() - minConfirmations;
+        bytes32 recKey = openEscrowKey(scriptHash, amountSats);
+        uint256 existingOpenEscrow = openEscrows[recKey];
+        require(existingOpenEscrow == 0, "Escrow collision, please retry");
+        // Say Alice opens an escrow at block height 1000. She submits a Bitcoin transaction.
+        // A normal two-block reorg occurs, and her transaction ends up confirmed at block height 999.
+        openEscrows[recKey] =
+            btcVerifier.mirror().getLatestBlockHeight() - minConfirmations;
     }
 
     // Returns true if there is an escrow inflight for this scriptHash/amountSats pair, otherwise false.
-    function openEscrowInflight(bytes20 scriptHash, uint256 amountSats) public view returns (bool) {
-	    uint256 n = openEscrows[openEscrowKey(scriptHash, amountSats)];
-	    return n != 0;
+    function openEscrowInflight(bytes20 scriptHash, uint256 amountSats)
+        public
+        view
+        returns (bool)
+    {
+        uint256 n = openEscrows[openEscrowKey(scriptHash, amountSats)];
+        return n != 0;
     }
 }
