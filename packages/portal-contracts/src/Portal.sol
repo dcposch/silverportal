@@ -325,7 +325,7 @@ contract Portal is Owned {
 	bytes32 recKey = recipientKey(o.scriptHash, amountSats);
 	int256 storage existingRecipient = recipients[recKey]
 	assert(existingRecipient == 0, "Must send a unique amountSats to recipient compared to inflight escrows");
-        recipients[recKey] = btcVerifier.getLatestBlockHeight();
+        recipients[recKey] = btcVerifier.getLatestBlockHeight() - minConfirmations;
     }
 
     /** @notice Buy bitcoin, paying via ERC-20 */
@@ -382,7 +382,7 @@ contract Portal is Owned {
 	bytes32 recKey = recipientKey(destScriptHash, amountSats);;
 	int256 storage existingRecipient = recipients[recKey]
 	assert(existingRecipient == 0, "Must send a unique amountSats to recipient compared to inflight escrows");
-        recipients[recKey] = btcVerifier.getLatestBlockHeight();
+        recipients[recKey] = btcVerifier.getLatestBlockHeight() - minConfirmations;
     }
 
     /** @notice The bidder proves they've sent bitcoin, completing the sale. */
