@@ -60,9 +60,9 @@ struct Escrow {
     /** @dev Tokens held in escrow. */
     uint256 escrowTok;
     /** @dev If correct amount is paid to script hash, who keeps the escrow? */
-    address successRecipient;
+    address successOpenEscrow;
     /** @dev If deadline passes without proof of payment, who keeps escrow? */
-    address timeoutRecipient;
+    address timeoutOpenEscrow;
 }
 
 /** @notice Implements a limit order book for trust-minimized BTC-ETH trades. */
@@ -133,6 +133,13 @@ contract Portal is Owned {
     
     /** @dev Next escrow ID = number of fills/partial fills so far + 1. */
     uint256 public nextEscrowID;
+
+    /** @dev Tracks inflight escrows, and where we expect payments to come from.
+        Prevents using a single btc payment proof to close multiple escrows.
+        Key is keccak(openEscrow, amountSats), and the value is the btc mirror block height.
+        This means that no two inflight escrows to the same btc address can be for the same amountSats 
+    */
+    mapping(bytes32 => uint256) public openEscrows;
 
     constructor(
         IERC20 _token,
@@ -290,8 +297,8 @@ contract Portal is Owned {
         e.amountSatsDue = amountSats;
         e.deadline = uint128(block.timestamp + 24 hours);
         e.escrowTok = totalTok + expectedStakeTok;
-        e.successRecipient = msg.sender;
-        e.timeoutRecipient = o.maker;
+        e.successOpenEscrow = msg.sender;
+        e.timeoutOpenEscrow = o.maker;
 
         // Order matched.
         emit OrderMatched(
@@ -314,6 +321,8 @@ contract Portal is Owned {
         if (o.amountSats == 0) {
           delete orderbook[orderID];
         }
+
+	addOpenEscrow(e.destScriptHash, amountSats);
     }
 
     /** @notice Buy bitcoin, paying via ERC-20 */
@@ -342,8 +351,8 @@ contract Portal is Owned {
         e.amountSatsDue = amountSats;
         e.deadline = uint128(block.timestamp + 24 hours);
         e.escrowTok = portionOfStake + totalValue;
-        e.successRecipient = o.maker;
-        e.timeoutRecipient = msg.sender;
+        e.successOpenEscrow = o.maker;
+        e.timeoutOpenEscrow = msg.sender;
 
         // Order matched.
         emit OrderMatched(
@@ -366,6 +375,8 @@ contract Portal is Owned {
         if (o.amountSats == 0) {
           delete orderbook[orderID];
         }
+	
+	addOpenEscrow(destScriptHash, amountSats);
     }
 
     /** @notice The bidder proves they've sent bitcoin, completing the sale. */
@@ -376,8 +387,13 @@ contract Portal is Owned {
         uint256 txOutIx
     ) public {
         Escrow storage e = escrows[escrowID];
-        require(e.successRecipient != address(0), "Escrow not found");
-        require(msg.sender == e.successRecipient, "Wrong caller");
+        require(e.successOpenEscrow != address(0), "Escrow not found");
+        require(msg.sender == e.successOpenEscrow, "Wrong caller");
+
+	// The blockheight of the proof must be > this value.
+	bytes32 recKey = openEscrowKey(e.destScriptHash, e.amountSatsDue);
+	uint256 minBlockHeightExclusive = openEscrows[recKey];
+	require(bitcoinBlockNum > minBlockHeightExclusive, "Can't use old proof of payment");
 
         bool valid = btcVerifier.verifyPayment(
             minConfirmations,
@@ -394,14 +410,17 @@ contract Portal is Owned {
         emit EscrowSettled(escrowID, e.amountSatsDue, msg.sender, tokToSend);
 
         delete escrows[escrowID];
-
         _transferToSender(tokToSend);
+	
+	// Delete the openEscrow key after the _transfer, since it blocks new actions from happening
+	// in case of a re-entrancy attack. We'd rather fail closed, than open.
+	delete openEscrows[recKey];
     }
 
     function slash(uint256 escrowID) public {
         Escrow storage e = escrows[escrowID];
 
-        require(msg.sender == e.timeoutRecipient, "Wrong caller");
+        require(msg.sender == e.timeoutOpenEscrow, "Wrong caller");
         require(e.deadline < block.timestamp, "Too early");
 
         uint256 tokToSend = e.escrowTok;
@@ -410,6 +429,10 @@ contract Portal is Owned {
         delete escrows[escrowID];
 
         _transferToSender(tokToSend);
+
+	// Delete the openEscrow key after the _transfer, since it blocks new actions from happening
+	// in case of a re-entrancy attack. We'd rather fail closed, than open.
+	delete openEscrows[openEscrowKey(e.destScriptHash, e.amountSatsDue)];
     }
 
     function _transferFromSender(uint256 tok) private {
@@ -433,5 +456,24 @@ contract Portal is Owned {
 
         bool success = token.transfer(msg.sender, tok);
         require(success, "transfer failed");
+    }
+
+    function openEscrowKey(bytes20 scriptHash, uint256 amountSats) public view returns (bytes32) {
+	    return keccak256(abi.encode(scriptHash, amountSats));
+    }
+
+    function addOpenEscrow(bytes20 scriptHash, uint256 amountSats) private {
+	bytes32 recKey = openEscrowKey(scriptHash, amountSats);
+	uint256 existingOpenEscrow = openEscrows[recKey];
+	require(existingOpenEscrow == 0, "Escrow collision, please retry");
+	// Say Alice opens an escrow at block height 1000. She submits a Bitcoin transaction.
+	// A normal two-block reorg occurs, and her transaction ends up confirmed at block height 999.
+	openEscrows[recKey] = btcVerifier.mirror().getLatestBlockHeight() - minConfirmations;
+    }
+
+    // Returns true if there is an escrow inflight for this scriptHash/amountSats pair, otherwise false.
+    function openEscrowInflight(bytes20 scriptHash, uint256 amountSats) public view returns (bool) {
+	    uint256 n = openEscrows[openEscrowKey(scriptHash, amountSats)];
+	    return n != 0;
     }
 }
