@@ -2,4 +2,5 @@
 /* tslint:disable */
 /* eslint-disable */
 export { BtcTxVerifier__factory } from "./BtcTxVerifier__factory";
+export { IERC20__factory } from "./IERC20__factory";
 export { Portal__factory } from "./Portal__factory";

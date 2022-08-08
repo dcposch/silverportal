@@ -22,11 +22,11 @@ export class Orderbook {
     const byPrice = (a: Order, b: Order, c: number) =>
       (a.priceTokPerSat.toNumber() - b.priceTokPerSat.toNumber()) * c;
     this.bids = orders
-      .filter((o) => !o.amountSats.isNegative())
-      .sort((a, b) => byPrice(a, b, 1));
-    this.asks = orders
       .filter((o) => o.amountSats.isNegative())
       .sort((a, b) => byPrice(a, b, -1));
+    this.asks = orders
+      .filter((o) => !o.amountSats.isNegative())
+      .sort((a, b) => byPrice(a, b, 1));
   }
 
   /**

@@ -3,7 +3,7 @@ import "./PageExchange.css";
 import { useAddRecentTransaction } from "@rainbow-me/rainbowkit";
 import * as React from "react";
 import { useAccount, useProvider, useSigner } from "wagmi";
-import { factories } from "../../../types/ethers-contracts";
+import { factories, IERC20, Portal } from "../../../types/ethers-contracts";
 import { contractAddrs } from "../../utils/constants";
 import Exchange from "../exchange/Exchange";
 import ConnectSection from "../exchange/ConnectSection";
@@ -16,17 +16,20 @@ export default function PageExchange() {
 
   const portal = React.useMemo(() => {
     console.log("Contract " + (signer ? "ready to transact" : "read-only"));
-    return factories.Portal__factory.connect(
+    const wallet = signer || provider;
+    const ret = factories.Portal__factory.connect(
       contractAddrs.portal,
-      signer || provider
-    );
+      wallet
+    ) as Portal & { wbtc: IERC20 };
+    ret.wbtc = factories.IERC20__factory.connect(contractAddrs.wbtc, wallet);
+    return ret;
   }, [signer, provider]);
 
   return (
     <div>
       <blockquote>
         <p>
-          🚀 Trade Ropsten, an advanced proof-of-stake asset, for testnet
+          🚀 Trade Ropsten, an advanced proof-of-stake asset, and testnet
           bitcoin.
         </p>
       </blockquote>

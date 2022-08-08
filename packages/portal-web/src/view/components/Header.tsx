@@ -16,9 +16,9 @@ export default function Header() {
         <NavLink className={navTabClass} to="/">
           📖 Home
         </NavLink>
-        <NavLink className={navTabClass} to="/prove">
+        {/*<NavLink className={navTabClass} to="/prove">
           🔏 Prove
-        </NavLink>
+        </NavLink>*/}
         <NavLink className={navTabClass} to="/exchange">
           🪙 Exchange
         </NavLink>

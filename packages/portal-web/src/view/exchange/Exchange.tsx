@@ -1,6 +1,6 @@
 import { NewTransaction } from "@rainbow-me/rainbowkit/dist/transactions/transactionStore";
 import * as React from "react";
-import { Portal } from "../../../types/ethers-contracts";
+import { IERC20, Portal } from "../../../types/ethers-contracts";
 import {
   loadEscrowForAddr,
   loadOrderbook,
@@ -15,6 +15,7 @@ import { ModalInfo } from "./exchangeActions";
 import {
   CancelModal,
   ConfirmOrderModal,
+  ConfirmTradeModal,
   PleaseConnectModal,
   ProveModal,
   SlashModal,
@@ -23,7 +24,7 @@ import OrderForm from "./OrderForm";
 import OrdersTable from "./OrdersTable";
 
 interface ExchangeProps {
-  portal: Portal;
+  portal: Portal & { wbtc: IERC20 };
   connectedAddress?: string;
   addRecentTransaction: (tx: NewTransaction) => void;
 }
@@ -95,7 +96,7 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
   closeModal = () => this.dispatch({ type: "none" });
 
   render() {
-    const { portal, addRecentTransaction } = this.props;
+    const { portal, connectedAddress, addRecentTransaction } = this.props;
     const { params, orders, escrow, modal } = this.state;
     console.log(`Rendering Exchange`, params);
     if (params == null) return null;
@@ -103,7 +104,14 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
 
     const bbo = orders ? orders.getBestBidAsk() : [];
     const onClose = this.closeModal;
-    const props = { portal, params, bbo, addRecentTransaction, onClose };
+    const props = {
+      portal,
+      params,
+      bbo,
+      connectedAddress,
+      addRecentTransaction,
+      onClose,
+    };
 
     return (
       <div>
@@ -120,6 +128,9 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
         {modal.type === "please-connect" && <PleaseConnectModal {...props} />}
         {(modal.type === "bid" || modal.type === "ask") && (
           <ConfirmOrderModal {...props} {...modal} />
+        )}
+        {(modal.type === "sell" || modal.type === "buy") && (
+          <ConfirmTradeModal {...props} {...modal} />
         )}
         {modal.type === "cancel" && (
           <CancelModal {...props} order={modal.order} />

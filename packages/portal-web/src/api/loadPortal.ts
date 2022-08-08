@@ -67,19 +67,21 @@ export async function loadEscrowForAddr(
   addr: string,
   portal: Portal
 ): Promise<EscrowsForAddr> {
-  const n = (await portal.nextOrderID()).toNumber();
+  const n = (await portal.nextEscrowID()).toNumber();
 
   // Load from chain in parallel
   const promises = [] as Promise<EscrowT>[];
   for (let i = 1; i < n; i++) {
-    promises.push(portal.escrows(i * 1e9));
+    promises.push(portal.escrows(i));
   }
   const rawEscrows = await Promise.all(promises);
+  console.log("Loaded escrows", rawEscrows);
+
   const escrows = rawEscrows
     .map(
       (e: EscrowT, i) =>
         ({
-          escrowId: (i + 1) * 1e9,
+          escrowId: i,
           destScriptHash: e[0],
           amountSatsDue: e[1],
           deadline: e[2].toNumber(),

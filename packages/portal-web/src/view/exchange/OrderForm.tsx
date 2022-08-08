@@ -26,14 +26,14 @@ export default class OrderForm extends React.PureComponent<OrderFormProps> {
       this.state;
 
     const isLimit = limitPriceTokPerSat > 0;
-    const limitPriceStr = ((limitPriceTokPerSat * 1e8) / 1e18).toFixed(5);
-    const marketPriceStr = ((amountTok / 1e18 / amountSats) * 1e8).toFixed(5);
+    const limitPriceStr = ((limitPriceTokPerSat * 1e8) / 1e18).toFixed(4);
+    const marketPriceStr = ((amountTok / 1e18 / amountSats) * 1e8).toFixed(4);
     const showPrice = isLimit || (amountTok > 0 && amountSats > 0);
 
     const isBuy = tokTo === "BTC";
     if ((tokFrom === "BTC") === (tokTo === "BTC")) throw new Error("invalid");
     const tokStr = tokFrom === "BTC" ? tokTo : tokFrom;
-    const amountTokStr = (amountTok / 1e18).toFixed(5);
+    const amountTokStr = (amountTok / 1e18).toFixed(4);
     const amountBtcStr = (amountSats / 1e8).toLocaleString([], {
       maximumFractionDigits: 8,
     });
@@ -235,7 +235,7 @@ function getFirstBigEnoughOrder(amountSats: number, orders: Order[]) {
   return orders.find((o: Order) => o.amountSats.abs().gte(bnSats));
 }
 
-const tokens = ["BTC", "WBTC", "ETH"];
+const tokens = ["BTC", "WBTC"];
 function TokSelect({
   sel,
   onChange,

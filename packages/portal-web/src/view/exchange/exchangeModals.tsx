@@ -1,10 +1,9 @@
 import { NewTransaction } from "@rainbow-me/rainbowkit/dist/transactions/transactionStore";
 import { formatMessages } from "esbuild";
-import { BigNumber, ContractTransaction } from "ethers";
+import { BigNumber, ContractTransaction, ethers } from "ethers";
 import * as React from "react";
 import { createRef } from "react";
-import { getJSDocTemplateTag } from "typescript";
-import { Portal } from "../../../types/ethers-contracts";
+import { IERC20, Portal } from "../../../types/ethers-contracts";
 import { Escrow } from "../../model/Escrow";
 import { Order } from "../../model/Orderbook";
 import { PortalParams } from "../../model/PortalParams";
@@ -18,7 +17,8 @@ import Amount, { formatAmount } from "../components/Amount";
 import Modal from "../components/Modal";
 
 interface TxModalProps {
-  portal: Portal;
+  portal: Portal & { wbtc: IERC20 };
+  connectedAddress: string;
   params: PortalParams;
   bbo: number[];
   addRecentTransaction: (tx: NewTransaction) => void;
@@ -45,13 +45,33 @@ export function PleaseConnectModal(props: TxModalProps) {
 interface TxModalState {
   txState: "none" | "started" | "pending" | "succeeded" | "failed";
   errorMessage?: string;
+  tokenAllowance?: BigNumber;
+  tokenBalance?: BigNumber;
 }
 
 class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
   state = { txState: "none" } as TxModalState;
 
+  componentDidMount() {
+    this.loadAllowance();
+  }
+
+  async loadAllowance() {
+    const { connectedAddress, portal } = this.props;
+    const { wbtc } = portal;
+
+    console.log(`Loading allowance and balance for ${connectedAddress}`);
+    const allowProm = wbtc.allowance(connectedAddress, portal.address);
+    const balanceProm = wbtc.balanceOf(connectedAddress);
+    const [allowance, balance] = await Promise.all([allowProm, balanceProm]);
+    console.log({ allowance, balance });
+
+    this.setState({ tokenAllowance: allowance, tokenBalance: balance });
+  }
+
   trySend = async (
-    fn: () => Promise<{ description: string; tx: ContractTransaction }>
+    fn: () => Promise<{ description: string; tx: ContractTransaction }>,
+    keepOpen?: boolean
   ) => {
     this.setState({ txState: "started", errorMessage: undefined });
 
@@ -79,11 +99,42 @@ class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
     this.setState({ txState: receipt.status ? "succeeded" : "failed" });
 
     // Close the modal on success
-    if (receipt.status) setTimeout(this.props.onClose, 500);
+    if (receipt.status && !keepOpen) setTimeout(this.props.onClose, 500);
   };
 
-  renderTxStatus(): React.ReactElement {
-    const { txState, errorMessage } = this.state;
+  renderActionOrApproveButton(
+    dueWei: BigNumber,
+    actionText: string,
+    action: () => void
+  ): React.ReactNode {
+    const status = this.getApprovalStatus(dueWei);
+
+    return (
+      <>
+        <div className="exchange-row">
+          <button
+            onClick={status === "allowance" ? this.approve : action}
+            disabled={
+              this.disableTx() || status == null || status === "balance"
+            }
+          >
+            {status === "allowance" ? "Approve WBTC" : actionText}
+          </button>
+        </div>
+        {this.renderTxStatus(
+          status === "balance" ? "Insufficient WBTC balance" : undefined
+        )}
+      </>
+    );
+  }
+
+  renderTxStatus(extraError?: string): React.ReactElement {
+    let { txState, errorMessage } = this.state;
+
+    if (extraError != null) {
+      txState = "failed";
+      errorMessage = extraError;
+    }
 
     const cl = ["exchange-tx-status"];
     if (txState === "succeeded") cl.push("exchange-tx-succeeded");
@@ -103,6 +154,32 @@ class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
   disableTx(): boolean {
     return !["none", "succeeded", "failed"].includes(this.state.txState);
   }
+
+  /**
+   * Returns "ok" if we have balance+allowance,
+   * "allowance" if insufficent allowance,
+   * "balance" if low balance,
+   * undefined if not yet sure. */
+  getApprovalStatus(wei: BigNumber): "ok" | "balance" | "allowance" | null {
+    const { tokenAllowance, tokenBalance } = this.state;
+    if (tokenBalance == null || tokenBalance == null) return null;
+    if (tokenAllowance.lt(wei)) return "allowance";
+    if (tokenBalance.lt(wei)) return "balance";
+    return "ok";
+  }
+
+  approve = async () => {
+    await this.trySend(async () => {
+      const { portal } = this.props;
+      const tx = await portal.wbtc.approve(
+        portal.address,
+        ethers.constants.MaxUint256
+      );
+      return { description: "Allow WBTC", tx };
+    }, true);
+
+    await this.loadAllowance();
+  };
 
   renderBtc(amountSats: number) {
     const str = (amountSats / 1e8).toFixed(4);
@@ -151,6 +228,8 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
     const totalStr = (toFloat64(totalWei) / 1e18).toFixed(4);
     const stakeWei = this.calcStakeWei(totalWei);
     const stakeStr = (toFloat64(stakeWei) / 1e18).toFixed(4);
+
+    const dueWei = type == "ask" ? stakeWei : totalWei;
 
     return (
       <Modal title={"Confirm " + type} onClose={this.props.onClose}>
@@ -208,19 +287,14 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
               <blockquote>
                 <div className="exchange-row">
                   Each time your order is filled, you'll receive Bitcoin. You
-                  can cancel your order at any time, which will return remaining
-                  WBTC.
+                  can cancel your order at any time, which will return any
+                  remaining WBTC.
                 </div>
               </blockquote>
             </div>
           </>
         )}
-        <div className="exchange-row">
-          <button onClick={this.post} disabled={this.disableTx()}>
-            Confirm
-          </button>
-        </div>
-        {this.renderTxStatus()}
+        {this.renderActionOrApproveButton(dueWei, "Confirm", this.post)}
       </Modal>
     );
   }
@@ -301,6 +375,8 @@ export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
     const stakeWei = this.calcStakeWei(totalWei);
     const stakeStr = (toFloat64(stakeWei) / 1e18).toFixed(4);
 
+    const dueWei = type == "sell" ? stakeWei : totalWei;
+
     return (
       <Modal title={"Confirm " + type} onClose={this.props.onClose}>
         <div className="exchange-row">
@@ -314,7 +390,9 @@ export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
           <span>WBTC</span>
         </div>
         <div className="exchange-row">
-          <span className="exchange-llabel">Total</span>
+          <span className="exchange-llabel">
+            {type === "buy" ? "➡️ Due now" : "You receive"}
+          </span>
           <span className="exchange-ramount">
             <strong>{totalStr}</strong>
           </span>
@@ -323,9 +401,9 @@ export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
         {type === "sell" && (
           <>
             <div className="exchange-row">
-              <span className="exchange-llabel" />
+              <span className="exchange-llabel">➡️ Due now</span>
               <span className="exchange-ramount">
-                + <strong>{stakeStr}</strong>
+                <strong>{stakeStr}</strong>
               </span>
               <span>WBTC refundable stake</span>
             </div>
@@ -351,12 +429,7 @@ export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
             <input ref={this.refDestAddr} placeholder="2..."></input>
           </div>
         )}
-        <div className="exchange-row">
-          <button onClick={this.post} disabled={this.disableTx()}>
-            Confirm
-          </button>
-        </div>
-        {this.renderTxStatus()}
+        {this.renderActionOrApproveButton(dueWei, "Confirm", this.post)}
       </Modal>
     );
   }
@@ -443,7 +516,7 @@ export class CancelModal extends TxModal<OrderModalProps> {
       <Modal title="Cancel" onClose={this.props.onClose}>
         <div className="exchange-row">
           You are cancelling {aType} order. You will receive a refund of{" "}
-          <Amount n={refundWei} type="wei" decimals={6} />.
+          {(refundWei / 1e18).toFixed(4)} WBTC.
         </div>
         <div className="exchange-row">
           Cancellation will fail if the order has already been hit.

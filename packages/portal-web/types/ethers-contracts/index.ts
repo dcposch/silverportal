@@ -2,7 +2,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type { BtcTxVerifier } from "./BtcTxVerifier";
+export type { IERC20 } from "./IERC20";
 export type { Portal } from "./Portal";
 export * as factories from "./factories";
 export { BtcTxVerifier__factory } from "./factories/BtcTxVerifier__factory";
 export { Portal__factory } from "./factories/Portal__factory";
+export { IERC20__factory } from "./factories/IERC20__factory";

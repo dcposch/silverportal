@@ -6,6 +6,10 @@
     margin-top: 0.5em;
 }
 
+.exchange-row blockquote {
+    font-size: 90%;
+}
+
 .exchange-two-col {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -30,12 +34,12 @@
 
 .exchange-llabel {
     display: inline-block;
-    width: 4em;
+    width: 5.5em;
 }
 
 .exchange-ramount {
     display: inline-block;
-    width: 6em;
+    width: 5.5em;
     text-align: right;
     margin: 0 0.3em;
 }
@@ -75,11 +79,11 @@
 }
 
 .exchange-order-type {
-    width: 2.6em;
+    width: 3em;
 }
 
 .exchange-order-price {
-    width: 4.4em;
+    width: 5em;
 }
 
 .exchange-order-action {
@@ -88,7 +92,7 @@
 }
 
 .exchange-order-amount {
-    width: 4.4em;
+    width: 5em;
 }
 
 .exchange-escrow-row {
@@ -106,8 +110,8 @@
 }
 
 .exchange-tx-status {
-    margin-top: 1em;
-    padding: 0.5em;
+    margin-top: 0.5em;
+    padding: 0 0.5em;
     color: var(--color-gray);
 }
 
