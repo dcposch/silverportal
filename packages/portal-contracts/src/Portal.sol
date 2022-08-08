@@ -80,11 +80,11 @@ struct Escrow {
     /**
      * @dev If correct amount is paid to script hash, who keeps the escrow?
      */
-    address successOpenEscrow;
+    address successRecipient;
     /**
      * @dev If deadline passes without proof of payment, who keeps escrow?
      */
-    address timeoutOpenEscrow;
+    address timeoutRecipient;
 }
 
 /**
@@ -344,8 +344,8 @@ contract Portal is Owned {
         e.amountSatsDue = amountSats;
         e.deadline = uint128(block.timestamp + 24 hours);
         e.escrowTok = totalTok + expectedStakeTok;
-        e.successOpenEscrow = msg.sender;
-        e.timeoutOpenEscrow = o.maker;
+        e.successRecipient = msg.sender;
+        e.timeoutRecipient = o.maker;
 
         // Order matched.
         emit OrderMatched(
@@ -401,8 +401,8 @@ contract Portal is Owned {
         e.amountSatsDue = amountSats;
         e.deadline = uint128(block.timestamp + 24 hours);
         e.escrowTok = portionOfStake + totalValue;
-        e.successOpenEscrow = o.maker;
-        e.timeoutOpenEscrow = msg.sender;
+        e.successRecipient = o.maker;
+        e.timeoutRecipient = msg.sender;
 
         // Order matched.
         emit OrderMatched(
@@ -439,8 +439,8 @@ contract Portal is Owned {
         uint256 txOutIx
     ) public {
         Escrow storage e = escrows[escrowID];
-        require(e.successOpenEscrow != address(0), "Escrow not found");
-        require(msg.sender == e.successOpenEscrow, "Wrong caller");
+        require(e.successRecipient != address(0), "Escrow not found");
+        require(msg.sender == e.successRecipient, "Wrong caller");
 
         // The blockheight of the proof must be > this value.
         bytes32 recKey = openEscrowKey(e.destScriptHash, e.amountSatsDue);
@@ -475,7 +475,7 @@ contract Portal is Owned {
     function slash(uint256 escrowID) public {
         Escrow storage e = escrows[escrowID];
 
-        require(msg.sender == e.timeoutOpenEscrow, "Wrong caller");
+        require(msg.sender == e.timeoutRecipient, "Wrong caller");
         require(e.deadline < block.timestamp, "Too early");
 
         uint256 tokToSend = e.escrowTok;
