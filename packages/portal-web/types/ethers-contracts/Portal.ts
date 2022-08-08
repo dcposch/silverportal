@@ -55,15 +55,26 @@ export interface PortalInterface extends utils.Interface {
     "btcVerifier()": FunctionFragment;
     "cancelOrder(uint256)": FunctionFragment;
     "escrows(uint256)": FunctionFragment;
-    "initiateBuy(uint256,uint128)": FunctionFragment;
-    "initiateSell(uint256,uint128,bytes20)": FunctionFragment;
+    "initiateBuy(uint256,uint128,bytes20)": FunctionFragment;
+    "initiateSell(uint256,uint128)": FunctionFragment;
+    "minConfirmations()": FunctionFragment;
+    "nextEscrowID()": FunctionFragment;
     "nextOrderID()": FunctionFragment;
+    "openEscrowInflight(bytes20,uint256)": FunctionFragment;
+    "openEscrowKey(bytes20,uint256)": FunctionFragment;
+    "openEscrows(bytes32)": FunctionFragment;
     "orderbook(uint256)": FunctionFragment;
-    "postAsk(uint256,bytes20)": FunctionFragment;
-    "postBid(uint256,uint256)": FunctionFragment;
+    "owner()": FunctionFragment;
+    "postAsk(uint256,uint256)": FunctionFragment;
+    "postBid(uint256,uint256,bytes20)": FunctionFragment;
     "proveSettlement(uint256,uint256,(bytes,bytes32,uint256,bytes,bytes),uint256)": FunctionFragment;
+    "setBtcVerifier(address)": FunctionFragment;
+    "setMinConfirmations(uint256)": FunctionFragment;
+    "setOwner(address)": FunctionFragment;
+    "setStakePercent(uint256)": FunctionFragment;
     "slash(uint256)": FunctionFragment;
     "stakePercent()": FunctionFragment;
+    "token()": FunctionFragment;
   };
 
   getFunction(
@@ -73,13 +84,24 @@ export interface PortalInterface extends utils.Interface {
       | "escrows"
       | "initiateBuy"
       | "initiateSell"
+      | "minConfirmations"
+      | "nextEscrowID"
       | "nextOrderID"
+      | "openEscrowInflight"
+      | "openEscrowKey"
+      | "openEscrows"
       | "orderbook"
+      | "owner"
       | "postAsk"
       | "postBid"
       | "proveSettlement"
+      | "setBtcVerifier"
+      | "setMinConfirmations"
+      | "setOwner"
+      | "setStakePercent"
       | "slash"
       | "stakePercent"
+      | "token"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -96,10 +118,6 @@ export interface PortalInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "initiateBuy",
-    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "initiateSell",
     values: [
       PromiseOrValue<BigNumberish>,
       PromiseOrValue<BigNumberish>,
@@ -107,20 +125,49 @@ export interface PortalInterface extends utils.Interface {
     ]
   ): string;
   encodeFunctionData(
+    functionFragment: "initiateSell",
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "minConfirmations",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "nextEscrowID",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "nextOrderID",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "openEscrowInflight",
+    values: [PromiseOrValue<BytesLike>, PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "openEscrowKey",
+    values: [PromiseOrValue<BytesLike>, PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "openEscrows",
+    values: [PromiseOrValue<BytesLike>]
   ): string;
   encodeFunctionData(
     functionFragment: "orderbook",
     values: [PromiseOrValue<BigNumberish>]
   ): string;
+  encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "postAsk",
-    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BytesLike>]
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
     functionFragment: "postBid",
-    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<BigNumberish>]
+    values: [
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BytesLike>
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "proveSettlement",
@@ -132,6 +179,22 @@ export interface PortalInterface extends utils.Interface {
     ]
   ): string;
   encodeFunctionData(
+    functionFragment: "setBtcVerifier",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setMinConfirmations",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setOwner",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setStakePercent",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "slash",
     values: [PromiseOrValue<BigNumberish>]
   ): string;
@@ -139,6 +202,7 @@ export interface PortalInterface extends utils.Interface {
     functionFragment: "stakePercent",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "token", values?: undefined): string;
 
   decodeFunctionResult(
     functionFragment: "btcVerifier",
@@ -158,14 +222,48 @@ export interface PortalInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "minConfirmations",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "nextEscrowID",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "nextOrderID",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "openEscrowInflight",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "openEscrowKey",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "openEscrows",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "orderbook", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "postAsk", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "postBid", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "proveSettlement",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setBtcVerifier",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setMinConfirmations",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "setOwner", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "setStakePercent",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "slash", data: BytesLike): Result;
@@ -173,13 +271,16 @@ export interface PortalInterface extends utils.Interface {
     functionFragment: "stakePercent",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "token", data: BytesLike): Result;
 
   events: {
     "EscrowSettled(uint256,uint256,address,uint256)": EventFragment;
     "EscrowSlashed(uint256,uint256,address,uint256)": EventFragment;
     "OrderCancelled(uint256)": EventFragment;
-    "OrderMatched(uint256,uint256,int128,uint128,uint256,address,address)": EventFragment;
+    "OrderMatched(uint256,uint256,int128,int128,uint128,uint256,uint128,address,address,bytes20)": EventFragment;
     "OrderPlaced(uint256,int128,uint128,uint256,address)": EventFragment;
+    "OwnerUpdated(address,address)": EventFragment;
+    "ParamUpdated(uint256,uint256,string)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "EscrowSettled"): EventFragment;
@@ -187,6 +288,8 @@ export interface PortalInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "OrderCancelled"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OrderMatched"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OrderPlaced"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "OwnerUpdated"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "ParamUpdated"): EventFragment;
 }
 
 export interface EscrowSettledEventObject {
@@ -229,13 +332,27 @@ export interface OrderMatchedEventObject {
   escrowID: BigNumber;
   orderID: BigNumber;
   amountSats: BigNumber;
+  amountSatsFilled: BigNumber;
   priceTokPerSat: BigNumber;
-  takerStakedWei: BigNumber;
+  takerStakedTok: BigNumber;
+  deadline: BigNumber;
   maker: string;
   taker: string;
+  destScriptHash: string;
 }
 export type OrderMatchedEvent = TypedEvent<
-  [BigNumber, BigNumber, BigNumber, BigNumber, BigNumber, string, string],
+  [
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    string,
+    string,
+    string
+  ],
   OrderMatchedEventObject
 >;
 
@@ -245,7 +362,7 @@ export interface OrderPlacedEventObject {
   orderID: BigNumber;
   amountSats: BigNumber;
   priceTokPerSat: BigNumber;
-  makerStakedWei: BigNumber;
+  makerStakedTok: BigNumber;
   maker: string;
 }
 export type OrderPlacedEvent = TypedEvent<
@@ -254,6 +371,29 @@ export type OrderPlacedEvent = TypedEvent<
 >;
 
 export type OrderPlacedEventFilter = TypedEventFilter<OrderPlacedEvent>;
+
+export interface OwnerUpdatedEventObject {
+  user: string;
+  newOwner: string;
+}
+export type OwnerUpdatedEvent = TypedEvent<
+  [string, string],
+  OwnerUpdatedEventObject
+>;
+
+export type OwnerUpdatedEventFilter = TypedEventFilter<OwnerUpdatedEvent>;
+
+export interface ParamUpdatedEventObject {
+  oldVal: BigNumber;
+  newVal: BigNumber;
+  name: string;
+}
+export type ParamUpdatedEvent = TypedEvent<
+  [BigNumber, BigNumber, string],
+  ParamUpdatedEventObject
+>;
+
+export type ParamUpdatedEventFilter = TypedEventFilter<ParamUpdatedEvent>;
 
 export interface Portal extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -297,26 +437,47 @@ export interface Portal extends BaseContract {
         destScriptHash: string;
         amountSatsDue: BigNumber;
         deadline: BigNumber;
-        escrowWei: BigNumber;
-        successRecipient: string;
-        timeoutRecipient: string;
+        escrowTok: BigNumber;
+        successOpenEscrow: string;
+        timeoutOpenEscrow: string;
       }
     >;
 
     initiateBuy(
       orderID: PromiseOrValue<BigNumberish>,
       amountSats: PromiseOrValue<BigNumberish>,
+      destScriptHash: PromiseOrValue<BytesLike>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     initiateSell(
       orderID: PromiseOrValue<BigNumberish>,
       amountSats: PromiseOrValue<BigNumberish>,
-      destScriptHash: PromiseOrValue<BytesLike>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
+    minConfirmations(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    nextEscrowID(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     nextOrderID(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    openEscrowInflight(
+      scriptHash: PromiseOrValue<BytesLike>,
+      amountSats: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
+    openEscrowKey(
+      scriptHash: PromiseOrValue<BytesLike>,
+      amountSats: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<[string]>;
+
+    openEscrows(
+      arg0: PromiseOrValue<BytesLike>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
 
     orderbook(
       arg0: PromiseOrValue<BigNumberish>,
@@ -327,19 +488,22 @@ export interface Portal extends BaseContract {
         amountSats: BigNumber;
         priceTokPerSat: BigNumber;
         scriptHash: string;
-        stakedWei: BigNumber;
+        stakedTok: BigNumber;
       }
     >;
 
+    owner(overrides?: CallOverrides): Promise<[string]>;
+
     postAsk(
+      amountSats: PromiseOrValue<BigNumberish>,
       priceTokPerSat: PromiseOrValue<BigNumberish>,
-      scriptHash: PromiseOrValue<BytesLike>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     postBid(
       amountSats: PromiseOrValue<BigNumberish>,
       priceTokPerSat: PromiseOrValue<BigNumberish>,
+      scriptHash: PromiseOrValue<BytesLike>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
@@ -351,12 +515,34 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
+    setBtcVerifier(
+      _btcVerifier: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    setMinConfirmations(
+      _minConfirmations: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    setOwner(
+      newOwner: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    setStakePercent(
+      _stakePercent: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
     slash(
       escrowID: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     stakePercent(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    token(overrides?: CallOverrides): Promise<[string]>;
   };
 
   btcVerifier(overrides?: CallOverrides): Promise<string>;
@@ -374,26 +560,47 @@ export interface Portal extends BaseContract {
       destScriptHash: string;
       amountSatsDue: BigNumber;
       deadline: BigNumber;
-      escrowWei: BigNumber;
-      successRecipient: string;
-      timeoutRecipient: string;
+      escrowTok: BigNumber;
+      successOpenEscrow: string;
+      timeoutOpenEscrow: string;
     }
   >;
 
   initiateBuy(
     orderID: PromiseOrValue<BigNumberish>,
     amountSats: PromiseOrValue<BigNumberish>,
+    destScriptHash: PromiseOrValue<BytesLike>,
     overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   initiateSell(
     orderID: PromiseOrValue<BigNumberish>,
     amountSats: PromiseOrValue<BigNumberish>,
-    destScriptHash: PromiseOrValue<BytesLike>,
     overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  minConfirmations(overrides?: CallOverrides): Promise<BigNumber>;
+
+  nextEscrowID(overrides?: CallOverrides): Promise<BigNumber>;
+
   nextOrderID(overrides?: CallOverrides): Promise<BigNumber>;
+
+  openEscrowInflight(
+    scriptHash: PromiseOrValue<BytesLike>,
+    amountSats: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
+  openEscrowKey(
+    scriptHash: PromiseOrValue<BytesLike>,
+    amountSats: PromiseOrValue<BigNumberish>,
+    overrides?: CallOverrides
+  ): Promise<string>;
+
+  openEscrows(
+    arg0: PromiseOrValue<BytesLike>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
   orderbook(
     arg0: PromiseOrValue<BigNumberish>,
@@ -404,19 +611,22 @@ export interface Portal extends BaseContract {
       amountSats: BigNumber;
       priceTokPerSat: BigNumber;
       scriptHash: string;
-      stakedWei: BigNumber;
+      stakedTok: BigNumber;
     }
   >;
 
+  owner(overrides?: CallOverrides): Promise<string>;
+
   postAsk(
+    amountSats: PromiseOrValue<BigNumberish>,
     priceTokPerSat: PromiseOrValue<BigNumberish>,
-    scriptHash: PromiseOrValue<BytesLike>,
     overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   postBid(
     amountSats: PromiseOrValue<BigNumberish>,
     priceTokPerSat: PromiseOrValue<BigNumberish>,
+    scriptHash: PromiseOrValue<BytesLike>,
     overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
@@ -428,12 +638,34 @@ export interface Portal extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  setBtcVerifier(
+    _btcVerifier: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  setMinConfirmations(
+    _minConfirmations: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  setOwner(
+    newOwner: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  setStakePercent(
+    _stakePercent: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
   slash(
     escrowID: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   stakePercent(overrides?: CallOverrides): Promise<BigNumber>;
+
+  token(overrides?: CallOverrides): Promise<string>;
 
   callStatic: {
     btcVerifier(overrides?: CallOverrides): Promise<string>;
@@ -451,26 +683,47 @@ export interface Portal extends BaseContract {
         destScriptHash: string;
         amountSatsDue: BigNumber;
         deadline: BigNumber;
-        escrowWei: BigNumber;
-        successRecipient: string;
-        timeoutRecipient: string;
+        escrowTok: BigNumber;
+        successOpenEscrow: string;
+        timeoutOpenEscrow: string;
       }
     >;
 
     initiateBuy(
       orderID: PromiseOrValue<BigNumberish>,
       amountSats: PromiseOrValue<BigNumberish>,
+      destScriptHash: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     initiateSell(
       orderID: PromiseOrValue<BigNumberish>,
       amountSats: PromiseOrValue<BigNumberish>,
-      destScriptHash: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    minConfirmations(overrides?: CallOverrides): Promise<BigNumber>;
+
+    nextEscrowID(overrides?: CallOverrides): Promise<BigNumber>;
+
     nextOrderID(overrides?: CallOverrides): Promise<BigNumber>;
+
+    openEscrowInflight(
+      scriptHash: PromiseOrValue<BytesLike>,
+      amountSats: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
+    openEscrowKey(
+      scriptHash: PromiseOrValue<BytesLike>,
+      amountSats: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<string>;
+
+    openEscrows(
+      arg0: PromiseOrValue<BytesLike>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     orderbook(
       arg0: PromiseOrValue<BigNumberish>,
@@ -481,19 +734,22 @@ export interface Portal extends BaseContract {
         amountSats: BigNumber;
         priceTokPerSat: BigNumber;
         scriptHash: string;
-        stakedWei: BigNumber;
+        stakedTok: BigNumber;
       }
     >;
 
+    owner(overrides?: CallOverrides): Promise<string>;
+
     postAsk(
+      amountSats: PromiseOrValue<BigNumberish>,
       priceTokPerSat: PromiseOrValue<BigNumberish>,
-      scriptHash: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     postBid(
       amountSats: PromiseOrValue<BigNumberish>,
       priceTokPerSat: PromiseOrValue<BigNumberish>,
+      scriptHash: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -505,12 +761,34 @@ export interface Portal extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setBtcVerifier(
+      _btcVerifier: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setMinConfirmations(
+      _minConfirmations: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setOwner(
+      newOwner: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setStakePercent(
+      _stakePercent: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     slash(
       escrowID: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     stakePercent(overrides?: CallOverrides): Promise<BigNumber>;
+
+    token(overrides?: CallOverrides): Promise<string>;
   };
 
   filters: {
@@ -543,39 +821,65 @@ export interface Portal extends BaseContract {
     "OrderCancelled(uint256)"(orderID?: null): OrderCancelledEventFilter;
     OrderCancelled(orderID?: null): OrderCancelledEventFilter;
 
-    "OrderMatched(uint256,uint256,int128,uint128,uint256,address,address)"(
+    "OrderMatched(uint256,uint256,int128,int128,uint128,uint256,uint128,address,address,bytes20)"(
       escrowID?: null,
       orderID?: null,
       amountSats?: null,
+      amountSatsFilled?: null,
       priceTokPerSat?: null,
-      takerStakedWei?: null,
+      takerStakedTok?: null,
+      deadline?: null,
       maker?: null,
-      taker?: null
+      taker?: null,
+      destScriptHash?: null
     ): OrderMatchedEventFilter;
     OrderMatched(
       escrowID?: null,
       orderID?: null,
       amountSats?: null,
+      amountSatsFilled?: null,
       priceTokPerSat?: null,
-      takerStakedWei?: null,
+      takerStakedTok?: null,
+      deadline?: null,
       maker?: null,
-      taker?: null
+      taker?: null,
+      destScriptHash?: null
     ): OrderMatchedEventFilter;
 
     "OrderPlaced(uint256,int128,uint128,uint256,address)"(
       orderID?: null,
       amountSats?: null,
       priceTokPerSat?: null,
-      makerStakedWei?: null,
+      makerStakedTok?: null,
       maker?: null
     ): OrderPlacedEventFilter;
     OrderPlaced(
       orderID?: null,
       amountSats?: null,
       priceTokPerSat?: null,
-      makerStakedWei?: null,
+      makerStakedTok?: null,
       maker?: null
     ): OrderPlacedEventFilter;
+
+    "OwnerUpdated(address,address)"(
+      user?: PromiseOrValue<string> | null,
+      newOwner?: PromiseOrValue<string> | null
+    ): OwnerUpdatedEventFilter;
+    OwnerUpdated(
+      user?: PromiseOrValue<string> | null,
+      newOwner?: PromiseOrValue<string> | null
+    ): OwnerUpdatedEventFilter;
+
+    "ParamUpdated(uint256,uint256,string)"(
+      oldVal?: null,
+      newVal?: null,
+      name?: null
+    ): ParamUpdatedEventFilter;
+    ParamUpdated(
+      oldVal?: null,
+      newVal?: null,
+      name?: null
+    ): ParamUpdatedEventFilter;
   };
 
   estimateGas: {
@@ -594,32 +898,56 @@ export interface Portal extends BaseContract {
     initiateBuy(
       orderID: PromiseOrValue<BigNumberish>,
       amountSats: PromiseOrValue<BigNumberish>,
+      destScriptHash: PromiseOrValue<BytesLike>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     initiateSell(
       orderID: PromiseOrValue<BigNumberish>,
       amountSats: PromiseOrValue<BigNumberish>,
-      destScriptHash: PromiseOrValue<BytesLike>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    minConfirmations(overrides?: CallOverrides): Promise<BigNumber>;
+
+    nextEscrowID(overrides?: CallOverrides): Promise<BigNumber>;
+
     nextOrderID(overrides?: CallOverrides): Promise<BigNumber>;
+
+    openEscrowInflight(
+      scriptHash: PromiseOrValue<BytesLike>,
+      amountSats: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    openEscrowKey(
+      scriptHash: PromiseOrValue<BytesLike>,
+      amountSats: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    openEscrows(
+      arg0: PromiseOrValue<BytesLike>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     orderbook(
       arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    owner(overrides?: CallOverrides): Promise<BigNumber>;
+
     postAsk(
+      amountSats: PromiseOrValue<BigNumberish>,
       priceTokPerSat: PromiseOrValue<BigNumberish>,
-      scriptHash: PromiseOrValue<BytesLike>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     postBid(
       amountSats: PromiseOrValue<BigNumberish>,
       priceTokPerSat: PromiseOrValue<BigNumberish>,
+      scriptHash: PromiseOrValue<BytesLike>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
@@ -631,12 +959,34 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    setBtcVerifier(
+      _btcVerifier: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    setMinConfirmations(
+      _minConfirmations: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    setOwner(
+      newOwner: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    setStakePercent(
+      _stakePercent: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
     slash(
       escrowID: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     stakePercent(overrides?: CallOverrides): Promise<BigNumber>;
+
+    token(overrides?: CallOverrides): Promise<BigNumber>;
   };
 
   populateTransaction: {
@@ -655,32 +1005,56 @@ export interface Portal extends BaseContract {
     initiateBuy(
       orderID: PromiseOrValue<BigNumberish>,
       amountSats: PromiseOrValue<BigNumberish>,
+      destScriptHash: PromiseOrValue<BytesLike>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     initiateSell(
       orderID: PromiseOrValue<BigNumberish>,
       amountSats: PromiseOrValue<BigNumberish>,
-      destScriptHash: PromiseOrValue<BytesLike>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
+    minConfirmations(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    nextEscrowID(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     nextOrderID(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    openEscrowInflight(
+      scriptHash: PromiseOrValue<BytesLike>,
+      amountSats: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    openEscrowKey(
+      scriptHash: PromiseOrValue<BytesLike>,
+      amountSats: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    openEscrows(
+      arg0: PromiseOrValue<BytesLike>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     orderbook(
       arg0: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    owner(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     postAsk(
+      amountSats: PromiseOrValue<BigNumberish>,
       priceTokPerSat: PromiseOrValue<BigNumberish>,
-      scriptHash: PromiseOrValue<BytesLike>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     postBid(
       amountSats: PromiseOrValue<BigNumberish>,
       priceTokPerSat: PromiseOrValue<BigNumberish>,
+      scriptHash: PromiseOrValue<BytesLike>,
       overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -692,11 +1066,33 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
+    setBtcVerifier(
+      _btcVerifier: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setMinConfirmations(
+      _minConfirmations: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setOwner(
+      newOwner: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setStakePercent(
+      _stakePercent: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
     slash(
       escrowID: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     stakePercent(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    token(overrides?: CallOverrides): Promise<PopulatedTransaction>;
   };
 }

@@ -45,11 +45,15 @@ export type BtcTxProofStructOutput = [
 
 export interface BtcTxVerifierInterface extends utils.Interface {
   functions: {
+    "mirror()": FunctionFragment;
     "verifyPayment(uint256,uint256,(bytes,bytes32,uint256,bytes,bytes),uint256,bytes20,uint256)": FunctionFragment;
   };
 
-  getFunction(nameOrSignatureOrTopic: "verifyPayment"): FunctionFragment;
+  getFunction(
+    nameOrSignatureOrTopic: "mirror" | "verifyPayment"
+  ): FunctionFragment;
 
+  encodeFunctionData(functionFragment: "mirror", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "verifyPayment",
     values: [
@@ -62,6 +66,7 @@ export interface BtcTxVerifierInterface extends utils.Interface {
     ]
   ): string;
 
+  decodeFunctionResult(functionFragment: "mirror", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "verifyPayment",
     data: BytesLike
@@ -97,6 +102,8 @@ export interface BtcTxVerifier extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
+    mirror(overrides?: CallOverrides): Promise<[string]>;
+
     verifyPayment(
       minConfirmations: PromiseOrValue<BigNumberish>,
       blockNum: PromiseOrValue<BigNumberish>,
@@ -107,6 +114,8 @@ export interface BtcTxVerifier extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[boolean]>;
   };
+
+  mirror(overrides?: CallOverrides): Promise<string>;
 
   verifyPayment(
     minConfirmations: PromiseOrValue<BigNumberish>,
@@ -119,6 +128,8 @@ export interface BtcTxVerifier extends BaseContract {
   ): Promise<boolean>;
 
   callStatic: {
+    mirror(overrides?: CallOverrides): Promise<string>;
+
     verifyPayment(
       minConfirmations: PromiseOrValue<BigNumberish>,
       blockNum: PromiseOrValue<BigNumberish>,
@@ -133,6 +144,8 @@ export interface BtcTxVerifier extends BaseContract {
   filters: {};
 
   estimateGas: {
+    mirror(overrides?: CallOverrides): Promise<BigNumber>;
+
     verifyPayment(
       minConfirmations: PromiseOrValue<BigNumberish>,
       blockNum: PromiseOrValue<BigNumberish>,
@@ -145,6 +158,8 @@ export interface BtcTxVerifier extends BaseContract {
   };
 
   populateTransaction: {
+    mirror(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     verifyPayment(
       minConfirmations: PromiseOrValue<BigNumberish>,
       blockNum: PromiseOrValue<BigNumberish>,

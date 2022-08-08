@@ -166,7 +166,9 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
           <span>WBTC</span>
         </div>
         <div className="exchange-row">
-          <span className="exchange-llabel">Total</span>
+          <span className="exchange-llabel">
+            {type === "bid" ? "➡️ Due now" : "You receive"}
+          </span>
           <span className="exchange-ramount">
             <strong>{totalStr}</strong>
           </span>
@@ -175,9 +177,9 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
         {type === "ask" && (
           <>
             <div className="exchange-row">
-              <span className="exchange-llabel" />
+              <span className="exchange-llabel">➡️ Due now</span>
               <span className="exchange-ramount">
-                + <strong>{stakeStr}</strong>
+                <strong>{stakeStr}</strong>
               </span>
               <span>WBTC refundable stake</span>
             </div>
@@ -197,10 +199,21 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
           </>
         )}
         {type === "bid" && (
-          <div className="exchange-row">
-            <label>Destination Bitcoin address. Must start with 2.</label>
-            <input ref={this.refDestAddr} placeholder="2..."></input>
-          </div>
+          <>
+            <div className="exchange-row">
+              <label>Destination Bitcoin address. Must start with 2.</label>
+              <input ref={this.refDestAddr} placeholder="2..."></input>
+            </div>
+            <div className="exchange-row">
+              <blockquote>
+                <div className="exchange-row">
+                  Each time your order is filled, you'll receive Bitcoin. You
+                  can cancel your order at any time, which will return remaining
+                  WBTC.
+                </div>
+              </blockquote>
+            </div>
+          </>
         )}
         <div className="exchange-row">
           <button onClick={this.post} disabled={this.disableTx()}>
@@ -229,7 +242,7 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
     });
 
     const { portal } = this.props;
-    const tx = await portal.postBid(amountSats, tokPerSat, {
+    const tx = await portal.postAsk(amountSats, tokPerSat, {
       value: stakeWei,
     });
 
@@ -254,7 +267,7 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
     console.log(description, { tokPerSat, scriptHash, valueWei });
 
     const { portal } = this.props;
-    const tx = await portal.postBid(tokPerSat, scriptHash, {
+    const tx = await portal.postBid(amountSats, tokPerSat, scriptHash, {
       value: valueWei,
     });
 
@@ -362,7 +375,7 @@ export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
     const description = `Sell ${btcStr} BTC, receive ${wbtcStr} WBTC`;
     console.log(description, { orderID, amountSats, stakeWei });
 
-    const tx = await portal.initiateBuy(orderID, amountSats, {
+    const tx = await portal.initiateSell(orderID, amountSats, {
       value: stakeWei,
     });
 
@@ -388,7 +401,7 @@ export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
     const btcStr = formatAmount(amountSats, "sats").amountStr;
     const description = `Buy ${btcStr} BTC, paying ${wbtcStr} WBTC`;
     console.log(description, { orderID, amountSats });
-    const tx = await portal.initiateSell(orderID, amountSats, scriptHash, {
+    const tx = await portal.initiateBuy(orderID, amountSats, scriptHash, {
       value: amountWei,
     });
 
