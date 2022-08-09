@@ -1,5 +1,8 @@
 const axios = require('axios');
 const { ethers } = require("ethers");
+const bitcore = require("bitcore-lib");
+const btcproof = require("bitcoin-proof");
+var bitcoinjs = require('bitcoinjs-lib');
 
 const satsToBTC = 10**8;
 const wbtcAddress = "0xBde8bB00A7eF67007A96945B3a3621177B615C44"
@@ -7,19 +10,37 @@ const wbtcAbi = [
 	"function balanceOf(address) external view returns (uint256)",
 	"function allocateTo(address,uint256)",
 ];
-const portalAddress = "0xD7A15a7B9c09E5126aB4598601dF5935C7Ab4Bec"
-const portalAbi = [
-	"function cancelOrder(uint256)",
-];
+const portalAddress = "0xa909c8B6eD96899dFb82a698FEF380e8836e00b9";
+
 const ethRpcProvider = "https://ropsten.infura.io/v3/6f2cc3019abd4ffa8045a331fc47f3d4"
 const privateKey = "0ccd0dfe2df9ae2c9e325fcb09f0bf2101eae834241a5812d81e015c7d539443"
-const myAddress = "0xB1032F1330D3d4DB2Db412E34050482E2Fc756f1"
+const myAddress = "0xb1032f1330d3d4db2db412e34050482e2fc756f1"
 const maker = "0xb1032f1330d3d4db2db412e34050482e2fc756f1";
 const status = "PENDING";
-const ordersQuery = `{orders(maker: $maker, status: $status) {
+const myOrdersQuery = `{orders(maker: $maker, status: $status) {
   amountSats
   priceTokPerSat
 }}`;
+
+/*
+// orders that we want to fulfill because we can make money off them
+const ordersToFulfill = `{orders(where: {maker_not_contains_nocase : $maker, amountSats_lt : 0, priceTokPerSat_gt : $minPrice}) {
+	amountSats
+	priceTokPerSat
+}}`
+const minPrice = 9950000000;
+*/
+
+const escrowsQuery = `{escrows(where : {successRecipient_contains: "0xb1032f1330d3d4db2db412e34050482e2fc756f1", status: "PENDING"}) {
+	amountSatsDue
+	destScriptHash
+	deadline
+	id
+}_meta { block { number }}}`;
+
+const myBtcAddress = "mqHEJi3boWQHwo2x8fEpXejyDWj37yTtDG";
+const myBtcKey = "cNdotpEDrvEhCp7rABaent5cqnvrX9gGph3eL1PPQLt3AxmAwETh";
+//const myBtcAddress = "0x529ccdd3112490bc59754892787e93f124520e78";
 
 var bidSats = BigInt(0);
 var askSats = BigInt(0);
@@ -27,15 +48,21 @@ var bidLiquidity = BigInt(0);
 var askLiquidity = BigInt(0);
 
 var myWbtcSats = BigInt(0);
+var myBTCSats = BigInt(0);
+
+const portalJSONABI = `[{"inputs":[{"internalType":"contract IERC20","name":"_token","type":"address"},{"internalType":"uint256","name":"_stakePercent","type":"uint256"},{"internalType":"contract IBtcTxVerifier","name":"_btcVerifier","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"escrowID","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amountSats","type":"uint256"},{"indexed":false,"internalType":"address","name":"ethDest","type":"address"},{"indexed":false,"internalType":"uint256","name":"ethAmount","type":"uint256"}],"name":"EscrowSettled","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"escrowID","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"escrowDeadline","type":"uint256"},{"indexed":false,"internalType":"address","name":"ethDest","type":"address"},{"indexed":false,"internalType":"uint256","name":"ethAmount","type":"uint256"}],"name":"EscrowSlashed","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"orderID","type":"uint256"}],"name":"OrderCancelled","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"escrowID","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"orderID","type":"uint256"},{"indexed":false,"internalType":"int128","name":"amountSats","type":"int128"},{"indexed":false,"internalType":"int128","name":"amountSatsFilled","type":"int128"},{"indexed":false,"internalType":"uint128","name":"priceTokPerSat","type":"uint128"},{"indexed":false,"internalType":"uint256","name":"takerStakedTok","type":"uint256"},{"indexed":false,"internalType":"address","name":"maker","type":"address"},{"indexed":false,"internalType":"address","name":"taker","type":"address"}],"name":"OrderMatched","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"orderID","type":"uint256"},{"indexed":false,"internalType":"int128","name":"amountSats","type":"int128"},{"indexed":false,"internalType":"uint128","name":"priceTokPerSat","type":"uint128"},{"indexed":false,"internalType":"uint256","name":"makerStakedTok","type":"uint256"},{"indexed":false,"internalType":"address","name":"maker","type":"address"}],"name":"OrderPlaced","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnerUpdated","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"oldVal","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"newVal","type":"uint256"},{"indexed":false,"internalType":"string","name":"name","type":"string"}],"name":"ParamUpdated","type":"event"},{"inputs":[],"name":"btcVerifier","outputs":[{"internalType":"contract IBtcTxVerifier","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"orderID","type":"uint256"}],"name":"cancelOrder","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"escrows","outputs":[{"internalType":"bytes20","name":"destScriptHash","type":"bytes20"},{"internalType":"uint128","name":"amountSatsDue","type":"uint128"},{"internalType":"uint128","name":"deadline","type":"uint128"},{"internalType":"uint256","name":"escrowTok","type":"uint256"},{"internalType":"address","name":"successRecipient","type":"address"},{"internalType":"address","name":"timeoutRecipient","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"orderID","type":"uint256"},{"internalType":"uint128","name":"amountSats","type":"uint128"}],"name":"initiateBuy","outputs":[{"internalType":"uint256","name":"escrowID","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"orderID","type":"uint256"},{"internalType":"uint128","name":"amountSats","type":"uint128"},{"internalType":"bytes20","name":"destScriptHash","type":"bytes20"}],"name":"initiateSell","outputs":[{"internalType":"uint256","name":"escrowID","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"minConfirmations","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"nextEscrowID","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"nextOrderID","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"orderbook","outputs":[{"internalType":"address","name":"maker","type":"address"},{"internalType":"int128","name":"amountSats","type":"int128"},{"internalType":"uint128","name":"priceTokPerSat","type":"uint128"},{"internalType":"bytes20","name":"scriptHash","type":"bytes20"},{"internalType":"uint256","name":"stakedTok","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"amountSats","type":"uint256"},{"internalType":"uint256","name":"priceTokPerSat","type":"uint256"},{"internalType":"bytes20","name":"scriptHash","type":"bytes20"}],"name":"postAsk","outputs":[{"internalType":"uint256","name":"orderID","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amountSats","type":"uint256"},{"internalType":"uint256","name":"priceTokPerSat","type":"uint256"}],"name":"postBid","outputs":[{"internalType":"uint256","name":"orderID","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"escrowID","type":"uint256"},{"internalType":"uint256","name":"bitcoinBlockNum","type":"uint256"},{"components":[{"internalType":"bytes","name":"blockHeader","type":"bytes"},{"internalType":"bytes32","name":"txId","type":"bytes32"},{"internalType":"uint256","name":"txIndex","type":"uint256"},{"internalType":"bytes","name":"txMerkleProof","type":"bytes"},{"internalType":"bytes","name":"rawTx","type":"bytes"}],"internalType":"struct BtcTxProof","name":"bitcoinTransactionProof","type":"tuple"},{"internalType":"uint256","name":"txOutIx","type":"uint256"}],"name":"proveSettlement","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"contract IBtcTxVerifier","name":"_btcVerifier","type":"address"}],"name":"setBtcVerifier","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"_minConfirmations","type":"uint256"}],"name":"setMinConfirmations","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"setOwner","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"_stakePercent","type":"uint256"}],"name":"setStakePercent","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"escrowID","type":"uint256"}],"name":"slash","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"stakePercent","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"token","outputs":[{"internalType":"contract IERC20","name":"","type":"address"}],"stateMutability":"view","type":"function"}]`;
 
 const provider = new ethers.providers.JsonRpcProvider(ethRpcProvider);
 const signer = new ethers.Wallet(privateKey, provider);
 
-const portal = new ethers.Contract(portalAddress, portalAbi, provider);
+const portal = new ethers.Contract(portalAddress, portalJSONABI, provider);
 const portalWithSigner = portal.connect(signer);
 
 const wbtc = new ethers.Contract(wbtcAddress, wbtcAbi, provider);
 const wbtcWithSigner = wbtc.connect(signer);
+
+
+var minblock = 0;
 
 function handlePendingOrder(order) {
 	var amountSats = BigInt(order.amountSats);
@@ -51,7 +78,7 @@ function handlePendingOrder(order) {
 
 async function loadPendingOrders() {
 	await axios.post('https://api.thegraph.com/subgraphs/name/kahuang/silver-portal', JSON.stringify({
-	    ordersQuery,
+	    query : myOrdersQuery,
 	    variables : { maker, status },
 	  }), {
 	  headers: {
@@ -61,24 +88,309 @@ async function loadPendingOrders() {
 	  .then(r => r.data.data.orders.map(order => handlePendingOrder(order)));
 }
 
-function handlePendingEscrow(escrow) {
+function sleep(ms) {
+	return new Promise((resolve) => {
+	  setTimeout(resolve, ms);
+	});
 }
 
-async function loadPendingEscrows() {
-	await axios.post('https://api.thegraph.com/subgraphs/name/kahuang/silver-portal', JSON.stringify({
-	    query,
-	    variables : { maker, status },
+async function handlePendingEscrows(escrows) {
+	promises = [];
+	for (var i = 0; i < escrows.length; i ++ ) {
+		escrow = escrows[i];
+		console.log("Handline escrow: ", escrow);
+		var buf = Buffer.from(strip0x(escrow.destScriptHash), "hex");
+		var addr = bitcore.Address.fromScriptHash(buf, 'testnet', 'scripthash').toString();
+		const amountSatsDue = parseInt(escrow.amountSatsDue);
+		console.log("Sending ", amountSatsDue, " sats to ", addr);
+		const txid = (await sendBitcoin(addr, amountSatsDue)).txid;
+		promises.push(proveSettlement(txid, escrow));
+	}
+
+	// Then wait for settlement for all inflight txs
+	const p = Promise.all(promises);
+	console.log(p);
+}
+
+async function proveSettlement(txid, escrow) {
+	//const txid = 'ecc2ee194c359cc6577dadef1f96d5a71fceb1c3dbba4f72bfc86f43e72352c6';
+	// wait for tx to make it to the mempool
+	console.log("Sleeping for 15 seconds before handling txid: ", txid);
+	await sleep(1000 * 15);
+	const escrowID = parseInt(escrow.id);
+	const destScriptHash = escrow.destScriptHash;
+
+	var confirmations = -1;
+	var rawTx;
+	
+	while (confirmations < 1) {
+		rawTx = await getRawTransaction(txid);
+		console.log(rawTx)
+		if (rawTx.confirmations !== null && rawTx.confirmations !== undefined) {
+		    confirmations = rawTx.confirmations;
+		}
+		// Sleep 1 minutes
+		console.log("Sleeping for 60 seconds while transaction gets confirmed...");
+		await sleep(1000 * 60);
+	}
+
+	const block = await getBtcBlock(rawTx.blockhash);
+	const blockHeader = await getBtcBlockHeader(rawTx.blockhash);
+	const txIndex = block.tx.indexOf(txid);
+	const proof = await btcproof.getProof(block.tx, txIndex);
+
+	const txMerkleProof = proof.sibling.join("");
+	const hashSerRawTx = excerptHashSerializedRawTx(rawTx);
+
+	const expectedHex = `a914${strip0x(destScriptHash)}87`;
+	const txOutIx = rawTx.vout.findIndex( (txo) => txo.scriptPubKey.hex == expectedHex );
+
+	const btcProofStruct = {
+		blockHeader : "0x" + blockHeader, 
+		txId : "0x" + txid,
+		txIndex : txIndex, 
+		txMerkleProof: "0x" + txMerkleProof, 
+		rawTx: "0x" + hashSerRawTx,
+	}
+
+	console.log(btcProofStruct);
+
+	// Sleep 5 minutes before submitting, to let the btcmirror catch up
+	console.log("sleeping for 5 minutes to let btc mirror catch up")
+	await sleep(1000 * 60 * 5);
+
+	var res = await portalWithSigner.proveSettlement(
+		escrowID,
+		block.height,
+		btcProofStruct,
+		txOutIx,
+	);
+
+	console.log("Successfully proved settlement, sleeping for 1 minute to allow tx to propagate.")
+	await sleep(1000 * 60);
+
+	return
+
+}
+
+async function loadAndHandlePendingEscrows() {
+	const res = await axios.post('https://api.thegraph.com/subgraphs/name/kahuang/silver-portal', JSON.stringify({
+	    query : escrowsQuery,
 	  }), {
 	  headers: {
 	    'Content-Type': 'application/json',
 	    'Accept': 'application/json',
-	  }})
-	  .then(r => r.data.data.orders.map(order => handlePendingOrder(order)));
+	  }});
+
+	  console.log(res.data);
+
+	  var newMinBlock = res.data.data._meta.block.number;
+	  if (newMinBlock > minblock) {
+		minblock = newMinBlock;
+		console.log("new minblock ", minblock);
+	  } else {
+		return
+	  }
+
+	  const escrows = res.data.data.escrows;
+	  await handlePendingEscrows(escrows);
 }
 
 async function loadWBTCBalance() {
 	const myWbtcBalance = (await wbtc.balanceOf(myAddress)).toBigInt();
-	myWbtcSats = myWbtcBalance * satsToBTC; 
+	myWbtcSats = myWbtcBalance * BigInt(satsToBTC); 
+}
+
+async function loadBTCBalance() {
+	const utxos = await axios.get(
+		`https://sochain.com/api/v2/get_tx_unspent/${sochain_network}/${sourceAddress}`
+	  );
+  
+	let totalAmountAvailable = 0;
+
+	utxos.data.data.txs.forEach(async (element) => {
+		totalAmountAvailable += Math.floor(Number(element.value) * 100000000);
+	});
+
+	return totalAmountAvailable;
+}
+
+async function sendBitcoin(receiverAddress, amountSatsDue) {
+	const sochain_network = "BTCTEST";
+	const privateKey = myBtcKey;
+	const sourceAddress = myBtcAddress;
+
+	let fee = 0;
+	let inputCount = 0;
+	let outputCount = 2;
+	const utxos = await axios.get(
+	  `https://sochain.com/api/v2/get_tx_unspent/${sochain_network}/${sourceAddress}`
+	);
+
+	const transaction = new bitcore.Transaction();
+	let totalAmountAvailable = 0;
+  
+	let inputs = [];
+	utxos.data.data.txs.forEach(async (element) => {
+	  let utxo = {};
+	  utxo.satoshis = Math.floor(Number(element.value) * 100000000);
+	  utxo.script = element.script_hex;
+	  utxo.address = utxos.data.data.address;
+	  utxo.txId = element.txid;
+	  utxo.outputIndex = element.output_no;
+	  totalAmountAvailable += utxo.satoshis;
+	  inputCount += 1;
+	  inputs.push(utxo);
+	});
+  
+	transactionSize = inputCount * 146 + outputCount * 34 + 10 - inputCount;
+	// Check if we have enough funds to cover the transaction and the fees assuming we want to pay 20 satoshis per byte
+  
+	fee = transactionSize * 1
+	if (totalAmountAvailable - amountSatsDue - fee  < 0) {
+	  throw new Error("Balance is too low for this transaction");
+	}
+  
+	//Set transaction input
+	transaction.from(inputs);
+  
+	// set the recieving address and the amount to send
+	transaction.to(receiverAddress, amountSatsDue);
+  
+	// Set change address - Address to receive the left over funds after transfer
+	transaction.change(sourceAddress);
+  
+	//manually set transaction fees: 20 satoshis per byte
+	transaction.fee(fee * 20);
+  
+	// Sign transaction with your private key
+	transaction.sign(privateKey);
+  
+	// serialize Transactions
+	const serializedTransaction = transaction.serialize();
+	// Send transaction
+	const result = await axios({
+	  method: "POST",
+	  url: `https://sochain.com/api/v2/send_tx/${sochain_network}`,
+	  data: {
+		tx_hex: serializedTransaction,
+	  },
+	});
+	return result.data.data
+};
+
+async function getBtcBlock(blockhash) {
+	// Get the "bestblock" information
+	res = await axios.post('https://btc.getblock.io/testnet/', JSON.stringify({
+	    "jsonrpc" : "2.0",
+		"method" : "getblock",
+		"params" : [blockhash, 1],
+		"id" : "getblock.io",
+	  }), {
+	  headers: {
+	    'Content-Type': 'application/json',
+	    'Accept': 'application/json',
+		'x-api-key' : '44befe46-b6d8-47c5-98bb-9f4579728cc9',
+    }});
+	return res.data.result;
+}
+
+async function getBtcTxProof(txid) {
+	res = await axios.post('https://btc.getblock.io/testnet/', JSON.stringify({
+	    "jsonrpc" : "2.0",
+		"method" : "gettxoutproof",
+		"params" : [[txid], null],
+		"id" : "getblock.io",
+	  }), {
+	  headers: {
+	    'Content-Type': 'application/json',
+	    'Accept': 'application/json',
+		'x-api-key' : '44befe46-b6d8-47c5-98bb-9f4579728cc9',
+    }});
+	return res.data.result;
+}
+
+async function getBtcBlockHeader(blockhash) {
+	res = await axios.post('https://btc.getblock.io/testnet/', JSON.stringify({
+	    "jsonrpc" : "2.0",
+		"method" : "getblockheader",
+		"params" : [blockhash, false],
+		"id" : "getblock.io",
+	  }), {
+	  headers: {
+	    'Content-Type': 'application/json',
+	    'Accept': 'application/json',
+		'x-api-key' : '44befe46-b6d8-47c5-98bb-9f4579728cc9',
+    }});
+	return res.data.result;
+}
+
+async function getRawTransaction(txid) {
+	res = await axios.post('https://btc.getblock.io/testnet/', JSON.stringify({
+	    "jsonrpc" : "2.0",
+		"method" : "getrawtransaction",
+		"params" : [txid, true, null],
+		"id" : "getblock.io",
+	  }), {
+	  headers: {
+	    'Content-Type': 'application/json',
+	    'Accept': 'application/json',
+		'x-api-key' : '44befe46-b6d8-47c5-98bb-9f4579728cc9',
+    }});
+	return res.data.result;
+}
+
+function excerptHashSerializedRawTx(rawTx) {
+	const { hex } = rawTx;
+
+	const flags = hex.substring(8, 12);
+	if (!flags.startsWith("00")) {
+	  // Old-format Bitcoin transactions. No flags, no witnesses, already good.
+	  return hex;
+	}
+	if (flags !== "0001") throw new Error("Invalid flags");
+  
+	// Segwit. Strip flags and witnesses to get the hash serialization format.
+	const witnesses = [];
+	rawTx.vin.forEach((v) => witnesses.push(...v.txinwitness));
+	if (witnesses.length === 0) {
+	  throw new Error("Missing witnesses");
+	}
+	if (witnesses.find((w) => w.length / 2 >= 0xfd)) {
+	  throw new Error("Witness too long");
+	}
+  
+	const witnessBytes = witnesses.reduce((n, wit) => n + wit.length / 2, 0);
+	// 1 byte for # witnesses, n bytes for each witnesses' length, + witness bytes
+	const witnessSectionBytes =
+	  rawTx.vin.length + witnesses.length + witnessBytes;
+	console.log({ rawTx, witnesses, witnessBytes });
+  
+	const version = hex.substring(0, 8);
+	const txIO = hex.substring(12, hex.length - 8 - 2 * witnessSectionBytes);
+	const locktime = hex.substring(hex.length - 8);
+  
+	return version + txIO + locktime;
+}
+
+function strip0x(hex) {
+	if (hex.startsWith("0x")) return hex.substring(2);
+	return hex;
+}
+
+// Poll at least once a minute
+const escrowPollMillis = 1000 * 60;
+
+async function escrowsLoop() {
+	while (true) {
+		var start = Date.now();
+		await loadAndHandlePendingEscrows();
+		var durationMillis = Date.now() - start;
+
+		if (durationMillis < escrowPollMillis) {
+			await sleep(escrowPollMillis - durationMillis);
+		}
+	}
 }
 
 async function main() {
@@ -87,9 +399,9 @@ async function main() {
 
 	await loadWBTCBalance();
 	console.log("My wbtc sats: ", myWbtcSats);
+	var eloop = escrowsLoop();
 
-
-
+	await eloop;
 }
 
 main()
