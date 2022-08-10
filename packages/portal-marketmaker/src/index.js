@@ -2,19 +2,28 @@ const axios = require('axios');
 const { ethers } = require("ethers");
 const bitcore = require("bitcore-lib");
 const btcproof = require("bitcoin-proof");
-var bitcoinjs = require('bitcoinjs-lib');
 
+// How many sats to 1 btc
 const satsToBTC = 10**8;
+// Address of the wbtc contract on ropsten testnet
 const wbtcAddress = "0xBde8bB00A7eF67007A96945B3a3621177B615C44"
+// wbtc abi
 const wbtcAbi = [
 	"function balanceOf(address) external view returns (uint256)",
 	"function allocateTo(address,uint256)",
 ];
+
+// Portal contract address on ropsten
 const portalAddress = "0xa909c8B6eD96899dFb82a698FEF380e8836e00b9";
 
+// eth rpc provider
 const ethRpcProvider = "https://ropsten.infura.io/v3/6f2cc3019abd4ffa8045a331fc47f3d4"
-const privateKey = "0ccd0dfe2df9ae2c9e325fcb09f0bf2101eae834241a5812d81e015c7d539443"
-const myAddress = "0xb1032f1330d3d4db2db412e34050482e2fc756f1"
+// eth pkey. Note: should load this from an environment variable or secret store!
+const ethPrivateKey = "0ccd0dfe2df9ae2c9e325fcb09f0bf2101eae834241a5812d81e015c7d539443"
+// eth address
+const myEthAddress = "0xb1032f1330d3d4db2db412e34050482e2fc756f1"
+// variables for graphql query.
+const theGraphURL = 'https://api.thegraph.com/subgraphs/name/kahuang/silver-portal';
 const maker = "0xb1032f1330d3d4db2db412e34050482e2fc756f1";
 const status = "PENDING";
 const myOrdersQuery = `{orders(maker: $maker, status: $status) {
@@ -38,22 +47,29 @@ const escrowsQuery = `{escrows(where : {successRecipient_contains: "0xb1032f1330
 	id
 }_meta { block { number }}}`;
 
+// btc address we'll use to fulfill escrows
 const myBtcAddress = "mqHEJi3boWQHwo2x8fEpXejyDWj37yTtDG";
+// btc private key.  Note: should load this from an environment variable or secret store!
 const myBtcKey = "cNdotpEDrvEhCp7rABaent5cqnvrX9gGph3eL1PPQLt3AxmAwETh";
 //const myBtcAddress = "0x529ccdd3112490bc59754892787e93f124520e78";
 
+// How many sats we have in bid orders
 var bidSats = BigInt(0);
+// How many sats we have in ask orders.
 var askSats = BigInt(0);
+// How much liquidity we have in bids.
 var bidLiquidity = BigInt(0);
+// How much liquidity we have in asks.
 var askLiquidity = BigInt(0);
-
+// How many wbtc sats we have.
 var myWbtcSats = BigInt(0);
+// How many btc sats we have.
 var myBTCSats = BigInt(0);
 
 const portalJSONABI = `[{"inputs":[{"internalType":"contract IERC20","name":"_token","type":"address"},{"internalType":"uint256","name":"_stakePercent","type":"uint256"},{"internalType":"contract IBtcTxVerifier","name":"_btcVerifier","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"escrowID","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amountSats","type":"uint256"},{"indexed":false,"internalType":"address","name":"ethDest","type":"address"},{"indexed":false,"internalType":"uint256","name":"ethAmount","type":"uint256"}],"name":"EscrowSettled","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"escrowID","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"escrowDeadline","type":"uint256"},{"indexed":false,"internalType":"address","name":"ethDest","type":"address"},{"indexed":false,"internalType":"uint256","name":"ethAmount","type":"uint256"}],"name":"EscrowSlashed","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"orderID","type":"uint256"}],"name":"OrderCancelled","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"escrowID","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"orderID","type":"uint256"},{"indexed":false,"internalType":"int128","name":"amountSats","type":"int128"},{"indexed":false,"internalType":"int128","name":"amountSatsFilled","type":"int128"},{"indexed":false,"internalType":"uint128","name":"priceTokPerSat","type":"uint128"},{"indexed":false,"internalType":"uint256","name":"takerStakedTok","type":"uint256"},{"indexed":false,"internalType":"address","name":"maker","type":"address"},{"indexed":false,"internalType":"address","name":"taker","type":"address"}],"name":"OrderMatched","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"orderID","type":"uint256"},{"indexed":false,"internalType":"int128","name":"amountSats","type":"int128"},{"indexed":false,"internalType":"uint128","name":"priceTokPerSat","type":"uint128"},{"indexed":false,"internalType":"uint256","name":"makerStakedTok","type":"uint256"},{"indexed":false,"internalType":"address","name":"maker","type":"address"}],"name":"OrderPlaced","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnerUpdated","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"oldVal","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"newVal","type":"uint256"},{"indexed":false,"internalType":"string","name":"name","type":"string"}],"name":"ParamUpdated","type":"event"},{"inputs":[],"name":"btcVerifier","outputs":[{"internalType":"contract IBtcTxVerifier","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"orderID","type":"uint256"}],"name":"cancelOrder","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"escrows","outputs":[{"internalType":"bytes20","name":"destScriptHash","type":"bytes20"},{"internalType":"uint128","name":"amountSatsDue","type":"uint128"},{"internalType":"uint128","name":"deadline","type":"uint128"},{"internalType":"uint256","name":"escrowTok","type":"uint256"},{"internalType":"address","name":"successRecipient","type":"address"},{"internalType":"address","name":"timeoutRecipient","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"orderID","type":"uint256"},{"internalType":"uint128","name":"amountSats","type":"uint128"}],"name":"initiateBuy","outputs":[{"internalType":"uint256","name":"escrowID","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"orderID","type":"uint256"},{"internalType":"uint128","name":"amountSats","type":"uint128"},{"internalType":"bytes20","name":"destScriptHash","type":"bytes20"}],"name":"initiateSell","outputs":[{"internalType":"uint256","name":"escrowID","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"minConfirmations","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"nextEscrowID","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"nextOrderID","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"orderbook","outputs":[{"internalType":"address","name":"maker","type":"address"},{"internalType":"int128","name":"amountSats","type":"int128"},{"internalType":"uint128","name":"priceTokPerSat","type":"uint128"},{"internalType":"bytes20","name":"scriptHash","type":"bytes20"},{"internalType":"uint256","name":"stakedTok","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"amountSats","type":"uint256"},{"internalType":"uint256","name":"priceTokPerSat","type":"uint256"},{"internalType":"bytes20","name":"scriptHash","type":"bytes20"}],"name":"postAsk","outputs":[{"internalType":"uint256","name":"orderID","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amountSats","type":"uint256"},{"internalType":"uint256","name":"priceTokPerSat","type":"uint256"}],"name":"postBid","outputs":[{"internalType":"uint256","name":"orderID","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"escrowID","type":"uint256"},{"internalType":"uint256","name":"bitcoinBlockNum","type":"uint256"},{"components":[{"internalType":"bytes","name":"blockHeader","type":"bytes"},{"internalType":"bytes32","name":"txId","type":"bytes32"},{"internalType":"uint256","name":"txIndex","type":"uint256"},{"internalType":"bytes","name":"txMerkleProof","type":"bytes"},{"internalType":"bytes","name":"rawTx","type":"bytes"}],"internalType":"struct BtcTxProof","name":"bitcoinTransactionProof","type":"tuple"},{"internalType":"uint256","name":"txOutIx","type":"uint256"}],"name":"proveSettlement","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"contract IBtcTxVerifier","name":"_btcVerifier","type":"address"}],"name":"setBtcVerifier","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"_minConfirmations","type":"uint256"}],"name":"setMinConfirmations","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"setOwner","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"_stakePercent","type":"uint256"}],"name":"setStakePercent","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"escrowID","type":"uint256"}],"name":"slash","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"stakePercent","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"token","outputs":[{"internalType":"contract IERC20","name":"","type":"address"}],"stateMutability":"view","type":"function"}]`;
 
 const provider = new ethers.providers.JsonRpcProvider(ethRpcProvider);
-const signer = new ethers.Wallet(privateKey, provider);
+const signer = new ethers.Wallet(ethPrivateKey, provider);
 
 const portal = new ethers.Contract(portalAddress, portalJSONABI, provider);
 const portalWithSigner = portal.connect(signer);
@@ -61,8 +77,11 @@ const portalWithSigner = portal.connect(signer);
 const wbtc = new ethers.Contract(wbtcAddress, wbtcAbi, provider);
 const wbtcWithSigner = wbtc.connect(signer);
 
-
+// variable to keep track of which block we've queried in thegraph
 var minblock = 0;
+
+const getBlocksURL = 'https://btc.getblock.io/testnet/';
+const getBlocksAPIKey = '44befe46-b6d8-47c5-98bb-9f4579728cc9';
 
 function handlePendingOrder(order) {
 	var amountSats = BigInt(order.amountSats);
@@ -77,7 +96,7 @@ function handlePendingOrder(order) {
 }
 
 async function loadPendingOrders() {
-	await axios.post('https://api.thegraph.com/subgraphs/name/kahuang/silver-portal', JSON.stringify({
+	await axios.post(theGraphURL, JSON.stringify({
 	    query : myOrdersQuery,
 	    variables : { maker, status },
 	  }), {
@@ -98,20 +117,21 @@ async function handlePendingEscrows(escrows) {
 	promises = [];
 	for (var i = 0; i < escrows.length; i ++ ) {
 		escrow = escrows[i];
-		console.log("Handline escrow: ", escrow);
+		console.log("Handling escrow: ", escrow);
 		var buf = Buffer.from(strip0x(escrow.destScriptHash), "hex");
 		var addr = bitcore.Address.fromScriptHash(buf, 'testnet', 'scripthash').toString();
 		const amountSatsDue = parseInt(escrow.amountSatsDue);
 		console.log("Sending ", amountSatsDue, " sats to ", addr);
+		// This sends the tx to the mempool and returns the txid.
 		const txid = (await sendBitcoin(addr, amountSatsDue)).txid;
 		promises.push(proveSettlement(txid, escrow));
 	}
 
 	// Then wait for settlement for all inflight txs
 	const p = Promise.all(promises);
-	console.log(p);
 }
 
+// Proves the settlement of a bitcoin tx to the Portal contract.
 async function proveSettlement(txid, escrow) {
 	//const txid = 'ecc2ee194c359cc6577dadef1f96d5a71fceb1c3dbba4f72bfc86f43e72352c6';
 	// wait for tx to make it to the mempool
@@ -174,7 +194,7 @@ async function proveSettlement(txid, escrow) {
 }
 
 async function loadAndHandlePendingEscrows() {
-	const res = await axios.post('https://api.thegraph.com/subgraphs/name/kahuang/silver-portal', JSON.stringify({
+	const res = await axios.post(theGraphURL, JSON.stringify({
 	    query : escrowsQuery,
 	  }), {
 	  headers: {
@@ -197,7 +217,7 @@ async function loadAndHandlePendingEscrows() {
 }
 
 async function loadWBTCBalance() {
-	const myWbtcBalance = (await wbtc.balanceOf(myAddress)).toBigInt();
+	const myWbtcBalance = (await wbtc.balanceOf(myEthAddress)).toBigInt();
 	myWbtcSats = myWbtcBalance * BigInt(satsToBTC); 
 }
 
@@ -215,6 +235,9 @@ async function loadBTCBalance() {
 	return totalAmountAvailable;
 }
 
+
+// Sends amountSatsDue to receiverAddress. Returns after
+// the tx is subimtted to the mempool, returning the txid.
 async function sendBitcoin(receiverAddress, amountSatsDue) {
 	const sochain_network = "BTCTEST";
 	const privateKey = myBtcKey;
@@ -281,7 +304,7 @@ async function sendBitcoin(receiverAddress, amountSatsDue) {
 
 async function getBtcBlock(blockhash) {
 	// Get the "bestblock" information
-	res = await axios.post('https://btc.getblock.io/testnet/', JSON.stringify({
+	res = await axios.post(getBlocksURL, JSON.stringify({
 	    "jsonrpc" : "2.0",
 		"method" : "getblock",
 		"params" : [blockhash, 1],
@@ -290,13 +313,13 @@ async function getBtcBlock(blockhash) {
 	  headers: {
 	    'Content-Type': 'application/json',
 	    'Accept': 'application/json',
-		'x-api-key' : '44befe46-b6d8-47c5-98bb-9f4579728cc9',
+		'x-api-key' : getBlocksAPIKey,
     }});
 	return res.data.result;
 }
 
 async function getBtcTxProof(txid) {
-	res = await axios.post('https://btc.getblock.io/testnet/', JSON.stringify({
+	res = await axios.post(getBlocksURL, JSON.stringify({
 	    "jsonrpc" : "2.0",
 		"method" : "gettxoutproof",
 		"params" : [[txid], null],
@@ -305,13 +328,13 @@ async function getBtcTxProof(txid) {
 	  headers: {
 	    'Content-Type': 'application/json',
 	    'Accept': 'application/json',
-		'x-api-key' : '44befe46-b6d8-47c5-98bb-9f4579728cc9',
+		'x-api-key' : getBlocksAPIKey,
     }});
 	return res.data.result;
 }
 
 async function getBtcBlockHeader(blockhash) {
-	res = await axios.post('https://btc.getblock.io/testnet/', JSON.stringify({
+	res = await axios.post(getBlocksURL, JSON.stringify({
 	    "jsonrpc" : "2.0",
 		"method" : "getblockheader",
 		"params" : [blockhash, false],
@@ -320,13 +343,13 @@ async function getBtcBlockHeader(blockhash) {
 	  headers: {
 	    'Content-Type': 'application/json',
 	    'Accept': 'application/json',
-		'x-api-key' : '44befe46-b6d8-47c5-98bb-9f4579728cc9',
+		'x-api-key' : getBlocksAPIKey,
     }});
 	return res.data.result;
 }
 
 async function getRawTransaction(txid) {
-	res = await axios.post('https://btc.getblock.io/testnet/', JSON.stringify({
+	res = await axios.post(getBlocksURL, JSON.stringify({
 	    "jsonrpc" : "2.0",
 		"method" : "getrawtransaction",
 		"params" : [txid, true, null],
@@ -335,11 +358,12 @@ async function getRawTransaction(txid) {
 	  headers: {
 	    'Content-Type': 'application/json',
 	    'Accept': 'application/json',
-		'x-api-key' : '44befe46-b6d8-47c5-98bb-9f4579728cc9',
+		'x-api-key' : getBlocksAPIKey,
     }});
 	return res.data.result;
 }
 
+// get the HashSeralized format of the bitcoin tx.
 function excerptHashSerializedRawTx(rawTx) {
 	const { hex } = rawTx;
 
@@ -399,8 +423,15 @@ async function main() {
 
 	await loadWBTCBalance();
 	console.log("My wbtc sats: ", myWbtcSats);
-	var eloop = escrowsLoop();
 
+	// Launches the main loop of this worker which:
+	// 1. Loads all pending escrows that our market maker bot needs to fulfill
+	// 2. Sends bitcoin to the associated P2SH addresses
+	// 3. Waits for those txs to hit minConfirmations (2 in this case)
+	// 4. Proves that those payments have settled to the Portal contract, and receiving
+	//    the WBTC from escrow.
+
+	var eloop = escrowsLoop();
 	await eloop;
 }
 
