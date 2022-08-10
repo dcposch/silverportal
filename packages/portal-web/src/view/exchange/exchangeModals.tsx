@@ -64,7 +64,7 @@ class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
     const allowProm = wbtc.allowance(connectedAddress, portal.address);
     const balanceProm = wbtc.balanceOf(connectedAddress);
     const [allowance, balance] = await Promise.all([allowProm, balanceProm]);
-    console.log({ allowance, balance });
+    console.log({ allowance : allowance.toString(), balance : balance.toString() });
 
     this.setState({ tokenAllowance: allowance, tokenBalance: balance });
   }
