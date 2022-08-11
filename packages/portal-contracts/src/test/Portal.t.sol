@@ -405,19 +405,19 @@ contract PortalTest is Test {
 contract StubBtcMirror is IBtcMirror {
     constructor() {}
 
-    function getBlockHash(uint256 number) external view returns (bytes32) {
+    function getBlockHash(uint256 number) external pure returns (bytes32) {
         return keccak256(abi.encode(number));
     }
 
-    function getLatestBlockHeight() external view returns (uint256) {
+    function getLatestBlockHeight() external pure returns (uint256) {
         return 1000;
     }
 
-    function getLatestBlockTime() external view returns (uint256) {
+    function getLatestBlockTime() external pure returns (uint256) {
         return 1;
     }
 
-    function submit(uint256 blockHeight, bytes calldata blockHeaders) external {
+    function submit(uint256, bytes calldata) external pure {
         return;
     }
 }
