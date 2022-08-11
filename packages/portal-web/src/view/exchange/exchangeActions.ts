@@ -4,8 +4,8 @@ import { Order } from "../../model/Orderbook";
 export type ModalInfo =
   | { type: "none" }
   | { type: "please-connect" }
-  | { type: "bid"; amountSats: number; tokPerSat: number }
-  | { type: "ask"; amountSats: number; tokPerSat: number }
+  | { type: "bid"; amountSats: number; tps: number }
+  | { type: "ask"; amountSats: number; tps: number }
   | { type: "buy"; order: Order; amountSats: number }
   | { type: "sell"; order: Order; amountSats: number }
   | { type: "cancel"; order: Order }

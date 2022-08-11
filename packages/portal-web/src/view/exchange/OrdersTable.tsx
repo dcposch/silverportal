@@ -59,10 +59,10 @@ function OrderRow({
   if (!isOurs && nthBest >= TOP_N) return null;
 
   const amountSats = toFloat64(o.amountSats);
-  const priceTokPerSat = toFloat64(o.priceTokPerSat);
+  const priceTps = toFloat64(o.priceTps);
   const type = amountSats < 0 ? "BID" : "ASK";
   const amountBtc = Math.abs(amountSats / 1e8).toFixed(4);
-  const pricePerBtc = (priceTokPerSat / 1e10).toFixed(4);
+  const pricePerBtc = (priceTps / 1e10).toFixed(4);
 
   let orderAction: ModalInfo, orderLabel: string;
   if (isOurs) {

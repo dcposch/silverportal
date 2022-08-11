@@ -121,7 +121,7 @@
       {
         "indexed": false,
         "internalType": "uint128",
-        "name": "priceTokPerSat",
+        "name": "priceTps",
         "type": "uint128"
       },
       {
@@ -176,7 +176,7 @@
       {
         "indexed": false,
         "internalType": "uint128",
-        "name": "priceTokPerSat",
+        "name": "priceTps",
         "type": "uint128"
       },
       {
@@ -334,7 +334,7 @@
       { "internalType": "int128", "name": "amountSats", "type": "int128" },
       {
         "internalType": "uint128",
-        "name": "priceTokPerSat",
+        "name": "priceTps",
         "type": "uint128"
       },
       { "internalType": "bytes20", "name": "scriptHash", "type": "bytes20" },
@@ -355,7 +355,7 @@
       { "internalType": "uint256", "name": "amountSats", "type": "uint256" },
       {
         "internalType": "uint256",
-        "name": "priceTokPerSat",
+        "name": "priceTps",
         "type": "uint256"
       },
       { "internalType": "bytes20", "name": "scriptHash", "type": "bytes20" }
@@ -370,7 +370,7 @@
   {
     "inputs": [
       { "internalType": "uint256", "name": "amountSats", "type": "uint256" },
-      { "internalType": "uint256", "name": "priceTokPerSat", "type": "uint256" }
+      { "internalType": "uint256", "name": "priceTps", "type": "uint256" }
     ],
     "name": "postBid",
     "outputs": [

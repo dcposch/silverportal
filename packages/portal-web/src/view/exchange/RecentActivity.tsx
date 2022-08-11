@@ -133,10 +133,10 @@ function OrderCancelledRow({ log }: { log: LogPlusDesc }) {
 
 function OrderMatchedRow({ log }: { log: LogPlusDesc }) {
   const amountSats = log.desc.args[2] as BigNumber;
-  const priceTokPerSat = log.desc.args[3] as BigNumber;
-  const price = (1e10 / toFloat64(priceTokPerSat)).toFixed(4);
+  const priceTps = log.desc.args[3] as BigNumber;
+  const price = (1e10 / toFloat64(priceTps)).toFixed(4);
   const type = amountSats.isNegative() ? "Bought" : "Sold";
-  const totalWei = toFloat64(amountSats.mul(priceTokPerSat));
+  const totalWei = toFloat64(amountSats.mul(priceTps));
   const orderID = log.desc.args[1].toNumber();
 
   return (

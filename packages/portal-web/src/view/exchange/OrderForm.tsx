@@ -15,18 +15,17 @@ export default class OrderForm extends React.PureComponent<OrderFormProps> {
     tokTo: "WBTC",
     amountSats: 0,
     amountTok: 0,
-    limitPriceTokPerSat: 0,
+    limitPriceTps: 0,
     error: "",
     orderToFill: undefined as Order,
   };
 
   render() {
     console.log("Rendering OrderForm");
-    const { tokFrom, tokTo, amountTok, amountSats, limitPriceTokPerSat } =
-      this.state;
+    const { tokFrom, tokTo, amountTok, amountSats, limitPriceTps } = this.state;
 
-    const isLimit = limitPriceTokPerSat > 0;
-    const limitPriceStr = ((limitPriceTokPerSat * 1e8) / 1e18).toFixed(4);
+    const isLimit = limitPriceTps > 0;
+    const limitPriceStr = ((limitPriceTps * 1e8) / 1e18).toFixed(4);
     const marketPriceStr = ((amountTok / 1e18 / amountSats) * 1e8).toFixed(4);
     const showPrice = isLimit || (amountTok > 0 && amountSats > 0);
 
@@ -102,15 +101,15 @@ export default class OrderForm extends React.PureComponent<OrderFormProps> {
 
   trade = () => {
     const { dispatch } = this.props;
-    const { tokTo, amountSats, orderToFill, limitPriceTokPerSat } = this.state;
+    const { tokTo, amountSats, orderToFill, limitPriceTps } = this.state;
 
     const isBuy = tokTo === "BTC";
-    const isLimit = limitPriceTokPerSat > 0;
+    const isLimit = limitPriceTps > 0;
 
     if (isLimit) {
-      const tokPerSat = limitPriceTokPerSat;
-      if (isBuy) dispatch({ type: "bid", amountSats, tokPerSat });
-      else dispatch({ type: "ask", amountSats, tokPerSat });
+      const tps = limitPriceTps;
+      if (isBuy) dispatch({ type: "bid", amountSats, tps });
+      else dispatch({ type: "ask", amountSats, tps });
     } else {
       const order = orderToFill;
       dispatch({ type: "buy", amountSats, order });
@@ -120,8 +119,8 @@ export default class OrderForm extends React.PureComponent<OrderFormProps> {
 
   setIsLimit = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { checked } = e.target;
-    const limitTokPerSat = checked ? this.getMidMarketOr1() : 0;
-    this.calcPrice(undefined, limitTokPerSat);
+    const limitTps = checked ? this.getMidMarketOr1() : 0;
+    this.calcPrice(undefined, limitTps);
   };
 
   selectLimitPrice = (e: React.FocusEvent<HTMLInputElement>) => {
@@ -130,9 +129,9 @@ export default class OrderForm extends React.PureComponent<OrderFormProps> {
 
   setLimitPrice = (e: React.ChangeEvent<HTMLInputElement>) => {
     const pricePerBtc = parseFloat(e.target.value);
-    const limitTokPerSat = Math.round(pricePerBtc * 1e10);
-    if (!(limitTokPerSat > 0)) return;
-    this.calcPrice(undefined, limitTokPerSat);
+    const limitTps = Math.round(pricePerBtc * 1e10);
+    if (!(limitTps > 0)) return;
+    this.calcPrice(undefined, limitTps);
   };
 
   /** Gets the mid-market price, in tokens per satoshi, or 1. Always >0. */
@@ -162,16 +161,16 @@ export default class OrderForm extends React.PureComponent<OrderFormProps> {
     this.calcPrice(amountSats, undefined);
   };
 
-  calcPrice = (amountSats?: number, limitPriceTokPerSat?: number) => {
+  calcPrice = (amountSats?: number, limitPriceTps?: number) => {
     const { orders } = this.props;
     const { tokTo } = this.state;
 
     if (amountSats == null) amountSats = this.state.amountSats;
-    if (limitPriceTokPerSat == null) {
-      limitPriceTokPerSat = this.state.limitPriceTokPerSat;
+    if (limitPriceTps == null) {
+      limitPriceTps = this.state.limitPriceTps;
     }
 
-    const isLimit = limitPriceTokPerSat > 0;
+    const isLimit = limitPriceTps > 0;
     const isBuy = tokTo === "BTC";
     console.log(
       `calcPrice limit ${isLimit} buy ${isBuy} btc ${amountSats / 1e8}`
@@ -184,13 +183,13 @@ export default class OrderForm extends React.PureComponent<OrderFormProps> {
       error = "Failed to load orderbook, offline?";
     } else if (isLimit) {
       const bbo = orders.getBestBidAsk();
-      console.log(`Limit order @ ${limitPriceTokPerSat}, bbo ${bbo.join("/")}`);
-      if (isBuy && bbo[1] && limitPriceTokPerSat >= bbo[1]) {
+      console.log(`Limit order @ ${limitPriceTps}, bbo ${bbo.join("/")}`);
+      if (isBuy && bbo[1] && limitPriceTps >= bbo[1]) {
         error = "Bid too high, crosses the market";
-      } else if (!isBuy && bbo[0] && limitPriceTokPerSat <= bbo[0]) {
+      } else if (!isBuy && bbo[0] && limitPriceTps <= bbo[0]) {
         error = "Ask too low, crosses the market";
       } else {
-        amountTok = limitPriceTokPerSat * amountSats;
+        amountTok = limitPriceTps * amountSats;
       }
     } else {
       const liquidityOrders = isBuy ? orders.asks : orders.bids;
@@ -202,14 +201,14 @@ export default class OrderForm extends React.PureComponent<OrderFormProps> {
       if (orderToFill == null) {
         error = "Not enough liquidity, try limit order";
       } else {
-        amountTok = orderToFill.priceTokPerSat.toNumber() * amountSats;
+        amountTok = orderToFill.priceTps.toNumber() * amountSats;
       }
     }
 
     this.setState({
       amountSats,
       amountTok,
-      limitPriceTokPerSat,
+      limitPriceTps,
       orderToFill,
       error,
     });

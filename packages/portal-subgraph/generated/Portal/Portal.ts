@@ -7,7 +7,7 @@ import {
   Entity,
   Bytes,
   Address,
-  BigInt
+  BigInt,
 } from "@graphprotocol/graph-ts";
 
 export class EscrowSettled extends ethereum.Event {
@@ -117,7 +117,7 @@ export class OrderMatched__Params {
     return this._event.parameters[3].value.toBigInt();
   }
 
-  get priceTokPerSat(): BigInt {
+  get priceTps(): BigInt {
     return this._event.parameters[4].value.toBigInt();
   }
 
@@ -163,7 +163,7 @@ export class OrderPlaced__Params {
     return this._event.parameters[1].value.toBigInt();
   }
 
-  get priceTokPerSat(): BigInt {
+  get priceTps(): BigInt {
     return this._event.parameters[2].value.toBigInt();
   }
 
@@ -323,7 +323,7 @@ export class Portal__orderbookResult {
     return this.value1;
   }
 
-  getPriceTokPerSat(): BigInt {
+  getPriceTps(): BigInt {
     return this.value2;
   }
 
@@ -685,7 +685,7 @@ export class PostAskCall__Inputs {
     return this._call.inputValues[0].value.toBigInt();
   }
 
-  get priceTokPerSat(): BigInt {
+  get priceTps(): BigInt {
     return this._call.inputValues[1].value.toBigInt();
   }
 
@@ -727,7 +727,7 @@ export class PostBidCall__Inputs {
     return this._call.inputValues[0].value.toBigInt();
   }
 
-  get priceTokPerSat(): BigInt {
+  get priceTps(): BigInt {
     return this._call.inputValues[1].value.toBigInt();
   }
 }

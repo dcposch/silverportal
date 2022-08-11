@@ -11,7 +11,7 @@ contract PortalTest is Test {
     event OrderPlaced(
         uint256 orderID,
         int128 amountSats,
-        uint128 priceTokPerSat,
+        uint128 priceTps,
         uint256 makerStakedWei,
         address maker
     );
@@ -23,7 +23,7 @@ contract PortalTest is Test {
         uint256 orderID,
         int128 amountSats,
         int128 amountSatsFilled,
-        uint128 priceTokPerSat,
+        uint128 priceTps,
         uint256 takerStakedWei,
         uint128 deadline,
         address maker,
@@ -67,11 +67,11 @@ contract PortalTest is Test {
         p.setBtcVerifier(IBtcTxVerifier(address(1234)));
         assertEq(address(p.btcVerifier()), address(1234));
 
-        // // Burn our ownership
+        // Burn our ownership
         p.setOwner(address(0));
         assertEq(address(p.owner()), address(0));
 
-        // // Ensure we can no longer set params
+        // Ensure we can no longer set params
         vm.expectRevert(bytes("UNAUTHORIZED"));
         p.setStakePercent(0);
         vm.expectRevert(bytes("UNAUTHORIZED"));
@@ -83,7 +83,7 @@ contract PortalTest is Test {
     function testAsk() public returns (Portal p) {
         p = new Portal(ETH, 5, new StubBtcTxVerifier(false));
 
-        // Test a successful bid
+        // Test a successful ask
         uint256 stakeWei = 1 ether; /* 1 ETH = 5% of 1 * 20 ETH */
         vm.expectEmit(true, true, true, true);
         emit OrderPlaced(1, 1e8, 20e10, 1e18, address(this));
@@ -93,7 +93,7 @@ contract PortalTest is Test {
         );
         assertEq(orderId, 1);
 
-        // Test invalid bids
+        // Test invalid asks
         vm.expectRevert(bytes("Wrong payment"));
         p.postAsk{value: 9e17}(1e8, 20e10);
 
@@ -114,7 +114,7 @@ contract PortalTest is Test {
         p = new Portal(ETH, 5, new StubBtcTxVerifier(false));
         bytes20 destScriptHash = hex"0011223344556677889900112233445566778899";
 
-        // Test a successful ask
+        // Test a successful bid
         vm.expectEmit(true, true, true, true);
         emit OrderPlaced(1, -1e8, 20e10, 0, address(this));
         uint256 orderId = p.postBid{value: 20 ether}(
@@ -124,7 +124,7 @@ contract PortalTest is Test {
         );
         assertEq(orderId, 1);
 
-        // Test invalid bids
+        // Test invalid asks
         vm.expectRevert(bytes("Wrong payment"));
         p.postBid{value: 21 ether}(1e8, 20e10, destScriptHash);
 
@@ -144,10 +144,8 @@ contract PortalTest is Test {
     function testSell() public returns (Portal p) {
         p = testBid();
 
-        // Hit the ask. Buy 1 BTC for 20 ETH.
-        // uint256 orderID = 1;
-
-        // Invalid buys first...
+        // Hit the bid. Sell 1 BTC for 20 ETH.
+        // Invalid sells first...
         vm.expectRevert(bytes("Wrong payment"));
         p.initiateSell(1, 1e8);
 
@@ -155,6 +153,7 @@ contract PortalTest is Test {
         uint256 escrowID = p.initiateSell{value: 1 ether}(1, 1e8);
         assertEq(escrowID, 1);
 
+        // Then, try to do it again; order is already filled.
         vm.expectRevert(bytes("Order already filled"));
         p.initiateSell{value: 0.1 ether}(1, 1e7);
     }
@@ -162,21 +161,14 @@ contract PortalTest is Test {
     function testPartialSell() public returns (Portal p) {
         p = testBid();
 
-        // Hit the ask. Sell 1 BTC for 20 ETH.
-        // uint256 orderID = 1;
-
-        // Invalid buys first...
-        vm.expectRevert(bytes("Wrong payment"));
-        p.initiateSell(1, 1e8);
-
-        // Then, do it right. Stake 5% = 1 ETH.
+        // Sell 0.1BTC for 2 ETH. Stake 5% = 0.1 ETH.
         uint256 escrowID = p.initiateSell{value: 0.1 ether}(1, 1e7);
         assertEq(escrowID, 1);
 
         vm.expectRevert(bytes("Escrow collision, please retry"));
         p.initiateSell{value: 0.1 ether}(1, 1e7);
 
-        // Fill out the rest of the order
+        // Fill out the rest of the order. Sell 0.9BTC for 18ETH.
         escrowID = p.initiateSell{value: 0.9 ether}(1, 1e8 - 1e7);
         assertEq(escrowID, 2);
 
@@ -188,18 +180,18 @@ contract PortalTest is Test {
     function testBuy() public returns (Portal p) {
         p = testAsk();
 
-        // Hit the bid. Sell 1 BTC for 20 ETH.
+        // Hit the ask. Buy 1 BTC for 20 ETH.
         uint256 orderID = 1;
         bytes20 destScriptHash = hex"0011223344556677889900112233445566778899";
 
-        // Invalid sells first...
+        // Invalid buys first...
         vm.expectRevert(bytes("Wrong payment"));
         p.initiateBuy(orderID, 1e8, destScriptHash);
 
         vm.expectRevert(bytes("Amount incorrect"));
         p.initiateBuy(orderID, 9e23, destScriptHash);
 
-        // Valid sell
+        // Valid buy
         address alice = address(this);
         address bob = address(this);
         vm.expectEmit(true, true, true, true);
@@ -222,7 +214,7 @@ contract PortalTest is Test {
         );
         assertEq(escrowID, 1);
 
-        // Try again. Bid should be filled now.
+        // Try again. Order should be filled now.
         vm.expectRevert(bytes("Order already filled"));
         p.initiateBuy{value: 20 ether}(orderID, 1e8, destScriptHash);
     }
@@ -230,11 +222,9 @@ contract PortalTest is Test {
     function testPartialBuy() public returns (Portal p) {
         p = testAsk();
 
-        // Hit the bid. Buy 1 BTC for 20 ETH.
+        // Hit the ask. Buy 0.1BTC for 2 ETH.
         uint256 orderID = 1;
         bytes20 destScriptHash = hex"0011223344556677889900112233445566778899";
-
-        // Valid sell
         address alice = address(this);
         address bob = address(this);
         vm.expectEmit(true, true, true, true);
@@ -257,13 +247,15 @@ contract PortalTest is Test {
         );
         assertEq(escrowID, 1);
 
+        // Try the exact same amount and destination again.
+        // This fails. Every open escrow must be unique.
         vm.expectRevert(bytes("Escrow collision, please retry"));
         p.initiateBuy{value: 2 ether}(orderID, 1e7, destScriptHash);
 
-        // Take the rest of the order
+        // Take the rest of the order.
         p.initiateBuy{value: 18 ether}(orderID, 1e8 - 1e7, destScriptHash);
 
-        // Try again. Bid should be filled now.
+        // Try again. Order should be filled now.
         vm.expectRevert(bytes("Order already filled"));
         p.initiateBuy{value: 20 ether}(orderID, 1e8, destScriptHash);
     }
@@ -399,6 +391,66 @@ contract PortalTest is Test {
         vm.expectEmit(true, true, true, true);
         emit EscrowSettled(2, 1e8 - 1e7, address(this), 18.9 ether);
         p.proveSettlement(2, 1234, proof, 12);
+    }
+
+    function testWbtc() public returns (Portal p) {
+        StubWbtc wbtc = new StubWbtc();
+        p = new Portal(wbtc, 5, new StubBtcTxVerifier(true));
+        uint256 initTok = 100 * 1e8;
+        wbtc.cheatDeposit(initTok); // Give ourselves 100BTC
+        wbtc.approve(address(p), 2**256 - 1); // Approve Portal to spend it
+
+        // Sell 10 BTC, asking 10.1 WBTC
+        // 1.01 tokens per bitcoin = 1.01e10 "wei"(=1e-18 token) per satoshi
+        uint128 priceTps = 101e8;
+        uint256 stakeTok = 5050_0000; // 0.505 WBTC = 5% of the total
+        vm.expectEmit(true, true, true, true);
+        emit OrderPlaced(1, 10e8, priceTps, stakeTok, address(this));
+        uint256 orderId = p.postAsk(10e8, priceTps);
+        assertEq(orderId, 1);
+        assertEq(wbtc.balanceOf(address(this)), initTok - stakeTok);
+
+        // Hit the ask. Buy 5 BTC for 5.05 WBTC.
+        uint256 buyTok = 5_0500_0000; // 5.05 WBTC
+        bytes20 destScriptHash = hex"9988776655443322110000112233445566778899";
+        vm.expectEmit(true, true, true, true);
+        emit OrderMatched(
+            1,
+            orderId,
+            10e8,
+            5e8,
+            priceTps,
+            0,
+            uint128(block.timestamp + 24 hours),
+            address(this),
+            address(this),
+            destScriptHash
+        );
+        uint256 escrowID = p.initiateBuy(1, 5e8, destScriptHash);
+        assertEq(escrowID, 1);
+        assertEq(wbtc.balanceOf(address(this)), initTok - stakeTok - buyTok);
+
+        // Check that the escrow looks correct
+        assertEq(p.btcVerifier().mirror().getLatestBlockHeight(), 1000);
+        bytes32 destKey = keccak256(abi.encode(destScriptHash, uint256(5e8)));
+        assertEq(p.openEscrows(destKey), 999);
+
+        // Close escrow. Since we filled half our order, we get half stake back.
+        BtcTxProof memory proof;
+        p.proveSettlement(1, 1000, proof, 0);
+        assertEq(wbtc.balanceOf(address(this)), initTok - stakeTok / 2);
+
+        // Cancel the remaining order. We should be precisely back to start.
+        p.cancelOrder(1);
+        assertEq(wbtc.balanceOf(address(this)), initTok);
+    }
+}
+
+contract StubWbtc is ERC20 {
+    constructor() ERC20("Wrapped BTC", "WBTC", 8) {}
+
+    function cheatDeposit(uint256 tok) public {
+        balanceOf[msg.sender] += tok;
     }
 }
 

@@ -8,7 +8,7 @@ import {
   store,
   Bytes,
   BigInt,
-  BigDecimal
+  BigDecimal,
 } from "@graphprotocol/graph-ts";
 
 export class Order extends Entity {
@@ -60,13 +60,13 @@ export class Order extends Entity {
     this.set("amountSats", Value.fromBigInt(value));
   }
 
-  get priceTokPerSat(): BigInt {
-    let value = this.get("priceTokPerSat");
+  get priceTps(): BigInt {
+    let value = this.get("priceTps");
     return value!.toBigInt();
   }
 
-  set priceTokPerSat(value: BigInt) {
-    this.set("priceTokPerSat", Value.fromBigInt(value));
+  set priceTps(value: BigInt) {
+    this.set("priceTps", Value.fromBigInt(value));
   }
 
   get stakedTok(): BigInt | null {

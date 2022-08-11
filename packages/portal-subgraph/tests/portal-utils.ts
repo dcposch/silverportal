@@ -1,5 +1,5 @@
-import { newMockEvent } from "matchstick-as"
-import { ethereum, BigInt, Address, Bytes } from "@graphprotocol/graph-ts"
+import { newMockEvent } from "matchstick-as";
+import { ethereum, BigInt, Address, Bytes } from "@graphprotocol/graph-ts";
 import {
   EscrowSettled,
   EscrowSlashed,
@@ -7,8 +7,8 @@ import {
   OrderMatched,
   OrderPlaced,
   OwnerUpdated,
-  ParamUpdated
-} from "../generated/Portal/Portal"
+  ParamUpdated,
+} from "../generated/Portal/Portal";
 
 export function createEscrowSettledEvent(
   escrowID: BigInt,
@@ -16,33 +16,33 @@ export function createEscrowSettledEvent(
   ethDest: Address,
   ethAmount: BigInt
 ): EscrowSettled {
-  let escrowSettledEvent = changetype<EscrowSettled>(newMockEvent())
+  let escrowSettledEvent = changetype<EscrowSettled>(newMockEvent());
 
-  escrowSettledEvent.parameters = new Array()
+  escrowSettledEvent.parameters = new Array();
 
   escrowSettledEvent.parameters.push(
     new ethereum.EventParam(
       "escrowID",
       ethereum.Value.fromUnsignedBigInt(escrowID)
     )
-  )
+  );
   escrowSettledEvent.parameters.push(
     new ethereum.EventParam(
       "amountSats",
       ethereum.Value.fromUnsignedBigInt(amountSats)
     )
-  )
+  );
   escrowSettledEvent.parameters.push(
     new ethereum.EventParam("ethDest", ethereum.Value.fromAddress(ethDest))
-  )
+  );
   escrowSettledEvent.parameters.push(
     new ethereum.EventParam(
       "ethAmount",
       ethereum.Value.fromUnsignedBigInt(ethAmount)
     )
-  )
+  );
 
-  return escrowSettledEvent
+  return escrowSettledEvent;
 }
 
 export function createEscrowSlashedEvent(
@@ -51,48 +51,48 @@ export function createEscrowSlashedEvent(
   ethDest: Address,
   ethAmount: BigInt
 ): EscrowSlashed {
-  let escrowSlashedEvent = changetype<EscrowSlashed>(newMockEvent())
+  let escrowSlashedEvent = changetype<EscrowSlashed>(newMockEvent());
 
-  escrowSlashedEvent.parameters = new Array()
+  escrowSlashedEvent.parameters = new Array();
 
   escrowSlashedEvent.parameters.push(
     new ethereum.EventParam(
       "escrowID",
       ethereum.Value.fromUnsignedBigInt(escrowID)
     )
-  )
+  );
   escrowSlashedEvent.parameters.push(
     new ethereum.EventParam(
       "escrowDeadline",
       ethereum.Value.fromUnsignedBigInt(escrowDeadline)
     )
-  )
+  );
   escrowSlashedEvent.parameters.push(
     new ethereum.EventParam("ethDest", ethereum.Value.fromAddress(ethDest))
-  )
+  );
   escrowSlashedEvent.parameters.push(
     new ethereum.EventParam(
       "ethAmount",
       ethereum.Value.fromUnsignedBigInt(ethAmount)
     )
-  )
+  );
 
-  return escrowSlashedEvent
+  return escrowSlashedEvent;
 }
 
 export function createOrderCancelledEvent(orderID: BigInt): OrderCancelled {
-  let orderCancelledEvent = changetype<OrderCancelled>(newMockEvent())
+  let orderCancelledEvent = changetype<OrderCancelled>(newMockEvent());
 
-  orderCancelledEvent.parameters = new Array()
+  orderCancelledEvent.parameters = new Array();
 
   orderCancelledEvent.parameters.push(
     new ethereum.EventParam(
       "orderID",
       ethereum.Value.fromUnsignedBigInt(orderID)
     )
-  )
+  );
 
-  return orderCancelledEvent
+  return orderCancelledEvent;
 }
 
 export function createOrderMatchedEvent(
@@ -100,130 +100,133 @@ export function createOrderMatchedEvent(
   orderID: BigInt,
   amountSats: BigInt,
   amountSatsFilled: BigInt,
-  priceTokPerSat: BigInt,
+  priceTps: BigInt,
   takerStakedTok: BigInt,
   deadline: BigInt,
   maker: Address,
   taker: Address,
-  destScriptHash: Bytes,
+  destScriptHash: Bytes
 ): OrderMatched {
-  let orderMatchedEvent = changetype<OrderMatched>(newMockEvent())
+  let orderMatchedEvent = changetype<OrderMatched>(newMockEvent());
 
-  orderMatchedEvent.parameters = new Array()
+  orderMatchedEvent.parameters = new Array();
 
   orderMatchedEvent.parameters.push(
     new ethereum.EventParam(
       "escrowID",
       ethereum.Value.fromUnsignedBigInt(escrowID)
     )
-  )
+  );
   orderMatchedEvent.parameters.push(
     new ethereum.EventParam(
       "orderID",
       ethereum.Value.fromUnsignedBigInt(orderID)
     )
-  )
+  );
   orderMatchedEvent.parameters.push(
     new ethereum.EventParam(
       "amountSats",
       ethereum.Value.fromSignedBigInt(amountSats)
     )
-  )
+  );
   orderMatchedEvent.parameters.push(
     new ethereum.EventParam(
       "amountSatsFilled",
       ethereum.Value.fromSignedBigInt(amountSatsFilled)
     )
-  )
+  );
   orderMatchedEvent.parameters.push(
     new ethereum.EventParam(
-      "priceTokPerSat",
-      ethereum.Value.fromUnsignedBigInt(priceTokPerSat)
+      "priceTps",
+      ethereum.Value.fromUnsignedBigInt(priceTps)
     )
-  )
+  );
   orderMatchedEvent.parameters.push(
     new ethereum.EventParam(
       "takerStakedTok",
       ethereum.Value.fromUnsignedBigInt(takerStakedTok)
     )
-  )
+  );
   orderMatchedEvent.parameters.push(
     new ethereum.EventParam(
       "deadline",
       ethereum.Value.fromUnsignedBigInt(deadline)
     )
-  )
+  );
   orderMatchedEvent.parameters.push(
     new ethereum.EventParam("maker", ethereum.Value.fromAddress(maker))
-  )
+  );
   orderMatchedEvent.parameters.push(
     new ethereum.EventParam("taker", ethereum.Value.fromAddress(taker))
-  )
+  );
   orderMatchedEvent.parameters.push(
-    new ethereum.EventParam("destScriptHash", ethereum.Value.fromBytes(destScriptHash))
-  )
+    new ethereum.EventParam(
+      "destScriptHash",
+      ethereum.Value.fromBytes(destScriptHash)
+    )
+  );
 
-  return orderMatchedEvent
+  return orderMatchedEvent;
 }
 
 export function createOrderPlacedEvent(
   orderID: BigInt,
   amountSats: BigInt,
-  priceTokPerSat: BigInt,
+  priceTps: BigInt,
   makerStakedTok: BigInt,
   maker: Address
 ): OrderPlaced {
-  let orderPlacedEvent = changetype<OrderPlaced>(newMockEvent())
+  let orderPlacedEvent = changetype<OrderPlaced>(newMockEvent());
 
-  orderPlacedEvent.parameters = new Array()
+  orderPlacedEvent.parameters = new Array();
 
   orderPlacedEvent.parameters.push(
     new ethereum.EventParam(
       "orderID",
       ethereum.Value.fromUnsignedBigInt(orderID)
     )
-  )
+  );
   orderPlacedEvent.parameters.push(
     new ethereum.EventParam(
       "amountSats",
       ethereum.Value.fromSignedBigInt(amountSats)
     )
-  )
+  );
   orderPlacedEvent.parameters.push(
     new ethereum.EventParam(
-      "priceTokPerSat",
-      ethereum.Value.fromUnsignedBigInt(priceTokPerSat)
+      "priceTps",
+      ethereum.Value.fromUnsignedBigInt(priceTps)
     )
-  )
+  );
   orderPlacedEvent.parameters.push(
     new ethereum.EventParam(
       "makerStakedTok",
       ethereum.Value.fromUnsignedBigInt(makerStakedTok)
     )
-  )
+  );
   orderPlacedEvent.parameters.push(
     new ethereum.EventParam("maker", ethereum.Value.fromAddress(maker))
-  )
+  );
 
-  return orderPlacedEvent
+  return orderPlacedEvent;
 }
 
 export function createOwnerUpdatedEvent(
   user: Address,
   newOwner: Address
 ): OwnerUpdated {
-  let ownerUpdatedEvent = changetype<OwnerUpdated>(newMockEvent())
+  let ownerUpdatedEvent = changetype<OwnerUpdated>(newMockEvent());
 
-  ownerUpdatedEvent.parameters = new Array()
+  ownerUpdatedEvent.parameters = new Array();
 
   ownerUpdatedEvent.parameters.push(
     new ethereum.EventParam("user", ethereum.Value.fromAddress(user))
-  )
+  );
   ownerUpdatedEvent.parameters.push(
     new ethereum.EventParam("newOwner", ethereum.Value.fromAddress(newOwner))
-  )
+  );
 
-  return ownerUpdatedEvent
+  return ownerUpdatedEvent;
 }
 
 export function createParamUpdatedEvent(
@@ -231,19 +234,19 @@ export function createParamUpdatedEvent(
   newVal: BigInt,
   name: string
 ): ParamUpdated {
-  let paramUpdatedEvent = changetype<ParamUpdated>(newMockEvent())
+  let paramUpdatedEvent = changetype<ParamUpdated>(newMockEvent());
 
-  paramUpdatedEvent.parameters = new Array()
+  paramUpdatedEvent.parameters = new Array();
 
   paramUpdatedEvent.parameters.push(
     new ethereum.EventParam("oldVal", ethereum.Value.fromUnsignedBigInt(oldVal))
-  )
+  );
   paramUpdatedEvent.parameters.push(
     new ethereum.EventParam("newVal", ethereum.Value.fromUnsignedBigInt(newVal))
-  )
+  );
   paramUpdatedEvent.parameters.push(
     new ethereum.EventParam("name", ethereum.Value.fromString(name))
-  )
+  );
 
-  return paramUpdatedEvent
+  return paramUpdatedEvent;
 }

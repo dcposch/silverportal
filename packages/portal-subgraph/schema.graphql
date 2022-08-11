@@ -13,9 +13,8 @@ type Order @entity {
 
   "Positive if buying ether (bid), negative if selling (ask)."
   amountSats: BigInt! # uint256
-
   "INVERSE price, in token units per sat."
-  priceTokPerSat: BigInt!
+  priceTps: BigInt!
 
   "Unused for ask. Staked token amount for bids."
   stakedTok: BigInt
@@ -56,5 +55,5 @@ type Escrow @entity {
   destScriptHash: String!
 
   "Status of the escrow"
-  status: EscrowStatus! 
+  status: EscrowStatus!
 }

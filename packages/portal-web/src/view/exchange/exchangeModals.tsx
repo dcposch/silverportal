@@ -207,7 +207,7 @@ class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
 type ConfirmOrderProps = TxModalProps & {
   type: "bid" | "ask";
   amountSats: number;
-  tokPerSat: number;
+  tps: number;
 };
 
 export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
@@ -220,11 +220,11 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
   };
 
   render() {
-    const { type, amountSats, tokPerSat } = this.props;
+    const { type, amountSats, tps } = this.props;
 
-    const priceStr = (tokPerSat / 1e10).toFixed(4);
+    const priceStr = (tps / 1e10).toFixed(4);
 
-    const totalWei = BigNumber.from(amountSats).mul(BigNumber.from(tokPerSat));
+    const totalWei = BigNumber.from(amountSats).mul(BigNumber.from(tps));
     const totalStr = (toFloat64(totalWei) / 1e18).toFixed(4);
     const stakeWei = this.calcStakeWei(totalWei);
     const stakeStr = (toFloat64(stakeWei) / 1e18).toFixed(4);
@@ -301,22 +301,22 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
 
   postAskTx = async () => {
     // Validate amounts
-    const { amountSats, tokPerSat } = this.props;
-    const totalWei = BigNumber.from(amountSats).mul(BigNumber.from(tokPerSat));
+    const { amountSats, tps } = this.props;
+    const totalWei = BigNumber.from(amountSats).mul(BigNumber.from(tps));
     const stakeWei = this.calcStakeWei(totalWei);
 
     // Send it
-    const pricePerBtc = tokPerSat / 1e10;
+    const pricePerBtc = tps / 1e10;
     const priceStr = pricePerBtc.toFixed(4);
     const description = `Ask ${priceStr} x ${amountSats / 1e8} BTC`;
     console.log(description, {
       amountSats,
-      priceTokPerSat: tokPerSat,
+      priceTps: tps,
       stakeWei,
     });
 
     const { portal } = this.props;
-    const tx = await portal.postAsk(amountSats, tokPerSat, {
+    const tx = await portal.postAsk(amountSats, tps, {
       value: stakeWei,
     });
 
@@ -325,8 +325,8 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
 
   postBidTx = async () => {
     // Validate amounts
-    const { amountSats, tokPerSat } = this.props;
-    const valueWei = BigNumber.from(amountSats).mul(BigNumber.from(tokPerSat));
+    const { amountSats, tps } = this.props;
+    const valueWei = BigNumber.from(amountSats).mul(BigNumber.from(tps));
 
     // Validate Bitcoin address
     const destAddr = parseBitcoinAddr(this.refDestAddr.current.value);
@@ -336,12 +336,12 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
     const scriptHash = destAddr.scriptHash;
 
     // Send
-    const priceStr = tokPerSat.toFixed(4);
+    const priceStr = tps.toFixed(4);
     const description = `Bid ${priceStr} x ${amountSats / 1e8} BTC`;
-    console.log(description, { tokPerSat, scriptHash, valueWei });
+    console.log(description, { tps, scriptHash, valueWei });
 
     const { portal } = this.props;
-    const tx = await portal.postBid(amountSats, tokPerSat, scriptHash, {
+    const tx = await portal.postBid(amountSats, tps, scriptHash, {
       value: valueWei,
     });
 
@@ -367,10 +367,10 @@ export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
   render() {
     const { type, amountSats, order } = this.props;
 
-    const tokPerSat = toFloat64(order.priceTokPerSat);
-    const priceStr = (tokPerSat / 1e10).toFixed(4);
+    const tps = toFloat64(order.priceTps);
+    const priceStr = (tps / 1e10).toFixed(4);
 
-    const totalWei = BigNumber.from(amountSats).mul(BigNumber.from(tokPerSat));
+    const totalWei = BigNumber.from(amountSats).mul(BigNumber.from(tps));
     const totalStr = (toFloat64(totalWei) / 1e18).toFixed(4);
     const stakeWei = this.calcStakeWei(totalWei);
     const stakeStr = (toFloat64(stakeWei) / 1e18).toFixed(4);
@@ -437,9 +437,9 @@ export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
   sellTx = async () => {
     // Calculate amounts
     const { order, params, portal } = this.props;
-    const { orderID, priceTokPerSat } = order;
+    const { orderID, priceTps } = order;
     const amountSats = order.amountSats.mul(-1);
-    const amountWei = priceTokPerSat.mul(amountSats);
+    const amountWei = priceTps.mul(amountSats);
     const stakeWei = amountWei.mul(params.stakePercent).div(100);
 
     // Send it
@@ -458,8 +458,8 @@ export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
   buyTx = async () => {
     // Calculate amount
     const { order, params, portal } = this.props;
-    const { orderID, amountSats, priceTokPerSat } = order;
-    const amountWei = priceTokPerSat.mul(amountSats);
+    const { orderID, amountSats, priceTps } = order;
+    const amountWei = priceTps.mul(amountSats);
 
     // Validate destination address
     const destAddrStr = this.refDestAddr.current.value;
@@ -505,11 +505,11 @@ export class CancelModal extends TxModal<OrderModalProps> {
 
   render() {
     const { order } = this.props;
-    const { amountSats, priceTokPerSat } = order;
+    const { amountSats, priceTps } = order;
     const aType = amountSats.isNegative() ? "an ask" : "a bid";
     let refundWei = toFloat64(order.stakedWei);
     if (aType === "an ask") {
-      refundWei -= toFloat64(priceTokPerSat.mul(amountSats));
+      refundWei -= toFloat64(priceTps.mul(amountSats));
     }
 
     return (

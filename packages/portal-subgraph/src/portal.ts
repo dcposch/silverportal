@@ -1,23 +1,29 @@
-import { BigInt, log } from "@graphprotocol/graph-ts"
+import { log } from "@graphprotocol/graph-ts";
 import {
-  Portal,
   EscrowSettled,
   EscrowSlashed,
   OrderCancelled,
   OrderMatched,
   OrderPlaced,
   OwnerUpdated,
-  ParamUpdated
-} from "../generated/Portal/Portal"
-import { Escrow, Order } from "../generated/schema"
-import { ESCROW_STATUS_PENDING, ESCROW_STATUS_SETTLED, ESCROW_STATUS_SLASHED, ORDER_STATUS_PENDING, ORDER_STATUS_FILLED, ORDER_STATUS_CANCELLED } from "./utils/constants";
+  ParamUpdated,
+} from "../generated/Portal/Portal";
+import { Escrow, Order } from "../generated/schema";
+import {
+  ESCROW_STATUS_PENDING,
+  ESCROW_STATUS_SETTLED,
+  ESCROW_STATUS_SLASHED,
+  ORDER_STATUS_PENDING,
+  ORDER_STATUS_FILLED,
+  ORDER_STATUS_CANCELLED,
+} from "./utils/constants";
 
 export function handleEscrowSettled(event: EscrowSettled): void {
   let escrowID = event.params.escrowID.toString();
   let escrow = Escrow.load(escrowID);
 
   if (!escrow) {
-    log.error('[handleEscrowSettled] Escrow #{} not found. Hash {}', [
+    log.error("[handleEscrowSettled] Escrow #{} not found. Hash {}", [
       escrowID,
       event.transaction.hash.toHex(),
     ]);
@@ -25,7 +31,7 @@ export function handleEscrowSettled(event: EscrowSettled): void {
   }
 
   escrow.status = ESCROW_STATUS_SETTLED;
-  escrow.save()
+  escrow.save();
 }
 
 export function handleEscrowSlashed(event: EscrowSlashed): void {
@@ -33,7 +39,7 @@ export function handleEscrowSlashed(event: EscrowSlashed): void {
   let escrow = Escrow.load(escrowID);
 
   if (!escrow) {
-    log.error('[handleEscrowSettled] Escrow #{} not found. Hash {}', [
+    log.error("[handleEscrowSettled] Escrow #{} not found. Hash {}", [
       escrowID,
       event.transaction.hash.toHex(),
     ]);
@@ -42,7 +48,7 @@ export function handleEscrowSlashed(event: EscrowSlashed): void {
 
   escrow.status = ESCROW_STATUS_SLASHED;
 
-  escrow.save()
+  escrow.save();
 }
 
 export function handleOrderCancelled(event: OrderCancelled): void {
@@ -50,7 +56,7 @@ export function handleOrderCancelled(event: OrderCancelled): void {
   let order = Order.load(orderID);
 
   if (!order) {
-    log.error('[handleOrderCancelled] Order #{} not found. Hash {}', [
+    log.error("[handleOrderCancelled] Order #{} not found. Hash {}", [
       orderID,
       event.transaction.hash.toHex(),
     ]);
@@ -59,7 +65,7 @@ export function handleOrderCancelled(event: OrderCancelled): void {
 
   order.status = ORDER_STATUS_CANCELLED;
 
-  order.save()
+  order.save();
 }
 
 export function handleOrderMatched(event: OrderMatched): void {
@@ -67,7 +73,7 @@ export function handleOrderMatched(event: OrderMatched): void {
   let order = Order.load(orderID);
 
   if (!order) {
-    log.error('[handleOrderMatched] Order #{} not found. Hash {}', [
+    log.error("[handleOrderMatched] Order #{} not found. Hash {}", [
       orderID,
       event.transaction.hash.toHex(),
     ]);
@@ -79,7 +85,7 @@ export function handleOrderMatched(event: OrderMatched): void {
     order.status = ORDER_STATUS_FILLED;
   }
   order.amountSats -= orderSats;
-  order.save()
+  order.save();
 
   let escrow = new Escrow(event.params.escrowID.toString());
   escrow.order = orderID;
@@ -98,10 +104,10 @@ export function handleOrderPlaced(event: OrderPlaced): void {
   let order = new Order(orderID);
   order.maker = event.params.maker.toHexString();
   order.amountSats = event.params.amountSats;
-  order.priceTokPerSat = event.params.priceTokPerSat;
+  order.priceTps = event.params.priceTps;
   order.stakedTok = event.params.makerStakedTok;
   order.status = ORDER_STATUS_PENDING;
-  order.save()
+  order.save();
 }
 
 export function handleOwnerUpdated(event: OwnerUpdated): void {}

@@ -53,7 +53,7 @@ export async function loadOrderbook(portal: Portal): Promise<Orderbook> {
           orderID: i + 1,
           maker: o[0],
           amountSats: o[1],
-          priceTokPerSat: o[2],
+          priceTps: o[2],
           scriptHash: o[3],
           stakedWei: o[4],
         } as Order)
