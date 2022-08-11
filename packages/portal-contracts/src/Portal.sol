@@ -3,7 +3,7 @@ pragma solidity >=0.8.0;
 
 import "btcmirror/interfaces/IBtcTxVerifier.sol";
 import "solmate/auth/Owned.sol";
-import "openzeppelin-contracts/interfaces/IERC20.sol";
+import "solmate/tokens/ERC20.sol";
 
 //
 //                                        #
@@ -28,7 +28,8 @@ import "openzeppelin-contracts/interfaces/IERC20.sol";
 
 // Max order size: 21m BTC
 uint256 constant MAX_SATS = 21e6 * 1e8;
-// Max allowed price: 1sat = 1WETH or 1e18 of another ERC20 token.
+// Max allowed price: 1sat = 1 token.
+// All prices are stored
 uint256 constant MAX_PRICE_TOK_PER_SAT = 1e18;
 
 /**
@@ -46,7 +47,7 @@ struct Order {
     /**
      * @dev INVERSE price, in token units per sat.
      */
-    uint128 priceTokPerSat;
+    uint128 priceTweiPerSat;
     /**
      * @dev Unused for bid. Bitcoin P2SH address for asks.
      */
@@ -94,7 +95,7 @@ contract Portal is Owned {
     event OrderPlaced(
         uint256 orderID,
         int128 amountSats,
-        uint128 priceTokPerSat,
+        uint128 priceTweiPerSat,
         uint256 makerStakedTok,
         address maker
     );
@@ -106,7 +107,7 @@ contract Portal is Owned {
         uint256 orderID,
         int128 amountSats,
         int128 amountSatsFilled,
-        uint128 priceTokPerSat,
+        uint128 priceTweiPerSat,
         uint256 takerStakedTok,
         uint128 deadline,
         address maker,
@@ -131,9 +132,14 @@ contract Portal is Owned {
     event ParamUpdated(uint256 oldVal, uint256 newVal, string name);
 
     /**
-     * The token we are trading for BTC.
+     * @dev The token we are trading for BTC, or address(0) for ETH.
      */
-    IERC20 public immutable token;
+    ERC20 public immutable token;
+
+    /**
+     * @dev Token decimals. 18 for ETH/WETH, 8 for WBTC.
+     */
+    uint256 public immutable tokenDecimals;
 
     /**
      * @dev Required stake for buy transactions. If you promise to send X BTC to
@@ -153,12 +159,24 @@ contract Portal is Owned {
     IBtcTxVerifier public btcVerifier;
 
     /**
-     * @dev Tracks all available liquidity (bids and asks).
+     * @dev Minimum order size, in satoshis.
+     */
+    uint256 public minOrderSats;
+
+    /**
+     * @dev Price tick, in twei per satoshi.
+     *
+     * Importantly, 1 twei = 1e-18 tokens, regardless of tokenDecimals. This
+     * lets us represent accurate prices for tokens like WBTC.
+     */
+
+    /**
+     * @dev Tracks all available liquidity (bids and asks), by order ID.
      */
     mapping(uint256 => Order) public orderbook;
 
     /**
-     * @dev Tracks all pending transactions, by order ID.
+     * @dev Tracks all pending transactions, by escrow ID.
      */
     mapping(uint256 => Escrow) public escrows;
 
@@ -168,29 +186,43 @@ contract Portal is Owned {
     uint256 public nextOrderID;
 
     /**
-     * @dev Next escrow ID = number of fills/partial fills so far + 1.
+     * @dev Next escrow ID = number of fills so far + 1.
      */
     uint256 public nextEscrowID;
 
     /**
-     * @dev Tracks inflight escrows, and where we expect payments to come from.
+     * @dev Tracks in-flight escrows, and where we expect payments to come from.
      * Prevents using a single btc payment proof to close multiple escrows.
-     * Key is keccak(openEscrow, amountSats), and the value is the btc mirror block height.
-     * This means that no two inflight escrows to the same btc address can be for the same amountSats
+     *
+     * Key is keccak(destScriptHash, amountSats), and the value is the minimum
+     * BtcMirror block height at which this escrow may be settled.
+     *
+     * This means that no two open escrows can have an identical destination and
+     * amount. If an older (closed) escrow exists, the block height prevents
+     * proof re-use.
      */
     mapping(bytes32 => uint256) public openEscrows;
 
     constructor(
-        IERC20 _token,
+        ERC20 _token,
         uint256 _stakePercent,
         IBtcTxVerifier _btcVerifier
     ) Owned(msg.sender) {
+        // Immutable
         token = _token;
+        uint256 dec = 18;
+        if (address(_token) != address(0)) {
+            dec = _token.decimals();
+        }
+        tokenDecimals = dec;
+
+        // Mutable
         stakePercent = _stakePercent;
         btcVerifier = _btcVerifier;
+        minConfirmations = 1;
+
         nextOrderID = 1;
         nextEscrowID = 1;
-        minConfirmations = 1;
     }
 
     /**
@@ -221,12 +253,9 @@ contract Portal is Owned {
     }
 
     /**
-     * @notice Posts an ask. By calling this function, you represent that you
-     * have a stated amount of bitcoin, and are willing to buy ether
-     * at the stated price. You must stake a percentage of the total
-     * eth value, which is returned after a successful transaction.
+     * @notice Posts an ask, offering to sell bitcoin for tokens.
      */
-    function postAsk(uint256 amountSats, uint256 priceTokPerSat)
+    function postAsk(uint256 amountSats, uint256 priceTweiPerSat)
         public
         payable
         returns (uint256 orderID)
@@ -234,11 +263,11 @@ contract Portal is Owned {
         // Validate order and stake amount.
         require(amountSats <= MAX_SATS, "Amount overflow");
         require(amountSats > 0, "Amount underflow");
-        require(priceTokPerSat <= MAX_PRICE_TOK_PER_SAT, "Price overflow");
-        require(priceTokPerSat > 0, "Price underflow");
-        uint256 totalValueTok = amountSats * priceTokPerSat;
+        require(priceTweiPerSat <= MAX_PRICE_TOK_PER_SAT, "Price overflow");
+        require(priceTweiPerSat > 0, "Price underflow");
+        uint256 totalValueTok = amountSats * priceTweiPerSat;
         uint256 requiredStakeTok = (totalValueTok * stakePercent) / 100;
-        require(requiredStakeTok < 2**128, "stake must be < 2**128");
+        require(requiredStakeTok < 2**128, "Stake must be < 2**128");
 
         // Receive stake amount
         _transferFromSender(requiredStakeTok);
@@ -248,13 +277,13 @@ contract Portal is Owned {
         Order storage o = orderbook[orderID];
         o.maker = msg.sender;
         o.amountSats = int128(uint128(amountSats));
-        o.priceTokPerSat = uint128(priceTokPerSat);
+        o.priceTweiPerSat = uint128(priceTweiPerSat);
         o.stakedTok = requiredStakeTok;
 
         emit OrderPlaced(
             orderID,
             o.amountSats,
-            o.priceTokPerSat,
+            o.priceTweiPerSat,
             o.stakedTok,
             msg.sender
         );
@@ -266,29 +295,29 @@ contract Portal is Owned {
      */
     function postBid(
         uint256 amountSats,
-        uint256 priceTokPerSat,
+        uint256 priceTweiPerSat,
         bytes20 scriptHash
     ) public payable returns (uint256 orderID) {
-        require(priceTokPerSat <= MAX_PRICE_TOK_PER_SAT, "Price overflow");
-        require(priceTokPerSat > 0, "Price underflow");
+        require(priceTweiPerSat <= MAX_PRICE_TOK_PER_SAT, "Price overflow");
+        require(priceTweiPerSat > 0, "Price underflow");
         require(amountSats <= MAX_SATS, "Amount overflow");
         require(amountSats > 0, "Amount underflow");
 
         // Receive payment
-        _transferFromSender(amountSats * priceTokPerSat);
+        _transferFromSender(amountSats * priceTweiPerSat);
 
         // Record order.
         orderID = nextOrderID++;
         Order storage o = orderbook[orderID];
         o.maker = msg.sender;
         o.amountSats = -int128(uint128(amountSats));
-        o.priceTokPerSat = uint128(priceTokPerSat);
+        o.priceTweiPerSat = uint128(priceTweiPerSat);
         o.scriptHash = scriptHash;
 
         emit OrderPlaced(
             orderID,
             o.amountSats,
-            o.priceTokPerSat,
+            o.priceTweiPerSat,
             0,
             msg.sender
         );
@@ -306,7 +335,7 @@ contract Portal is Owned {
             tokToSend = o.stakedTok;
         } else {
             // Ask, return liquidity
-            tokToSend = uint256(uint128(-o.amountSats) * o.priceTokPerSat);
+            tokToSend = uint256(uint128(-o.amountSats) * o.priceTweiPerSat);
         }
 
         emit OrderCancelled(orderID);
@@ -332,7 +361,7 @@ contract Portal is Owned {
         require(-o.amountSats >= int128(amountSats), "Amount incorrect");
 
         // Verify correct stake amount.
-        uint256 totalTok = uint256(amountSats) * uint256(o.priceTokPerSat);
+        uint256 totalTok = uint256(amountSats) * uint256(o.priceTweiPerSat);
         uint256 expectedStakeTok = (totalTok * stakePercent) / 100;
 
         // Receive stake. Validates that msg.value == expectedStateTok (for ether based payments)
@@ -353,7 +382,7 @@ contract Portal is Owned {
             orderID,
             o.amountSats,
             int128(amountSats),
-            o.priceTokPerSat,
+            o.priceTweiPerSat,
             expectedStakeTok,
             e.deadline,
             o.maker,
@@ -385,7 +414,7 @@ contract Portal is Owned {
         require(o.amountSats > 0, "Order already filled"); // Must be a bid
         require(o.amountSats >= int128(amountSats), "Amount incorrect");
 
-        uint256 totalValue = amountSats * o.priceTokPerSat;
+        uint256 totalValue = amountSats * o.priceTweiPerSat;
         uint256 portionOfStake = (o.stakedTok * uint256(amountSats)) /
             uint256(uint128(o.amountSats));
 
@@ -410,7 +439,7 @@ contract Portal is Owned {
             orderID,
             o.amountSats,
             int128(amountSats),
-            o.priceTokPerSat,
+            o.priceTweiPerSat,
             0,
             e.deadline,
             o.maker,
@@ -515,7 +544,7 @@ contract Portal is Owned {
 
     function openEscrowKey(bytes20 scriptHash, uint256 amountSats)
         public
-        view
+        pure
         returns (bytes32)
     {
         return keccak256(abi.encode(scriptHash, amountSats));

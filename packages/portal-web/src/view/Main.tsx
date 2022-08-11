@@ -18,7 +18,7 @@ import rainbowTheme from "./rainbowKitTheme";
 const { chains, provider } = configureChains(
   [chain.ropsten, chain.optimism],
   [
-    infuraProvider({ infuraId: "c2098b0ca85643b1ad367c0f479c98f0" }),
+    infuraProvider({ apiKey: "c2098b0ca85643b1ad367c0f479c98f0" }),
     publicProvider(),
   ]
 );

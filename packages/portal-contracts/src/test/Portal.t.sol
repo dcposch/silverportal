@@ -42,12 +42,12 @@ contract PortalTest is Test {
         uint256 escrowID,
         uint256 escrowDeadline,
         address ethDest,
-        uint256 ethAmount
+        uint256 ethAmounts
     );
 
     event ParamUpdated(uint256 oldVal, uint256 newVal, string name);
 
-    IERC20 immutable ETH = IERC20(address(0x0));
+    ERC20 immutable ETH = ERC20(address(0x0));
 
     function testSetParam() public {
         // Create a new Portal. Verify default params.

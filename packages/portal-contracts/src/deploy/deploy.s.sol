@@ -7,9 +7,11 @@ import "btcmirror/BtcTxVerifier.sol";
 import "../Portal.sol";
 
 contract PortalDeploy is Script {
-    function run(bool mainnet, IERC20 token, BtcMirror existingMirror)
-        external
-    {
+    function run(
+        bool mainnet,
+        ERC20 token,
+        BtcMirror existingMirror
+    ) external {
         vm.startBroadcast();
 
         // DEPLOY MIRROR
