@@ -1,6 +1,6 @@
 import { NewTransaction } from "@rainbow-me/rainbowkit/dist/transactions/transactionStore";
 import * as React from "react";
-import { IERC20, Portal } from "../../../types/ethers-contracts";
+import { ERC20, Portal } from "../../../types/ethers-contracts";
 import {
   loadEscrowForAddr,
   loadOrderbook,
@@ -24,7 +24,7 @@ import OrderForm from "./OrderForm";
 import OrdersTable from "./OrdersTable";
 
 interface ExchangeProps {
-  portal: Portal & { wbtc: IERC20 };
+  portal: Portal & { wbtc: ERC20 };
   connectedAddress?: string;
   addRecentTransaction: (tx: NewTransaction) => void;
 }

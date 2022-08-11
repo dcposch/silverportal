@@ -1,9 +1,8 @@
 import { NewTransaction } from "@rainbow-me/rainbowkit/dist/transactions/transactionStore";
-import { formatMessages } from "esbuild";
 import { BigNumber, ContractTransaction, ethers } from "ethers";
 import * as React from "react";
 import { createRef } from "react";
-import { IERC20, Portal } from "../../../types/ethers-contracts";
+import { ERC20, Portal } from "../../../types/ethers-contracts";
 import { Escrow } from "../../model/Escrow";
 import { Order } from "../../model/Orderbook";
 import { PortalParams } from "../../model/PortalParams";
@@ -13,11 +12,11 @@ import { toFloat64 } from "../../utils/math";
 import { plural } from "../../utils/plural";
 import { createBtcPaymentProof } from "../../utils/prove-bitcoin-tx";
 import Addr from "../components/Addr";
-import Amount, { formatAmount } from "../components/Amount";
+import Amount from "../components/Amount";
 import Modal from "../components/Modal";
 
 interface TxModalProps {
-  portal: Portal & { wbtc: IERC20 };
+  portal: Portal & { wbtc: ERC20 };
   connectedAddress: string;
   params: PortalParams;
   bbo: number[];
@@ -64,7 +63,10 @@ class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
     const allowProm = wbtc.allowance(connectedAddress, portal.address);
     const balanceProm = wbtc.balanceOf(connectedAddress);
     const [allowance, balance] = await Promise.all([allowProm, balanceProm]);
-    console.log({ allowance : allowance.toString(), balance : balance.toString() });
+    console.log({
+      allowance: allowance.toString(),
+      balance: balance.toString(),
+    });
 
     this.setState({ tokenAllowance: allowance, tokenBalance: balance });
   }
@@ -103,11 +105,11 @@ class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
   };
 
   renderActionOrApproveButton(
-    dueWei: BigNumber,
+    dueTok: BigNumber,
     actionText: string,
     action: () => void
   ): React.ReactNode {
-    const status = this.getApprovalStatus(dueWei);
+    const status = this.getApprovalStatus(dueTok);
 
     return (
       <>
@@ -160,11 +162,11 @@ class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
    * "allowance" if insufficent allowance,
    * "balance" if low balance,
    * undefined if not yet sure. */
-  getApprovalStatus(wei: BigNumber): "ok" | "balance" | "allowance" | null {
+  getApprovalStatus(tok: BigNumber): "ok" | "balance" | "allowance" | null {
     const { tokenAllowance, tokenBalance } = this.state;
     if (tokenBalance == null || tokenBalance == null) return null;
-    if (tokenAllowance.lt(wei)) return "allowance";
-    if (tokenBalance.lt(wei)) return "balance";
+    if (tokenAllowance.lt(tok)) return "allowance";
+    if (tokenBalance.lt(tok)) return "balance";
     return "ok";
   }
 
@@ -181,11 +183,14 @@ class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
     await this.loadAllowance();
   };
 
-  renderBtc(amountSats: number) {
-    const str = (amountSats / 1e8).toFixed(4);
+  renderBtc(amountSats: BigNumber | number) {
+    return (toFloat64(amountSats) / 1e8).toFixed(4);
+  }
+
+  renderBtcNode(amountSats: number) {
     return (
       <>
-        <strong>{str}</strong> BTC
+        <strong>{this.renderBtc(amountSats)}</strong> BTC
       </>
     );
   }
@@ -194,13 +199,30 @@ class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
     return this.props.params.escrowDurationHours + "h";
   }
 
-  calcStakeWei(totalWei: BigNumber): BigNumber {
+  renderTok(amountTok: BigNumber | number) {
+    return (toFloat64(amountTok) / 1e8).toFixed(4);
+  }
+
+  renderPrice(tps: BigNumber | number) {
+    return (toFloat64(tps) / 1e10).toFixed(4);
+  }
+
+  calcTotalTok(
+    amountSat: BigNumber | number,
+    priceTps: BigNumber | number
+  ): BigNumber {
+    // Hardcode WBTC for now.
+    // One WBTC = 1e8 units, decimals() = 8. Tps is "wei" (1e-18) per satoshi.
+    return BigNumber.from(priceTps).mul(amountSat).div(1e10);
+  }
+
+  calcStakeTok(totalTok: BigNumber): BigNumber {
     const { stakePercent } = this.props.params;
     if (stakePercent == null || !(stakePercent > 0)) {
       throw new Error("Missing stake percentage");
     }
-    const stakeWei = totalWei.mul(stakePercent).div(100);
-    return stakeWei;
+    const stakeTok = totalTok.mul(stakePercent).div(100);
+    return stakeTok;
   }
 }
 
@@ -224,18 +246,18 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
 
     const priceStr = (tps / 1e10).toFixed(4);
 
-    const totalWei = BigNumber.from(amountSats).mul(BigNumber.from(tps));
-    const totalStr = (toFloat64(totalWei) / 1e18).toFixed(4);
-    const stakeWei = this.calcStakeWei(totalWei);
-    const stakeStr = (toFloat64(stakeWei) / 1e18).toFixed(4);
+    const totalTok = this.calcTotalTok(amountSats, tps);
+    const totalStr = this.renderTok(totalTok);
+    const stakeTok = this.calcStakeTok(totalTok);
+    const stakeStr = this.renderTok(stakeTok);
 
-    const dueWei = type == "ask" ? stakeWei : totalWei;
+    const dueTok = type == "ask" ? stakeTok : totalTok;
 
     return (
       <Modal title={"Confirm " + type} onClose={this.props.onClose}>
         <div className="exchange-row">
           You're offering to {type === "bid" ? "buy" : "sell"}{" "}
-          {this.renderBtc(amountSats)}.
+          {this.renderBtcNode(amountSats)}.
         </div>
         <div className="exchange-row">
           <span className="exchange-llabel">Price</span>
@@ -294,7 +316,7 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
             </div>
           </>
         )}
-        {this.renderActionOrApproveButton(dueWei, "Confirm", this.post)}
+        {this.renderActionOrApproveButton(dueTok, "Confirm", this.post)}
       </Modal>
     );
   }
@@ -302,23 +324,17 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
   postAskTx = async () => {
     // Validate amounts
     const { amountSats, tps } = this.props;
-    const totalWei = BigNumber.from(amountSats).mul(BigNumber.from(tps));
-    const stakeWei = this.calcStakeWei(totalWei);
+    const totalTok = this.calcTotalTok(amountSats, tps);
+    const stakeTok = this.calcStakeTok(totalTok);
 
     // Send it
     const pricePerBtc = tps / 1e10;
     const priceStr = pricePerBtc.toFixed(4);
-    const description = `Ask ${priceStr} x ${amountSats / 1e8} BTC`;
-    console.log(description, {
-      amountSats,
-      priceTps: tps,
-      stakeWei,
-    });
+    const description = `Ask ${priceStr} x ${this.renderBtc(amountSats)} BTC`;
+    console.log(description, { amountSats, tps, stakeTok });
 
     const { portal } = this.props;
-    const tx = await portal.postAsk(amountSats, tps, {
-      value: stakeWei,
-    });
+    const tx = await portal.postAsk(amountSats, tps);
 
     return { description, tx };
   };
@@ -326,7 +342,7 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
   postBidTx = async () => {
     // Validate amounts
     const { amountSats, tps } = this.props;
-    const valueWei = BigNumber.from(amountSats).mul(BigNumber.from(tps));
+    const valueTok = this.calcTotalTok(amountSats, tps);
 
     // Validate Bitcoin address
     const destAddr = parseBitcoinAddr(this.refDestAddr.current.value);
@@ -337,13 +353,11 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
 
     // Send
     const priceStr = tps.toFixed(4);
-    const description = `Bid ${priceStr} x ${amountSats / 1e8} BTC`;
-    console.log(description, { tps, scriptHash, valueWei });
+    const description = `Bid ${priceStr} x ${this.renderBtc(amountSats)} BTC`;
+    console.log(description, { tps, scriptHash, valueTok });
 
     const { portal } = this.props;
-    const tx = await portal.postBid(amountSats, tps, scriptHash, {
-      value: valueWei,
-    });
+    const tx = await portal.postBid(amountSats, tps, scriptHash);
 
     return { description, tx };
   };
@@ -367,20 +381,19 @@ export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
   render() {
     const { type, amountSats, order } = this.props;
 
-    const tps = toFloat64(order.priceTps);
-    const priceStr = (tps / 1e10).toFixed(4);
+    const priceStr = this.renderPrice(order.priceTps);
 
-    const totalWei = BigNumber.from(amountSats).mul(BigNumber.from(tps));
-    const totalStr = (toFloat64(totalWei) / 1e18).toFixed(4);
-    const stakeWei = this.calcStakeWei(totalWei);
-    const stakeStr = (toFloat64(stakeWei) / 1e18).toFixed(4);
+    const totalTok = this.calcTotalTok(amountSats, order.priceTps);
+    const totalStr = this.renderTok(totalTok);
+    const stakeTok = this.calcStakeTok(totalTok);
+    const stakeStr = this.renderTok(stakeTok);
 
-    const dueWei = type == "sell" ? stakeWei : totalWei;
+    const dueTok = type == "sell" ? stakeTok : totalTok;
 
     return (
       <Modal title={"Confirm " + type} onClose={this.props.onClose}>
         <div className="exchange-row">
-          You're {type}ing {this.renderBtc(amountSats)}.
+          You're {type}ing {this.renderBtcNode(amountSats)}.
         </div>
         <div className="exchange-row">
           <span className="exchange-llabel">Price</span>
@@ -429,37 +442,34 @@ export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
             <input ref={this.refDestAddr} placeholder="2..."></input>
           </div>
         )}
-        {this.renderActionOrApproveButton(dueWei, "Confirm", this.post)}
+        {this.renderActionOrApproveButton(dueTok, "Confirm", this.post)}
       </Modal>
     );
   }
 
   sellTx = async () => {
     // Calculate amounts
-    const { order, params, portal } = this.props;
+    const { order, amountSats, portal } = this.props;
     const { orderID, priceTps } = order;
-    const amountSats = order.amountSats.mul(-1);
-    const amountWei = priceTps.mul(amountSats);
-    const stakeWei = amountWei.mul(params.stakePercent).div(100);
+    const amountTok = this.calcTotalTok(amountSats, priceTps);
+    const stakeTok = this.calcStakeTok(amountTok);
 
     // Send it
-    const wbtcStr = formatAmount(amountWei, "wei").amountStr;
-    const btcStr = formatAmount(amountSats, "sats").amountStr;
+    const wbtcStr = this.renderTok(amountTok);
+    const btcStr = this.renderBtc(amountSats);
     const description = `Sell ${btcStr} BTC, receive ${wbtcStr} WBTC`;
-    console.log(description, { orderID, amountSats, stakeWei });
+    console.log(description, { orderID, amountSats, stakeTok });
 
-    const tx = await portal.initiateSell(orderID, amountSats, {
-      value: stakeWei,
-    });
+    const tx = await portal.initiateSell(orderID, amountSats);
 
     return { description, tx };
   };
 
   buyTx = async () => {
     // Calculate amount
-    const { order, params, portal } = this.props;
-    const { orderID, amountSats, priceTps } = order;
-    const amountWei = priceTps.mul(amountSats);
+    const { order, params, amountSats, portal } = this.props;
+    const { orderID, priceTps } = order;
+    const amountTok = this.calcTotalTok(amountSats, priceTps);
 
     // Validate destination address
     const destAddrStr = this.refDestAddr.current.value;
@@ -470,13 +480,11 @@ export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
     const scriptHash = destAddr.scriptHash;
 
     // Send it
-    const wbtcStr = formatAmount(amountWei, "wei").amountStr;
-    const btcStr = formatAmount(amountSats, "sats").amountStr;
+    const wbtcStr = this.renderTok(amountTok);
+    const btcStr = this.renderBtc(amountSats);
     const description = `Buy ${btcStr} BTC, paying ${wbtcStr} WBTC`;
-    console.log(description, { orderID, amountSats });
-    const tx = await portal.initiateBuy(orderID, amountSats, scriptHash, {
-      value: amountWei,
-    });
+    console.log(description, { orderID, amountSats, amountTok });
+    const tx = await portal.initiateBuy(orderID, amountSats, scriptHash);
 
     return { description, tx };
   };
@@ -506,17 +514,21 @@ export class CancelModal extends TxModal<OrderModalProps> {
   render() {
     const { order } = this.props;
     const { amountSats, priceTps } = order;
-    const aType = amountSats.isNegative() ? "an ask" : "a bid";
-    let refundWei = toFloat64(order.stakedWei);
-    if (aType === "an ask") {
-      refundWei -= toFloat64(priceTps.mul(amountSats));
+    let aType: string;
+    let refundTok: BigNumber;
+    if (amountSats.isNegative()) {
+      aType = "a bid";
+      refundTok = this.calcTotalTok(amountSats, priceTps);
+    } else {
+      aType = "an ask";
+      refundTok = order.stakedTok;
     }
 
     return (
       <Modal title="Cancel" onClose={this.props.onClose}>
         <div className="exchange-row">
           You are cancelling {aType} order. You will receive a refund of{" "}
-          {(refundWei / 1e18).toFixed(4)} WBTC.
+          {this.renderTok(refundTok)} WBTC.
         </div>
         <div className="exchange-row">
           Cancellation will fail if the order has already been hit.
@@ -561,9 +573,9 @@ export class ProveModal extends TxModal<EscrowProps> {
     }
 
     // Send it
-    const { amountStr: amountBtc } = formatAmount(proof.amountSats, "sats");
-    const { amountStr: amountEth } = formatAmount(escrow.escrowWei, "wei");
-    const description = `Prove ${amountBtc} BTC, recv ${amountEth}`;
+    const amountBtc = this.renderBtc(proof.amountSats);
+    const amountWbtc = this.renderTok(escrow.escrowTok);
+    const description = `Prove ${amountBtc} BTC, recv ${amountWbtc} WBTC`;
     console.log(description, escrow, proof);
 
     const tx = await portal.proveSettlement(
@@ -629,10 +641,10 @@ export class SlashModal extends TxModal<EscrowProps> {
 
   slashTx = async () => {
     const { portal, escrow } = this.props;
+    const { escrowTok } = escrow;
 
     // Send it
-    const { amountStr } = formatAmount(escrow.escrowWei, "wei");
-    const description = `Slash escrow, take ${amountStr} ETH`;
+    const description = `Slash escrow, take ${this.renderTok(escrowTok)} ETH`;
 
     const tx = await portal.slash(escrow.escrowId);
 
@@ -645,7 +657,7 @@ export class SlashModal extends TxModal<EscrowProps> {
       <Modal title="Timed out, slash escrow" onClose={this.props.onClose}>
         <div className="exchange-row">
           A counterparty owed you Bitcoin, but didn't pay in time. You will
-          receive the <Amount n={escrow.escrowWei} type="wei" /> from escrow.
+          receive {this.renderTok(escrow.escrowTok)} WBTC from escrow.
         </div>
         <div className="exchange-row">
           <button onClick={this.slash} disabled={this.disableTx()}>

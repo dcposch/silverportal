@@ -4,7 +4,7 @@
 
 import { Contract, Signer, utils } from "ethers";
 import type { Provider } from "@ethersproject/providers";
-import type { IERC20, IERC20Interface } from "../IERC20";
+import type { ERC20, ERC20Interface } from "../ERC20";
 
 const _abi = [
   {
@@ -25,7 +25,7 @@ const _abi = [
       {
         indexed: false,
         internalType: "uint256",
-        name: "value",
+        name: "amount",
         type: "uint256",
       },
     ],
@@ -50,7 +50,7 @@ const _abi = [
       {
         indexed: false,
         internalType: "uint256",
-        name: "value",
+        name: "amount",
         type: "uint256",
       },
     ],
@@ -58,15 +58,28 @@ const _abi = [
     type: "event",
   },
   {
+    inputs: [],
+    name: "DOMAIN_SEPARATOR",
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "address",
-        name: "owner",
+        name: "",
         type: "address",
       },
       {
         internalType: "address",
-        name: "spender",
+        name: "",
         type: "address",
       },
     ],
@@ -109,7 +122,7 @@ const _abi = [
     inputs: [
       {
         internalType: "address",
-        name: "account",
+        name: "",
         type: "address",
       },
     ],
@@ -119,6 +132,107 @@ const _abi = [
         internalType: "uint256",
         name: "",
         type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "decimals",
+    outputs: [
+      {
+        internalType: "uint8",
+        name: "",
+        type: "uint8",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "name",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "nonces",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "owner",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "spender",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "value",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "deadline",
+        type: "uint256",
+      },
+      {
+        internalType: "uint8",
+        name: "v",
+        type: "uint8",
+      },
+      {
+        internalType: "bytes32",
+        name: "r",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "s",
+        type: "bytes32",
+      },
+    ],
+    name: "permit",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "symbol",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
       },
     ],
     stateMutability: "view",
@@ -192,12 +306,12 @@ const _abi = [
   },
 ];
 
-export class IERC20__factory {
+export class ERC20__factory {
   static readonly abi = _abi;
-  static createInterface(): IERC20Interface {
-    return new utils.Interface(_abi) as IERC20Interface;
+  static createInterface(): ERC20Interface {
+    return new utils.Interface(_abi) as ERC20Interface;
   }
-  static connect(address: string, signerOrProvider: Signer | Provider): IERC20 {
-    return new Contract(address, _abi, signerOrProvider) as IERC20;
+  static connect(address: string, signerOrProvider: Signer | Provider): ERC20 {
+    return new Contract(address, _abi, signerOrProvider) as ERC20;
   }
 }

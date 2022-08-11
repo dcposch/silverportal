@@ -7,7 +7,7 @@ export interface Order {
   amountSats: ethers.BigNumber;
   priceTps: ethers.BigNumber;
   scriptHash: string;
-  stakedWei: ethers.BigNumber;
+  stakedTok: ethers.BigNumber;
 }
 
 /** Represents a limit orderbook of sorted bids and asks. */

@@ -16,7 +16,7 @@ export interface Escrow {
   destScriptHash: string;
   amountSatsDue: BigNumber;
   deadline: number;
-  escrowWei: BigNumber;
+  escrowTok: BigNumber;
   successRecipient: string;
   timeoutRecipient: string;
 }

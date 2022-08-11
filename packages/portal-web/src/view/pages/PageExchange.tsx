@@ -3,7 +3,7 @@ import "./PageExchange.css";
 import { useAddRecentTransaction } from "@rainbow-me/rainbowkit";
 import * as React from "react";
 import { useAccount, useProvider, useSigner } from "wagmi";
-import { factories, IERC20, Portal } from "../../../types/ethers-contracts";
+import { factories, ERC20, Portal } from "../../../types/ethers-contracts";
 import { contractAddrs } from "../../utils/constants";
 import Exchange from "../exchange/Exchange";
 import ConnectSection from "../exchange/ConnectSection";
@@ -20,8 +20,8 @@ export default function PageExchange() {
     const ret = factories.Portal__factory.connect(
       contractAddrs.portal,
       wallet
-    ) as Portal & { wbtc: IERC20 };
-    ret.wbtc = factories.IERC20__factory.connect(contractAddrs.wbtc, wallet);
+    ) as Portal & { wbtc: ERC20 };
+    ret.wbtc = factories.ERC20__factory.connect(contractAddrs.wbtc, wallet);
     return ret;
   }, [signer, provider]);
 

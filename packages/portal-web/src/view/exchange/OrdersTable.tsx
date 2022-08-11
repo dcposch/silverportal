@@ -103,8 +103,8 @@ function OrderRow({
         {amountBtc}
       </div>
       <div className="exchange-order-action">
-        {isBest && <button onClick={orderCb}>{orderLabel}</button>}
-        {!isBest && (
+        {isOurs && isBest && <button onClick={orderCb}>{orderLabel}</button>}
+        {isOurs && !isBest && (
           <a href="#" onClick={orderCb}>
             {orderLabel}
           </a>

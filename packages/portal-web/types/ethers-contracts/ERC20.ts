@@ -27,11 +27,17 @@ import type {
   PromiseOrValue,
 } from "./common";
 
-export interface IERC20Interface extends utils.Interface {
+export interface ERC20Interface extends utils.Interface {
   functions: {
+    "DOMAIN_SEPARATOR()": FunctionFragment;
     "allowance(address,address)": FunctionFragment;
     "approve(address,uint256)": FunctionFragment;
     "balanceOf(address)": FunctionFragment;
+    "decimals()": FunctionFragment;
+    "name()": FunctionFragment;
+    "nonces(address)": FunctionFragment;
+    "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)": FunctionFragment;
+    "symbol()": FunctionFragment;
     "totalSupply()": FunctionFragment;
     "transfer(address,uint256)": FunctionFragment;
     "transferFrom(address,address,uint256)": FunctionFragment;
@@ -39,14 +45,24 @@ export interface IERC20Interface extends utils.Interface {
 
   getFunction(
     nameOrSignatureOrTopic:
+      | "DOMAIN_SEPARATOR"
       | "allowance"
       | "approve"
       | "balanceOf"
+      | "decimals"
+      | "name"
+      | "nonces"
+      | "permit"
+      | "symbol"
       | "totalSupply"
       | "transfer"
       | "transferFrom"
   ): FunctionFragment;
 
+  encodeFunctionData(
+    functionFragment: "DOMAIN_SEPARATOR",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "allowance",
     values: [PromiseOrValue<string>, PromiseOrValue<string>]
@@ -59,6 +75,25 @@ export interface IERC20Interface extends utils.Interface {
     functionFragment: "balanceOf",
     values: [PromiseOrValue<string>]
   ): string;
+  encodeFunctionData(functionFragment: "decimals", values?: undefined): string;
+  encodeFunctionData(functionFragment: "name", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "nonces",
+    values: [PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "permit",
+    values: [
+      PromiseOrValue<string>,
+      PromiseOrValue<string>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BytesLike>,
+      PromiseOrValue<BytesLike>
+    ]
+  ): string;
+  encodeFunctionData(functionFragment: "symbol", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "totalSupply",
     values?: undefined
@@ -76,9 +111,18 @@ export interface IERC20Interface extends utils.Interface {
     ]
   ): string;
 
+  decodeFunctionResult(
+    functionFragment: "DOMAIN_SEPARATOR",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "allowance", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "decimals", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "nonces", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "permit", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "symbol", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "totalSupply",
     data: BytesLike
@@ -101,7 +145,7 @@ export interface IERC20Interface extends utils.Interface {
 export interface ApprovalEventObject {
   owner: string;
   spender: string;
-  value: BigNumber;
+  amount: BigNumber;
 }
 export type ApprovalEvent = TypedEvent<
   [string, string, BigNumber],
@@ -113,7 +157,7 @@ export type ApprovalEventFilter = TypedEventFilter<ApprovalEvent>;
 export interface TransferEventObject {
   from: string;
   to: string;
-  value: BigNumber;
+  amount: BigNumber;
 }
 export type TransferEvent = TypedEvent<
   [string, string, BigNumber],
@@ -122,12 +166,12 @@ export type TransferEvent = TypedEvent<
 
 export type TransferEventFilter = TypedEventFilter<TransferEvent>;
 
-export interface IERC20 extends BaseContract {
+export interface ERC20 extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
 
-  interface: IERC20Interface;
+  interface: ERC20Interface;
 
   queryFilter<TEvent extends TypedEvent>(
     event: TypedEventFilter<TEvent>,
@@ -149,9 +193,11 @@ export interface IERC20 extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
+    DOMAIN_SEPARATOR(overrides?: CallOverrides): Promise<[string]>;
+
     allowance(
-      owner: PromiseOrValue<string>,
-      spender: PromiseOrValue<string>,
+      arg0: PromiseOrValue<string>,
+      arg1: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
@@ -162,9 +208,31 @@ export interface IERC20 extends BaseContract {
     ): Promise<ContractTransaction>;
 
     balanceOf(
-      account: PromiseOrValue<string>,
+      arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
+
+    decimals(overrides?: CallOverrides): Promise<[number]>;
+
+    name(overrides?: CallOverrides): Promise<[string]>;
+
+    nonces(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    permit(
+      owner: PromiseOrValue<string>,
+      spender: PromiseOrValue<string>,
+      value: PromiseOrValue<BigNumberish>,
+      deadline: PromiseOrValue<BigNumberish>,
+      v: PromiseOrValue<BigNumberish>,
+      r: PromiseOrValue<BytesLike>,
+      s: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    symbol(overrides?: CallOverrides): Promise<[string]>;
 
     totalSupply(overrides?: CallOverrides): Promise<[BigNumber]>;
 
@@ -182,9 +250,11 @@ export interface IERC20 extends BaseContract {
     ): Promise<ContractTransaction>;
   };
 
+  DOMAIN_SEPARATOR(overrides?: CallOverrides): Promise<string>;
+
   allowance(
-    owner: PromiseOrValue<string>,
-    spender: PromiseOrValue<string>,
+    arg0: PromiseOrValue<string>,
+    arg1: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
@@ -195,9 +265,31 @@ export interface IERC20 extends BaseContract {
   ): Promise<ContractTransaction>;
 
   balanceOf(
-    account: PromiseOrValue<string>,
+    arg0: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
+
+  decimals(overrides?: CallOverrides): Promise<number>;
+
+  name(overrides?: CallOverrides): Promise<string>;
+
+  nonces(
+    arg0: PromiseOrValue<string>,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  permit(
+    owner: PromiseOrValue<string>,
+    spender: PromiseOrValue<string>,
+    value: PromiseOrValue<BigNumberish>,
+    deadline: PromiseOrValue<BigNumberish>,
+    v: PromiseOrValue<BigNumberish>,
+    r: PromiseOrValue<BytesLike>,
+    s: PromiseOrValue<BytesLike>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
+  symbol(overrides?: CallOverrides): Promise<string>;
 
   totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -215,9 +307,11 @@ export interface IERC20 extends BaseContract {
   ): Promise<ContractTransaction>;
 
   callStatic: {
+    DOMAIN_SEPARATOR(overrides?: CallOverrides): Promise<string>;
+
     allowance(
-      owner: PromiseOrValue<string>,
-      spender: PromiseOrValue<string>,
+      arg0: PromiseOrValue<string>,
+      arg1: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -228,9 +322,31 @@ export interface IERC20 extends BaseContract {
     ): Promise<boolean>;
 
     balanceOf(
-      account: PromiseOrValue<string>,
+      arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    decimals(overrides?: CallOverrides): Promise<number>;
+
+    name(overrides?: CallOverrides): Promise<string>;
+
+    nonces(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    permit(
+      owner: PromiseOrValue<string>,
+      spender: PromiseOrValue<string>,
+      value: PromiseOrValue<BigNumberish>,
+      deadline: PromiseOrValue<BigNumberish>,
+      v: PromiseOrValue<BigNumberish>,
+      r: PromiseOrValue<BytesLike>,
+      s: PromiseOrValue<BytesLike>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    symbol(overrides?: CallOverrides): Promise<string>;
 
     totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -252,30 +368,32 @@ export interface IERC20 extends BaseContract {
     "Approval(address,address,uint256)"(
       owner?: PromiseOrValue<string> | null,
       spender?: PromiseOrValue<string> | null,
-      value?: null
+      amount?: null
     ): ApprovalEventFilter;
     Approval(
       owner?: PromiseOrValue<string> | null,
       spender?: PromiseOrValue<string> | null,
-      value?: null
+      amount?: null
     ): ApprovalEventFilter;
 
     "Transfer(address,address,uint256)"(
       from?: PromiseOrValue<string> | null,
       to?: PromiseOrValue<string> | null,
-      value?: null
+      amount?: null
     ): TransferEventFilter;
     Transfer(
       from?: PromiseOrValue<string> | null,
       to?: PromiseOrValue<string> | null,
-      value?: null
+      amount?: null
     ): TransferEventFilter;
   };
 
   estimateGas: {
+    DOMAIN_SEPARATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
     allowance(
-      owner: PromiseOrValue<string>,
-      spender: PromiseOrValue<string>,
+      arg0: PromiseOrValue<string>,
+      arg1: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -286,9 +404,31 @@ export interface IERC20 extends BaseContract {
     ): Promise<BigNumber>;
 
     balanceOf(
-      account: PromiseOrValue<string>,
+      arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    decimals(overrides?: CallOverrides): Promise<BigNumber>;
+
+    name(overrides?: CallOverrides): Promise<BigNumber>;
+
+    nonces(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    permit(
+      owner: PromiseOrValue<string>,
+      spender: PromiseOrValue<string>,
+      value: PromiseOrValue<BigNumberish>,
+      deadline: PromiseOrValue<BigNumberish>,
+      v: PromiseOrValue<BigNumberish>,
+      r: PromiseOrValue<BytesLike>,
+      s: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    symbol(overrides?: CallOverrides): Promise<BigNumber>;
 
     totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -307,9 +447,11 @@ export interface IERC20 extends BaseContract {
   };
 
   populateTransaction: {
+    DOMAIN_SEPARATOR(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     allowance(
-      owner: PromiseOrValue<string>,
-      spender: PromiseOrValue<string>,
+      arg0: PromiseOrValue<string>,
+      arg1: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -320,9 +462,31 @@ export interface IERC20 extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     balanceOf(
-      account: PromiseOrValue<string>,
+      arg0: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    decimals(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    name(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    nonces(
+      arg0: PromiseOrValue<string>,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    permit(
+      owner: PromiseOrValue<string>,
+      spender: PromiseOrValue<string>,
+      value: PromiseOrValue<BigNumberish>,
+      deadline: PromiseOrValue<BigNumberish>,
+      v: PromiseOrValue<BigNumberish>,
+      r: PromiseOrValue<BytesLike>,
+      s: PromiseOrValue<BytesLike>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    symbol(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     totalSupply(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 

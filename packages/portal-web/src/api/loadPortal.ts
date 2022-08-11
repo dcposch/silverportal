@@ -55,7 +55,7 @@ export async function loadOrderbook(portal: Portal): Promise<Orderbook> {
           amountSats: o[1],
           priceTps: o[2],
           scriptHash: o[3],
-          stakedWei: o[4],
+          stakedTok: o[4],
         } as Order)
     )
     .filter((o) => !o.amountSats.isZero());
@@ -85,7 +85,7 @@ export async function loadEscrowForAddr(
           destScriptHash: e[0],
           amountSatsDue: e[1],
           deadline: e[2].toNumber(),
-          escrowWei: e[3],
+          escrowTok: e[3],
           successRecipient: e[4],
           timeoutRecipient: e[5],
         } as Escrow)

@@ -79,20 +79,22 @@
 }
 
 .exchange-order-type {
-    width: 3em;
+    width: 2.4em;
 }
 
 .exchange-order-price {
+    text-align: right;
+    width: 5em;
+}
+
+.exchange-order-amount {
+    text-align: right;
     width: 5em;
 }
 
 .exchange-order-action {
     flex-grow: 1;
     text-align: right;
-}
-
-.exchange-order-amount {
-    width: 5em;
 }
 
 .exchange-escrow-row {

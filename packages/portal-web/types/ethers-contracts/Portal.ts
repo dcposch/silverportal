@@ -58,6 +58,7 @@ export interface PortalInterface extends utils.Interface {
     "initiateBuy(uint256,uint128,bytes20)": FunctionFragment;
     "initiateSell(uint256,uint128)": FunctionFragment;
     "minConfirmations()": FunctionFragment;
+    "minOrderSats()": FunctionFragment;
     "nextEscrowID()": FunctionFragment;
     "nextOrderID()": FunctionFragment;
     "openEscrowInflight(bytes20,uint256)": FunctionFragment;
@@ -70,10 +71,14 @@ export interface PortalInterface extends utils.Interface {
     "proveSettlement(uint256,uint256,(bytes,bytes32,uint256,bytes,bytes),uint256)": FunctionFragment;
     "setBtcVerifier(address)": FunctionFragment;
     "setMinConfirmations(uint256)": FunctionFragment;
+    "setMinOrderSats(uint256)": FunctionFragment;
     "setOwner(address)": FunctionFragment;
     "setStakePercent(uint256)": FunctionFragment;
+    "setTickTps(uint256)": FunctionFragment;
     "slash(uint256)": FunctionFragment;
     "stakePercent()": FunctionFragment;
+    "tickTps()": FunctionFragment;
+    "tokDiv()": FunctionFragment;
     "token()": FunctionFragment;
   };
 
@@ -85,6 +90,7 @@ export interface PortalInterface extends utils.Interface {
       | "initiateBuy"
       | "initiateSell"
       | "minConfirmations"
+      | "minOrderSats"
       | "nextEscrowID"
       | "nextOrderID"
       | "openEscrowInflight"
@@ -97,10 +103,14 @@ export interface PortalInterface extends utils.Interface {
       | "proveSettlement"
       | "setBtcVerifier"
       | "setMinConfirmations"
+      | "setMinOrderSats"
       | "setOwner"
       | "setStakePercent"
+      | "setTickTps"
       | "slash"
       | "stakePercent"
+      | "tickTps"
+      | "tokDiv"
       | "token"
   ): FunctionFragment;
 
@@ -130,6 +140,10 @@ export interface PortalInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "minConfirmations",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "minOrderSats",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -187,11 +201,19 @@ export interface PortalInterface extends utils.Interface {
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
+    functionFragment: "setMinOrderSats",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
     functionFragment: "setOwner",
     values: [PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "setStakePercent",
+    values: [PromiseOrValue<BigNumberish>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setTickTps",
     values: [PromiseOrValue<BigNumberish>]
   ): string;
   encodeFunctionData(
@@ -202,6 +224,8 @@ export interface PortalInterface extends utils.Interface {
     functionFragment: "stakePercent",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "tickTps", values?: undefined): string;
+  encodeFunctionData(functionFragment: "tokDiv", values?: undefined): string;
   encodeFunctionData(functionFragment: "token", values?: undefined): string;
 
   decodeFunctionResult(
@@ -223,6 +247,10 @@ export interface PortalInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "minConfirmations",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "minOrderSats",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -261,16 +289,23 @@ export interface PortalInterface extends utils.Interface {
     functionFragment: "setMinConfirmations",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "setMinOrderSats",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "setOwner", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setStakePercent",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "setTickTps", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "slash", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "stakePercent",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "tickTps", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "tokDiv", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "token", data: BytesLike): Result;
 
   events: {
@@ -438,8 +473,8 @@ export interface Portal extends BaseContract {
         amountSatsDue: BigNumber;
         deadline: BigNumber;
         escrowTok: BigNumber;
-        successOpenEscrow: string;
-        timeoutOpenEscrow: string;
+        successRecipient: string;
+        timeoutRecipient: string;
       }
     >;
 
@@ -457,6 +492,8 @@ export interface Portal extends BaseContract {
     ): Promise<ContractTransaction>;
 
     minConfirmations(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    minOrderSats(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     nextEscrowID(overrides?: CallOverrides): Promise<[BigNumber]>;
 
@@ -525,6 +562,11 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
+    setMinOrderSats(
+      _minOrderSats: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
     setOwner(
       newOwner: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -535,12 +577,21 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
+    setTickTps(
+      _tickTps: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
     slash(
       escrowID: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     stakePercent(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    tickTps(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    tokDiv(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     token(overrides?: CallOverrides): Promise<[string]>;
   };
@@ -561,8 +612,8 @@ export interface Portal extends BaseContract {
       amountSatsDue: BigNumber;
       deadline: BigNumber;
       escrowTok: BigNumber;
-      successOpenEscrow: string;
-      timeoutOpenEscrow: string;
+      successRecipient: string;
+      timeoutRecipient: string;
     }
   >;
 
@@ -580,6 +631,8 @@ export interface Portal extends BaseContract {
   ): Promise<ContractTransaction>;
 
   minConfirmations(overrides?: CallOverrides): Promise<BigNumber>;
+
+  minOrderSats(overrides?: CallOverrides): Promise<BigNumber>;
 
   nextEscrowID(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -648,6 +701,11 @@ export interface Portal extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  setMinOrderSats(
+    _minOrderSats: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
   setOwner(
     newOwner: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -658,12 +716,21 @@ export interface Portal extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  setTickTps(
+    _tickTps: PromiseOrValue<BigNumberish>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
   slash(
     escrowID: PromiseOrValue<BigNumberish>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   stakePercent(overrides?: CallOverrides): Promise<BigNumber>;
+
+  tickTps(overrides?: CallOverrides): Promise<BigNumber>;
+
+  tokDiv(overrides?: CallOverrides): Promise<BigNumber>;
 
   token(overrides?: CallOverrides): Promise<string>;
 
@@ -684,8 +751,8 @@ export interface Portal extends BaseContract {
         amountSatsDue: BigNumber;
         deadline: BigNumber;
         escrowTok: BigNumber;
-        successOpenEscrow: string;
-        timeoutOpenEscrow: string;
+        successRecipient: string;
+        timeoutRecipient: string;
       }
     >;
 
@@ -703,6 +770,8 @@ export interface Portal extends BaseContract {
     ): Promise<BigNumber>;
 
     minConfirmations(overrides?: CallOverrides): Promise<BigNumber>;
+
+    minOrderSats(overrides?: CallOverrides): Promise<BigNumber>;
 
     nextEscrowID(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -771,6 +840,11 @@ export interface Portal extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setMinOrderSats(
+      _minOrderSats: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     setOwner(
       newOwner: PromiseOrValue<string>,
       overrides?: CallOverrides
@@ -781,12 +855,21 @@ export interface Portal extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setTickTps(
+      _tickTps: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     slash(
       escrowID: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
 
     stakePercent(overrides?: CallOverrides): Promise<BigNumber>;
+
+    tickTps(overrides?: CallOverrides): Promise<BigNumber>;
+
+    tokDiv(overrides?: CallOverrides): Promise<BigNumber>;
 
     token(overrides?: CallOverrides): Promise<string>;
   };
@@ -910,6 +993,8 @@ export interface Portal extends BaseContract {
 
     minConfirmations(overrides?: CallOverrides): Promise<BigNumber>;
 
+    minOrderSats(overrides?: CallOverrides): Promise<BigNumber>;
+
     nextEscrowID(overrides?: CallOverrides): Promise<BigNumber>;
 
     nextOrderID(overrides?: CallOverrides): Promise<BigNumber>;
@@ -969,6 +1054,11 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    setMinOrderSats(
+      _minOrderSats: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
     setOwner(
       newOwner: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -979,12 +1069,21 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
+    setTickTps(
+      _tickTps: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
     slash(
       escrowID: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     stakePercent(overrides?: CallOverrides): Promise<BigNumber>;
+
+    tickTps(overrides?: CallOverrides): Promise<BigNumber>;
+
+    tokDiv(overrides?: CallOverrides): Promise<BigNumber>;
 
     token(overrides?: CallOverrides): Promise<BigNumber>;
   };
@@ -1016,6 +1115,8 @@ export interface Portal extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     minConfirmations(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    minOrderSats(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     nextEscrowID(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
@@ -1076,6 +1177,11 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
+    setMinOrderSats(
+      _minOrderSats: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
     setOwner(
       newOwner: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -1086,12 +1192,21 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
+    setTickTps(
+      _tickTps: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
     slash(
       escrowID: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     stakePercent(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    tickTps(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    tokDiv(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     token(overrides?: CallOverrides): Promise<PopulatedTransaction>;
   };

@@ -3,7 +3,7 @@
     "test": "ts-node node_modules/tape/bin/tape src/**/*.test.ts",
     "start": "esbuild src/app.tsx --loader:.md=text --define:process.env.GBAPI=\\\"$GETBLOCK_API_KEY\\\" --bundle --servedir=www/ --outdir=www/dist --sourcemap",
     "build": "esbuild src/app.tsx --loader:.md=text --define:process.env.GBAPI=\\\"$GETBLOCK_API_KEY\\\" --bundle --minify --outdir=www/dist",
-    "codegen": "typechain --target=ethers-v5 ../portal-contracts/out/BtcTxVerifier.sol/*.json ../portal-contracts/out/Portal.sol/*.json  ../portal-contracts/out/IERC20.sol/*.json"
+    "codegen": "typechain --target=ethers-v5 ../portal-contracts/out/BtcTxVerifier.sol/*.json ../portal-contracts/out/Portal.sol/*.json  ../portal-contracts/out/ERC20.sol/*.json"
   },
   "dependencies": {
     "@rainbow-me/rainbowkit": "^0.4.6",
