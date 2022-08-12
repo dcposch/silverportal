@@ -141,9 +141,19 @@ contract Portal is Owned {
     ERC20 public immutable token;
 
     /**
-     * @dev How many (10^-18 tokens) in one unit. 1 for ETH/WETH, 1e10 for WBTC.
+     * @dev How many 1e-18 "wei" per unit. 1 for ETH/WETH, 1e10 for WBTC.
      */
     uint256 public immutable tokDiv;
+
+    /**
+     * @dev Bitcoin light client. Reports block hashes, verifies tx proofs.
+     */
+    IBtcTxVerifier public immutable btcVerifier;
+
+    /**
+     * @dev Number of bitcoin confirmations required to settle a trade.
+     */
+    uint256 public immutable minConfirmations;
 
     /**
      * @dev Required stake for buy transactions. If you promise to send X BTC to
@@ -151,16 +161,6 @@ contract Portal is Owned {
      * you don't follow thru sending the Bitcoin. Same for bids.
      */
     uint256 public stakePercent;
-
-    /**
-     * @dev Number of bitcoin confirmations required to settle a trade.
-     */
-    uint256 public minConfirmations;
-
-    /**
-     * @dev Bitcoin light client. Reports block hashes, allowing tx proofs.
-     */
-    IBtcTxVerifier public btcVerifier;
 
     /**
      * @dev Minimum order size, in satoshis.
@@ -209,7 +209,8 @@ contract Portal is Owned {
     constructor(
         ERC20 _token,
         uint256 _stakePercent,
-        IBtcTxVerifier _btcVerifier
+        IBtcTxVerifier _btcVerifier,
+        uint256 _minConfirmations
     ) Owned(msg.sender) {
         // Immutable
         token = _token;
@@ -219,14 +220,14 @@ contract Portal is Owned {
         }
         require(dec <= 18, "Tokens over 18 decimals unsupported");
         tokDiv = 10**(18 - dec);
+        btcVerifier = _btcVerifier;
+        minConfirmations = _minConfirmations;
 
         // Mutable
         minOrderSats = 100_000; // 0.001 BTC
         tickTps = 1e6; // 0.0001 tokens per bitcoin
 
         stakePercent = _stakePercent;
-        btcVerifier = _btcVerifier;
-        minConfirmations = 1;
 
         nextOrderID = 1;
         nextEscrowID = 1;
@@ -239,24 +240,6 @@ contract Portal is Owned {
         uint256 old = stakePercent;
         stakePercent = _stakePercent;
         emit ParamUpdated(old, stakePercent, "stakePercent");
-    }
-
-    /**
-     * @notice Owner-settable parameter.
-     */
-    function setMinConfirmations(uint256 _minConfirmations) public onlyOwner {
-        uint256 old = minConfirmations;
-        minConfirmations = _minConfirmations;
-        emit ParamUpdated(old, minConfirmations, "minConfirmations");
-    }
-
-    /**
-     * @notice Owner-settable parameter.
-     */
-    function setBtcVerifier(IBtcTxVerifier _btcVerifier) public onlyOwner {
-        uint160 old = uint160(address(btcVerifier));
-        btcVerifier = _btcVerifier;
-        emit ParamUpdated(old, uint160(address(btcVerifier)), "btcVerifier");
     }
 
     /**
@@ -287,7 +270,7 @@ contract Portal is Owned {
     modifier validPrice(uint256 priceTps) {
         require(priceTps <= MAX_PRICE_TPS, "Price overflow");
         require(priceTps > 0, "Price underflow");
-        require(priceTps % tickTps == 0, "Price must be divisible by tickTps");
+        require(priceTps % tickTps == 0, "Price not divisible by tick");
         _;
     }
 
