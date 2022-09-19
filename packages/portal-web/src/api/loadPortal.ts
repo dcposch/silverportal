@@ -39,6 +39,7 @@ type EscrowT = [
 // TODO: load this from an indexer.
 export async function loadOrderbook(portal: Portal): Promise<Orderbook> {
   const n = (await portal.nextOrderID()).toNumber();
+  console.log(`# orders: ${n}`);
 
   // Load orders from chain in parallel
   const promises = [] as Promise<OrderT>[];

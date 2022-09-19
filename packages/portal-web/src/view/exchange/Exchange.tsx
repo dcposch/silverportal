@@ -57,7 +57,7 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
       }
     }
 
-    this._reloadInterval = window.setInterval(this.reloadData, 10_000);
+    this._reloadInterval = window.setInterval(this.reloadData, 60_000);
     this.reloadData();
   }
 

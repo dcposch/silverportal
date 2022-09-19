@@ -60,15 +60,18 @@ class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
     const { wbtc } = portal;
 
     console.log(`Loading allowance and balance for ${connectedAddress}`);
-    const allowProm = wbtc.allowance(connectedAddress, portal.address);
-    const balanceProm = wbtc.balanceOf(connectedAddress);
-    const [allowance, balance] = await Promise.all([allowProm, balanceProm]);
-    console.log({
-      allowance: allowance.toString(),
-      balance: balance.toString(),
-    });
-
-    this.setState({ tokenAllowance: allowance, tokenBalance: balance });
+    try {
+      const allowProm = wbtc.allowance(connectedAddress, portal.address);
+      const balanceProm = wbtc.balanceOf(connectedAddress);
+      const [allowance, balance] = await Promise.all([allowProm, balanceProm]);
+      console.log({
+        allowance: allowance.toString(),
+        balance: balance.toString(),
+      });
+      this.setState({ tokenAllowance: allowance, tokenBalance: balance });
+    } catch (e) {
+      console.log("Error loading allowance", e);
+    }
   }
 
   trySend = async (
@@ -126,6 +129,9 @@ class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
         {this.renderTxStatus(
           status === "balance" ? "Insufficient WBTC balance" : undefined
         )}
+        <div>
+          Status {status} state {JSON.stringify(this.state)}
+        </div>
       </>
     );
   }
@@ -164,7 +170,7 @@ class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
    * undefined if not yet sure. */
   getApprovalStatus(tok: BigNumber): "ok" | "balance" | "allowance" | null {
     const { tokenAllowance, tokenBalance } = this.state;
-    if (tokenBalance == null || tokenBalance == null) return null;
+    if (tokenAllowance == null || tokenBalance == null) return null;
     if (tokenAllowance.lt(tok)) return "allowance";
     if (tokenBalance.lt(tok)) return "balance";
     return "ok";
@@ -352,7 +358,7 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
     const scriptHash = destAddr.scriptHash;
 
     // Send
-    const priceStr = tps.toFixed(4);
+    const priceStr = (tps / 1e10).toFixed(4);
     const description = `Bid ${priceStr} x ${this.renderBtc(amountSats)} BTC`;
     console.log(description, { tps, scriptHash, valueTok });
 

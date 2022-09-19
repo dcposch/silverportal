@@ -12,15 +12,11 @@ import PageProveTx from "./pages/PageProveTx";
 import { getDefaultWallets, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { chain, configureChains, createClient, WagmiConfig } from "wagmi";
 import { infuraProvider } from "wagmi/providers/infura";
-import { publicProvider } from "wagmi/providers/public";
 import rainbowTheme from "./rainbowKitTheme";
 
 const { chains, provider } = configureChains(
   [chain.ropsten, chain.optimism],
-  [
-    infuraProvider({ apiKey: "c2098b0ca85643b1ad367c0f479c98f0" }),
-    publicProvider(),
-  ]
+  [infuraProvider({ apiKey: "c2098b0ca85643b1ad367c0f479c98f0" })]
 );
 
 const { connectors } = getDefaultWallets({ appName: "Silver Portal", chains });
