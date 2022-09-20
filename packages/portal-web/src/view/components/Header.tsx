@@ -13,7 +13,7 @@ export default function Header() {
     <header>
       <img src="./sketch/header.excalidraw.png"></img>
       <nav>
-        <NavLink className={navTabClass} to="/">
+        <NavLink className={navTabClass} to="/" end>
           📖 Home
         </NavLink>
         {/*<NavLink className={navTabClass} to="/prove">

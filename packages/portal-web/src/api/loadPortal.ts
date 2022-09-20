@@ -3,7 +3,7 @@ import { Portal } from "../../types/ethers-contracts";
 import { Escrow, EscrowsForAddr } from "../model/Escrow";
 import { Order, Orderbook } from "../model/Orderbook";
 import { PortalParams } from "../model/PortalParams";
-import { contractAddrs } from "../utils/constants";
+import { contractAddrs } from "../utils/contracts";
 
 export async function loadParams(portal: Portal): Promise<PortalParams> {
   const stakePercent = (await portal.stakePercent()).toNumber();
@@ -82,7 +82,7 @@ export async function loadEscrowForAddr(
     .map(
       (e: EscrowT, i) =>
         ({
-          escrowId: i,
+          escrowId: i + 1,
           destScriptHash: e[0],
           amountSatsDue: e[1],
           deadline: e[2].toNumber(),

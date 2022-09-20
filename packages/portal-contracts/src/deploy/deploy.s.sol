@@ -2,49 +2,21 @@
 pragma solidity >=0.8.0;
 
 import "forge-std/Script.sol";
-import "btcmirror/BtcMirror.sol";
 import "btcmirror/BtcTxVerifier.sol";
 import "../Portal.sol";
 
-contract PortalDeploy is Script {
-    function run(
-        bool mainnet,
-        ERC20 token,
-        BtcTxVerifier existingVerifier
-    ) external {
+contract DeployPortal is Script {
+    function run(bool mainnet, ERC20 token) external {
         vm.startBroadcast();
 
         uint256 minConfirmations;
-
         BtcTxVerifier verifier;
-        if (address(existingVerifier) != address(0)) {
-            verifier = existingVerifier;
+        if (mainnet) {
+            minConfirmations = 6;
+            verifier = BtcTxVerifier(address(0x0)); // TODO
         } else {
-            // DEPLOY MIRROR
-            if (mainnet) {
-                minConfirmations = 6;
-                // ...STARTING AT MAINNET BLOCK 739000
-                BtcMirror mirror = new BtcMirror(
-                    739000,
-                    hex"00000000000000000001059a330a05e66e4fa2d1a5adcd56d1bfefc5c114195d",
-                    1654182075,
-                    0x96A200000000000000000000000000000000000000000,
-                    false
-                );
-                verifier = new BtcTxVerifier(mirror);
-            } else {
-                minConfirmations = 1;
-
-                // ...STARTING AT TESTNET BLOCK 2315360
-                BtcMirror mirror = new BtcMirror(
-                    2315360,
-                    hex"0000000000000022201eee4f82ca053dfbc50d91e76e9cbff671699646d0982c",
-                    1659901500,
-                    0x000000000000003723C000000000000000000000000000000000000000000000,
-                    true
-                );
-                verifier = new BtcTxVerifier(mirror);
-            }
+            minConfirmations = 1;
+            verifier = BtcTxVerifier(address(0x0)); // TODO
         }
 
         // DEPLOY PORTAL

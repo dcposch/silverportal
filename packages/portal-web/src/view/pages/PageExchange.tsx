@@ -3,8 +3,8 @@ import "./PageExchange.css";
 import { useAddRecentTransaction } from "@rainbow-me/rainbowkit";
 import * as React from "react";
 import { useAccount, useProvider, useSigner } from "wagmi";
-import { factories, ERC20, Portal } from "../../../types/ethers-contracts";
-import { contractAddrs } from "../../utils/constants";
+import { factories } from "../../../types/ethers-contracts";
+import { contractAddrs } from "../../utils/contracts";
 import Exchange from "../exchange/Exchange";
 import ConnectSection from "../exchange/ConnectSection";
 
@@ -14,15 +14,20 @@ export default function PageExchange() {
   const { address } = useAccount();
   const addRecentTransaction = useAddRecentTransaction();
 
-  const portal = React.useMemo(() => {
-    console.log("Contract " + (signer ? "ready to transact" : "read-only"));
-    const wallet = signer || provider;
-    const ret = factories.Portal__factory.connect(
-      contractAddrs.portal,
-      wallet
-    ) as Portal & { wbtc: ERC20 };
-    ret.wbtc = factories.ERC20__factory.connect(contractAddrs.wbtc, wallet);
-    return ret;
+  const contracts = React.useMemo(() => {
+    console.log(signer ? "Ready to transact" : "Read-only", signer, provider);
+    const read = {
+      portal: factories.Portal__factory.connect(contractAddrs.portal, provider),
+      wbtc: factories.ERC20__factory.connect(contractAddrs.wbtc, provider),
+    };
+    let write = undefined;
+    if (signer) {
+      write = {
+        portal: factories.Portal__factory.connect(contractAddrs.portal, signer),
+        wbtc: factories.ERC20__factory.connect(contractAddrs.wbtc, signer),
+      };
+    }
+    return { read, write };
   }, [signer, provider]);
 
   return (
@@ -34,7 +39,7 @@ export default function PageExchange() {
         </p>
       </blockquote>
       <Exchange
-        portal={portal}
+        contracts={contracts}
         connectedAddress={address}
         addRecentTransaction={addRecentTransaction}
       />

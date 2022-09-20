@@ -9,6 +9,7 @@ import {
 import { EscrowsForAddr } from "../../model/Escrow";
 import { Orderbook } from "../../model/Orderbook";
 import { PortalParams } from "../../model/PortalParams";
+import { ContractConns } from "../../utils/contracts";
 import ViewContractLink from "../components/ViewContractLink";
 import EscrowTable from "./EscrowTable";
 import { ModalInfo } from "./exchangeActions";
@@ -24,7 +25,7 @@ import OrderForm from "./OrderForm";
 import OrdersTable from "./OrdersTable";
 
 interface ExchangeProps {
-  portal: Portal & { wbtc: ERC20 };
+  contracts: ContractConns;
   connectedAddress?: string;
   addRecentTransaction: (tx: NewTransaction) => void;
 }
@@ -48,7 +49,7 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
     for (let delay = 1000; ; delay *= 2) {
       console.log("Loading Portal parameters...");
       try {
-        const params = await loadParams(this.props.portal);
+        const params = await loadParams(this.props.contracts.read.portal);
         this.setState({ params });
         break;
       } catch (e) {
@@ -67,15 +68,18 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
 
   /** Reloads the orderbook and open escrows. */
   reloadData = async () => {
-    const { portal, connectedAddress } = this.props;
+    const { contracts, connectedAddress } = this.props;
 
     console.log("Loading orderbook...");
-    const orders = await loadOrderbook(portal);
+    const orders = await loadOrderbook(contracts.read.portal);
     this.setState({ orders });
 
     if (connectedAddress) {
       console.log("Loading escrows...");
-      const escrow = await loadEscrowForAddr(connectedAddress, portal);
+      const escrow = await loadEscrowForAddr(
+        connectedAddress,
+        contracts.read.portal
+      );
       this.setState({ escrow });
     } else {
       this.setState({ escrow: undefined });
@@ -96,7 +100,7 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
   closeModal = () => this.dispatch({ type: "none" });
 
   render() {
-    const { portal, connectedAddress, addRecentTransaction } = this.props;
+    const { contracts, connectedAddress, addRecentTransaction } = this.props;
     const { params, orders, escrow, modal } = this.state;
     console.log(`Rendering Exchange`, params);
     if (params == null) return null;
@@ -105,7 +109,7 @@ export default class Exchange extends React.PureComponent<ExchangeProps> {
     const bbo = orders ? orders.getBestBidAsk() : [];
     const onClose = this.closeModal;
     const props = {
-      portal,
+      contracts,
       params,
       bbo,
       connectedAddress,

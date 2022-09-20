@@ -9,7 +9,7 @@ import { createBtcPaymentProof } from "../../utils/prove-bitcoin-tx";
 import ViewContractLink from "../components/ViewContractLink";
 import { parseBitcoinAddr } from "../../utils/bitcoin-addr";
 import { Buffer } from "buffer";
-import { contractAddrs } from "../../utils/constants";
+import { contractAddrs } from "../../utils/contracts";
 
 const contractAddr = contractAddrs.btcTxVerifier;
 

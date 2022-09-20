@@ -2,12 +2,12 @@ import { NewTransaction } from "@rainbow-me/rainbowkit/dist/transactions/transac
 import { BigNumber, ContractTransaction, ethers } from "ethers";
 import * as React from "react";
 import { createRef } from "react";
-import { ERC20, Portal } from "../../../types/ethers-contracts";
 import { Escrow } from "../../model/Escrow";
 import { Order } from "../../model/Orderbook";
 import { PortalParams } from "../../model/PortalParams";
 import { parseBitcoinAddr } from "../../utils/bitcoin-addr";
 import { getblockClient } from "../../utils/bitcoin-rpc-client";
+import { ContractConns } from "../../utils/contracts";
 import { toFloat64 } from "../../utils/math";
 import { plural } from "../../utils/plural";
 import { createBtcPaymentProof } from "../../utils/prove-bitcoin-tx";
@@ -16,7 +16,7 @@ import Amount from "../components/Amount";
 import Modal from "../components/Modal";
 
 interface TxModalProps {
-  portal: Portal & { wbtc: ERC20 };
+  contracts: ContractConns;
   connectedAddress: string;
   params: PortalParams;
   bbo: number[];
@@ -56,8 +56,9 @@ class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
   }
 
   async loadAllowance() {
-    const { connectedAddress, portal } = this.props;
-    const { wbtc } = portal;
+    const { connectedAddress, contracts } = this.props;
+    const { portal } = contracts.write;
+    const { wbtc } = contracts.read;
 
     console.log(`Loading allowance and balance for ${connectedAddress}`);
     try {
@@ -99,7 +100,7 @@ class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
     this.props.addRecentTransaction({ hash: tx.hash, description });
 
     // Wait for it to confirm
-    const { provider } = this.props.portal;
+    const { provider } = this.props.contracts.read.portal;
     const receipt = await provider.waitForTransaction(tx.hash);
     this.setState({ txState: receipt.status ? "succeeded" : "failed" });
 
@@ -129,9 +130,6 @@ class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
         {this.renderTxStatus(
           status === "balance" ? "Insufficient WBTC balance" : undefined
         )}
-        <div>
-          Status {status} state {JSON.stringify(this.state)}
-        </div>
       </>
     );
   }
@@ -178,8 +176,8 @@ class TxModal<P extends TxModalProps> extends React.PureComponent<P> {
 
   approve = async () => {
     await this.trySend(async () => {
-      const { portal } = this.props;
-      const tx = await portal.wbtc.approve(
+      const { portal, wbtc } = this.props.contracts.write;
+      const tx = await wbtc.approve(
         portal.address,
         ethers.constants.MaxUint256
       );
@@ -339,7 +337,7 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
     const description = `Ask ${priceStr} x ${this.renderBtc(amountSats)} BTC`;
     console.log(description, { amountSats, tps, stakeTok });
 
-    const { portal } = this.props;
+    const { portal } = this.props.contracts.write;
     const tx = await portal.postAsk(amountSats, tps);
 
     return { description, tx };
@@ -362,7 +360,7 @@ export class ConfirmOrderModal extends TxModal<ConfirmOrderProps> {
     const description = `Bid ${priceStr} x ${this.renderBtc(amountSats)} BTC`;
     console.log(description, { tps, scriptHash, valueTok });
 
-    const { portal } = this.props;
+    const { portal } = this.props.contracts.write;
     const tx = await portal.postBid(amountSats, tps, scriptHash);
 
     return { description, tx };
@@ -455,7 +453,7 @@ export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
 
   sellTx = async () => {
     // Calculate amounts
-    const { order, amountSats, portal } = this.props;
+    const { order, amountSats } = this.props;
     const { orderID, priceTps } = order;
     const amountTok = this.calcTotalTok(amountSats, priceTps);
     const stakeTok = this.calcStakeTok(amountTok);
@@ -466,6 +464,7 @@ export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
     const description = `Sell ${btcStr} BTC, receive ${wbtcStr} WBTC`;
     console.log(description, { orderID, amountSats, stakeTok });
 
+    const { portal } = this.props.contracts.write;
     const tx = await portal.initiateSell(orderID, amountSats);
 
     return { description, tx };
@@ -473,7 +472,7 @@ export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
 
   buyTx = async () => {
     // Calculate amount
-    const { order, params, amountSats, portal } = this.props;
+    const { order, params, amountSats } = this.props;
     const { orderID, priceTps } = order;
     const amountTok = this.calcTotalTok(amountSats, priceTps);
 
@@ -490,6 +489,8 @@ export class ConfirmTradeModal extends TxModal<ConfirmTradeProps> {
     const btcStr = this.renderBtc(amountSats);
     const description = `Buy ${btcStr} BTC, paying ${wbtcStr} WBTC`;
     console.log(description, { orderID, amountSats, amountTok });
+
+    const { portal } = this.props.contracts.write;
     const tx = await portal.initiateBuy(orderID, amountSats, scriptHash);
 
     return { description, tx };
@@ -506,12 +507,13 @@ export class CancelModal extends TxModal<OrderModalProps> {
 
   cancelTx = async () => {
     // Send it
-    const { portal, order } = this.props;
+    const { order } = this.props;
     const { amountSats, orderID } = order;
     const type = amountSats.isNegative() ? "bid" : "ask";
     const description = `Cancel ${type}`;
     console.log(description, orderID);
 
+    const { portal } = this.props.contracts.write;
     const tx = await portal.cancelOrder(orderID);
 
     return { description, tx };
@@ -562,7 +564,7 @@ export class ProveModal extends TxModal<EscrowProps> {
   };
 
   proveTx = async () => {
-    const { escrow, portal } = this.props;
+    const { escrow } = this.props;
     const txId = this.refBitcoinTx.current.value;
 
     // Load proof information from Bitcoin RPC
@@ -584,6 +586,7 @@ export class ProveModal extends TxModal<EscrowProps> {
     const description = `Prove ${amountBtc} BTC, recv ${amountWbtc} WBTC`;
     console.log(description, escrow, proof);
 
+    const { portal } = this.props.contracts.write;
     const tx = await portal.proveSettlement(
       escrow.escrowId,
       proof.blockNum,
@@ -646,12 +649,13 @@ export class SlashModal extends TxModal<EscrowProps> {
   };
 
   slashTx = async () => {
-    const { portal, escrow } = this.props;
+    const { escrow } = this.props;
     const { escrowTok } = escrow;
 
     // Send it
     const description = `Slash escrow, take ${this.renderTok(escrowTok)} ETH`;
 
+    const { portal } = this.props.contracts.write;
     const tx = await portal.slash(escrow.escrowId);
 
     return { description, tx };

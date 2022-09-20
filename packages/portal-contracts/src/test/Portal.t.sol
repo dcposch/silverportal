@@ -297,7 +297,6 @@ contract PortalTest is Test {
 
     function testPartialSettleFromSell() public {
         Portal p = testPartialSell();
-        BtcTxProof memory proof;
 
         // First, stub in an failed proof validation.
         vm.expectRevert(bytes("Bad bitcoin transaction"));
@@ -343,7 +342,6 @@ contract PortalTest is Test {
 
     function testSettleFromBuy() public {
         Portal p = testBuy();
-        BtcTxProof memory proof;
 
         // First, stub in an failed proof validation.
         vm.expectRevert(bytes("Bad bitcoin transaction"));
@@ -361,7 +359,6 @@ contract PortalTest is Test {
 
     function testPartialSettleFromBuy() public {
         Portal p = testPartialBuy();
-        BtcTxProof memory proof;
 
         // First, stub in an failed proof validation.
         vm.expectRevert(bytes("Bad bitcoin transaction"));
@@ -463,11 +460,11 @@ contract StubBtcMirror is IBtcMirror {
 }
 
 library StubBtcProof {
-    function valid() internal view returns (BtcTxProof memory proof) {
+    function valid() internal pure returns (BtcTxProof memory proof) {
         proof.txId = bytes32(uint256(1));
     }
 
-    function invalid() internal view returns (BtcTxProof memory proof) {}
+    function invalid() internal pure returns (BtcTxProof memory proof) {}
 }
 
 contract StubBtcTxVerifier is IBtcTxVerifier {
@@ -484,7 +481,7 @@ contract StubBtcTxVerifier is IBtcTxVerifier {
         uint256, /* txOutIx */
         bytes20, /* destScriptHash */
         uint256 /* amountSats */
-    ) external view returns (bool) {
+    ) external pure returns (bool) {
         return uint256(proof.txId) == 1;
     }
 
