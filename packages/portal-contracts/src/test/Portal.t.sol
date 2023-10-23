@@ -13,6 +13,13 @@ contract PortalTest is Test {
         uint256 makerStakedWei,
         address maker
     );
+    
+    event OrderUpdated(
+        uint256 orderID,
+        int128 amountSats,
+        uint256 makerStakedTok,
+        address maker
+    );
 
     event OrderCancelled(uint256 orderID);
 
@@ -359,6 +366,52 @@ contract PortalTest is Test {
         vm.expectEmit(true, true, true, true);
         emit EscrowSettled(2, 1e8-1e7, address(this), 18.9 ether);
         p.proveSettlement(2, 123, proof, 12);
+    }
+    
+    function testUpdateOrderNotMaker() public {
+        Portal p = testBid();
+        vm.prank(address(0x42));
+        vm.expectRevert(bytes("Order not yours"));
+        p.updateOrder(1, 1e8);
+    }
+
+    function testUpdateBid() public {
+        Portal p = testBid();
+        
+        uint256 stakeWei = 1 ether; /* 1 ETH = 5% of 1 * 20 ETH */
+        vm.expectEmit(true, true, true, true);
+        emit OrderUpdated(1, 2e8, 2e18, address(this));
+        p.updateOrder{value: stakeWei}(1, 1e8);
+        
+        uint256 orderID = 1;
+        bytes20 destScriptHash = hex"0011223344556677889900112233445566778899";
+        uint256 escrowID = p.initiateSell{value: 40 ether}(
+            orderID,
+            2e8,
+            destScriptHash
+        );
+        assertEq(escrowID, 1);
+        
+        vm.expectRevert(bytes("Order already filled"));
+        p.initiateSell{value: 20 ether}(orderID, 1e8, destScriptHash);
+    }
+    
+    function testUpdateAsk() public {
+        Portal p = testAsk();
+        
+        vm.expectEmit(true, true, true, true);
+        emit OrderUpdated(1, -2e8, 0, address(this));
+        p.updateOrder{value: 20 ether}(1, -1e8);
+        
+        uint256 orderID = 1;
+        uint256 escrowID = p.initiateBuy{value: 2 ether}(
+            orderID,
+            2e8
+        );
+        assertEq(escrowID, 1);
+        
+        vm.expectRevert(bytes("Order already filled"));
+        p.initiateBuy{value: 20 ether}(orderID, 1e8);
     }
 }
 
